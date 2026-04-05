@@ -1,0 +1,23 @@
+{
+  "language": "python",
+  "problem_type": "unknown",
+  "time_factor": false,
+  "dataset": {
+    "path": "data/raw/",
+    "format": "unknown",
+    "target_column": null
+  },
+  "workflow": {
+    "research_enabled": true,
+    "plan_check_enabled": true,
+    "auto_advance": false,
+    "html_reports": true
+  },
+  "reproducibility": {
+    "seed": 42,
+    "strip_outputs_on_commit": true
+  },
+  "milestone": "v1.0",
+  "created": "YYYY-MM-DD",
+  "last_updated": "YYYY-MM-DD"
+}
