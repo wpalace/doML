@@ -36,22 +36,36 @@ To re-run the kickoff interview, delete .planning/ and try again.
 
 Then stop.
 
-### Step 2 — Data folder validation *(implemented in Phase 3)*
+### Step 2 — Data folder validation and scan
 
-> Phase 3 implements: check that `data/` exists and contains at least one supported file
-> (CSV, Parquet, .xls/.xlsx). Uses DuckDB schema introspection to detect format.
-> Produces clear error if empty.
+Run a DuckDB scan of `data/raw/` to detect file formats and display schema context before the interview begins.
 
-**Phase 2 stub:** Check that `data/raw/` exists. If not, display:
+**Implementation:**
 
+Use the Bash tool to run the following Python snippet. This calls the `doml.data_scan` module built in Phase 3 Plan 02.
+
+```python
+import os
+from pathlib import Path
+from doml.data_scan import scan_data_folder, format_scan_report
+
+PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', '.'))
+data_dir = PROJECT_ROOT / 'data' / 'raw'
+
+try:
+    scan_results = scan_data_folder(data_dir)
+    report = format_scan_report(scan_results)
+    print(report)
+except ValueError as e:
+    print(f"\nError: {e}\n")
+    raise SystemExit(1)
 ```
-data/raw/ not found.
 
-Create the directory and copy your dataset files into data/raw/ before running /doml-new-project.
-Supported formats: CSV, Parquet, Excel (.xls, .xlsx)
-```
+If the scan raises ValueError (missing directory, empty directory, or .xls file), print the error message and STOP. Do not write any planning artifacts. Do not proceed to Step 3.
 
-Then stop.
+If the scan succeeds, display the `format_scan_report` output to the user. Store `scan_results` in memory — it will be used to auto-populate dataset fields in Step 3.
+
+**No partial writes.** If Step 2 fails, Steps 3–5 do not run.
 
 ### Step 3 — Kickoff interview *(implemented in Phase 3)*
 
