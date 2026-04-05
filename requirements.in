@@ -15,6 +15,7 @@ jinja2
 nbstripout
 pre-commit
 pip-tools
+pytest
 
 # --- ML stack ---
 shap
