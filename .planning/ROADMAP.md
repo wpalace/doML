@@ -70,9 +70,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Skills and command entry points (`/doml-new-project`, `/doml-plan-phase`, `/doml-execute-phase`, `/doml-progress`)
-- [ ] 02-02: Workflow orchestration files (new-project, plan-phase, execute-phase, progress workflows)
-- [ ] 02-03: Planning artifact templates (PROJECT.md, ROADMAP.md, STATE.md, config.json for analysis projects)
+- [x] 02-01: Skills and command entry points (`/doml-new-project`, `/doml-plan-phase`, `/doml-execute-phase`, `/doml-progress`)
+- [x] 02-02: Workflow orchestration files (new-project, plan-phase, execute-phase, progress workflows)
+- [x] 02-03: Planning artifact templates (PROJECT.md, ROADMAP.md, STATE.md, config.json for analysis projects)
 
 ---
 
