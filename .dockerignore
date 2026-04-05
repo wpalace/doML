@@ -1,0 +1,16 @@
+.git
+.gitignore
+*.pyc
+__pycache__
+.ipynb_checkpoints
+.pytest_cache
+.venv
+venv
+renv/library
+data/raw/*
+data/processed/*
+data/external/*
+!data/**/.gitkeep
+reports/*.html
+models/*.pkl
+.DS_Store
