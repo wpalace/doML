@@ -46,8 +46,8 @@ Milestone 1 delivers a fully installable DoML framework: a Docker-based Jupyter 
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Docker environment (`docker-compose.yml`, `Dockerfile`, `requirements.txt` with pinned DuckDB + ML stack)
-- [ ] 01-02: Project directory scaffold and data immutability enforcement
+- [x] 01-01: Docker environment (`docker-compose.yml`, `Dockerfile`, `requirements.txt` with pinned DuckDB + ML stack)
+- [x] 01-02: Project directory scaffold and data immutability enforcement
 - [ ] 01-03: Reproducibility setup (`nbstripout`, pre-commit, `CLAUDE.md` template)
 
 ---
@@ -235,7 +235,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Infrastructure & Docker | M1 | 0/3 | Not started | — |
+| 1. Infrastructure & Docker | M1 | 2/3 | In Progress|  |
 | 2. Framework Skeleton | M1 | 0/3 | Not started | — |
 | 3. Kickoff Interview | M1 | 0/2 | Not started | — |
 | 4. Business Understanding Phase | M1 | 0/3 | Not started | — |

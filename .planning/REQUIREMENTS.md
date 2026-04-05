@@ -10,10 +10,10 @@ Milestone 1 delivers the framework foundation plus Business Understanding and Da
 ### Framework Infrastructure
 
 - [ ] **INFR-01**: Framework installs into any Claude Code project via skills/workflows/agents directory structure
-- [ ] **INFR-02**: `docker-compose.yml` and `requirements.txt` generated at project creation using `jupyter/datascience-notebook` as base image
-- [ ] **INFR-03**: DuckDB installed and available in the Docker environment for both Python (`duckdb` package) and R (`duckdb` R package) — always present regardless of whether EDA uses it directly
-- [ ] **INFR-04**: Project directory structure scaffolded: `/data/raw/`, `/data/processed/`, `/data/external/`, `/notebooks/`, `/reports/`, `/models/`
-- [ ] **INFR-05**: Raw data in `/data/raw/` is treated as immutable — framework enforces no in-place modification of raw files
+- [x] **INFR-02**: `docker-compose.yml` and `requirements.txt` generated at project creation using `jupyter/datascience-notebook` as base image
+- [x] **INFR-03**: DuckDB installed and available in the Docker environment for both Python (`duckdb` package) and R (`duckdb` R package) — always present regardless of whether EDA uses it directly
+- [x] **INFR-04**: Project directory structure scaffolded: `/data/raw/`, `/data/processed/`, `/data/external/`, `/notebooks/`, `/reports/`, `/models/`
+- [x] **INFR-05**: Raw data in `/data/raw/` is treated as immutable — framework enforces no in-place modification of raw files
 - [ ] **INFR-06**: `CLAUDE.md` generated at project creation with DoML-specific instructions for Claude Code
 
 ### Planning Artifacts
@@ -62,9 +62,9 @@ Milestone 1 delivers the framework foundation plus Business Understanding and Da
 ### Reproducibility
 
 - [ ] **REPR-01**: All notebooks set random seeds at the top (`np.random.seed(42)` for Python, `set.seed(42)` for R)
-- [ ] **REPR-02**: All file paths resolved from project root via environment variable — no hardcoded absolute paths
+- [x] **REPR-02**: All file paths resolved from project root via environment variable — no hardcoded absolute paths
 - [ ] **REPR-03**: `nbstripout` configured via pre-commit hook to strip outputs before git commit
-- [ ] **REPR-04**: `requirements.txt` pins all Python package versions; `renv.lock` pins R packages if R notebooks used
+- [x] **REPR-04**: `requirements.txt` pins all Python package versions; `renv.lock` pins R packages if R notebooks used
 
 ### Outputs
 
@@ -116,10 +116,10 @@ Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INFR-01 | Phase 1 | Pending |
-| INFR-02 | Phase 1 | Pending |
-| INFR-03 | Phase 1 | Pending |
-| INFR-04 | Phase 1 | Pending |
-| INFR-05 | Phase 1 | Pending |
+| INFR-02 | Phase 1 | Complete |
+| INFR-03 | Phase 1 | Complete |
+| INFR-04 | Phase 1 | Complete |
+| INFR-05 | Phase 1 | Complete |
 | INFR-06 | Phase 1 | Pending |
 | PLAN-01 | Phase 2 | Pending |
 | PLAN-02 | Phase 2 | Pending |
@@ -150,9 +150,9 @@ Updated during roadmap creation.
 | EDA-09 | Phase 5 | Pending |
 | EDA-10 | Phase 5 | Pending |
 | REPR-01 | Phase 1 | Pending |
-| REPR-02 | Phase 1 | Pending |
+| REPR-02 | Phase 1 | Complete |
 | REPR-03 | Phase 1 | Pending |
-| REPR-04 | Phase 1 | Pending |
+| REPR-04 | Phase 1 | Complete |
 | OUT-01 | Phase 4–5 | Pending |
 | OUT-02 | Phase 4–5 | Pending |
 | OUT-03 | Phase 4–5 | Pending |
