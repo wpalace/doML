@@ -1,0 +1,55 @@
+# DoML project .gitignore
+
+# --- Data ---
+# Raw data is immutable and NOT committed; only .gitkeep is tracked (INFR-05)
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/README.md
+data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
+
+# --- Generated artifacts ---
+reports/*.html
+!reports/.gitkeep
+models/*.pkl
+models/*.joblib
+models/*.json
+!models/.gitkeep
+
+# --- Notebook outputs (nbstripout handles on commit, but ignore checkpoints) ---
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.local
+
+# --- R ---
+.Rhistory
+.RData
+.Ruserdata
+renv/library/
+renv/staging/
+renv/python/
+
+# --- Docker ---
+.docker/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~

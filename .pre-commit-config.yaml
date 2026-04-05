@@ -1,0 +1,8 @@
+# DoML reproducibility hooks — strip notebook outputs before commit (REPR-03)
+repos:
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.1
+    hooks:
+      - id: nbstripout
+        args:
+          - '--extra-keys=metadata.celltoolbar metadata.kernelspec cell.metadata.heading_collapsed cell.metadata.collapsed'
