@@ -1,0 +1,184 @@
+# Project Research Summary
+
+**Project:** DoML — Do Machine Learning
+**Domain:** Meta-prompting ML analysis framework
+**Researched:** 2026-04-04
+**Confidence:** HIGH
+
+## Executive Summary
+
+DoML is a meta-prompting framework — a set of installable skills, agents, and workflows for Claude Code — that guides data science teams through reproducible ML analysis. The framework mirrors GSD's architecture (skill/workflow/agent layers) but replaces software-building phases with a CRISP-DM-inspired 4-phase analysis pipeline: Business Understanding → Data Understanding → Data Modelling → Forecasting (optional). Every analysis produces two outputs per phase: a Jupyter notebook for technical peer review and an HTML report for non-technical stakeholders.
+
+The recommended stack centers on `jupyter/datascience-notebook` (Docker base image with Python + R pre-installed), DuckDB for SQL-based EDA on large flat files, scikit-learn Pipelines for leak-free preprocessing, and nbconvert for HTML report generation. The architecture follows Cookiecutter Data Science conventions with one critical addition: data immutability — raw data in `/data/raw/` is never modified, all transformations write to `/data/processed/`. This guarantees reproducibility without extra tooling.
+
+The highest-risk failure mode is the framework becoming a black-box AutoML wrapper. DoML's value is the guided process where human analysts make documented decisions at each phase gate. The business understanding interview is the critical root: wrong problem type framing propagates errors through every downstream phase. The framework must enforce this — skipping Business Understanding must not be possible.
+
+## Key Findings
+
+### Recommended Stack
+
+The `jupyter/datascience-notebook` Docker image eliminates the environment setup problem entirely — it ships Python 3.11, R 4.3, JupyterLab 4, conda, and the most common DS libraries pre-installed. DuckDB enables SQL-based EDA on CSV/Parquet files at GB scale without a database server, available in both Python and R with identical SQL syntax.
+
+**Core technologies:**
+- `jupyter/datascience-notebook` (Docker): Base runtime — Python + R + JupyterLab, zero setup
+- DuckDB 1.x: Large-dataset wrangling and EDA via SQL in both Python and R
+- papermill 2.x: Parameterized notebook execution — runs notebooks programmatically
+- nbconvert 7.x: HTML export from notebooks (`--no-input` hides code for stakeholders)
+- scikit-learn 1.4+: Unified ML API with Pipelines that enforce leak-free preprocessing
+- SHAP 0.44+: Model explainability for all leaderboard models
+- Optuna 3.x: Bayesian hyperparameter optimization
+- statsmodels 0.14+: Statistical tests (normality, stationarity, regression diagnostics)
+- Prophet 1.1+: Time series forecasting (Python and R)
+- tidyverse + tidymodels (R): Tidy data and unified ML in R
+
+### Expected Features
+
+**Must have (table stakes):**
+- Guided business context interview with problem type detection
+- Data inventory and validation before any analysis begins
+- DuckDB-based EDA for large flat files
+- Distribution analysis, correlation analysis, missing value analysis
+- Model leaderboard with baseline model always included
+- Reproducible notebooks (Docker + pinned deps + random seeds)
+- HTML stakeholder report (executive summary + rendered notebook)
+- Temporal cross-validation for time series problems
+
+**Should have (differentiators):**
+- LLM-guided questioning workflow (not a static checklist)
+- Problem-type-aware pipeline branching (each ML type gets its own tests and metrics)
+- Contextual narrative generation from actual notebook cell outputs
+- Mandatory assumption enforcement (statistical tests required, not optional)
+- Prediction intervals in all forecasts (not just point predictions)
+- Tidy data validation gate before EDA
+
+**Defer (Milestone 2+):**
+- Deep learning templates (PyTorch/TensorFlow)
+- NLP/text analysis workflows
+- Great Expectations data quality gates
+- Forecast actuals tracking
+
+### Architecture Approach
+
+DoML uses the same three-layer architecture as GSD (skills/workflows/agents) but with analysis-focused agents instead of software-focused ones. The project structure follows Cookiecutter Data Science with strict data immutability. The key design insight from architecture research: Business Understanding is the critical root component — problem type flows from it to determine tests, metrics, models, and whether Forecasting applies.
+
+**Major components:**
+1. Skills/Commands — Entry points mapping user commands to workflows (`/doml-new-project`, `/doml-plan-phase`, etc.)
+2. Workflows — Orchestration logic for each phase (markdown files executed by Claude)
+3. Agents — Specialized subprocesses (interviewer, EDA analyst, model advisor, report generator)
+4. Notebooks — One per phase, reproducible, peer-reviewable
+5. HTML Reports — nbconvert export + LLM-generated executive summary per phase
+6. Docker environment — Generated by DoML, jupyter/datascience-notebook base
+
+### Critical Pitfalls
+
+1. **Data leakage** — Preprocessing fit on full dataset before splitting; use scikit-learn Pipelines exclusively; fit only on training data
+2. **Temporal contamination** — Random splits on time series data; enforce `TimeSeriesSplit` when time is a factor (confirmed in Business Understanding)
+3. **Poor business framing** — Analysis answers the wrong question; Business Understanding phase is mandatory and produces a decision framing document before data is touched
+4. **Causal language in reports** — LLM defaults to causal language; report generation prompts must enforce associative language ("associated with" not "causes")
+5. **Overfitting mistaken for quality** — Leaderboard shows train scores; leaderboard must show only held-out validation scores, never training scores
+
+## Implications for Roadmap
+
+### Phase 1: Project Scaffolding & Docker Environment
+**Rationale:** Nothing else works without the reproducible environment. Must come first.
+**Delivers:** `docker-compose.yml`, `requirements.txt`, project directory structure (`/data/raw/`, `/data/processed/`, `/notebooks/`, `/reports/`, `/models/`), `CLAUDE.md` template
+**Stack:** jupyter/datascience-notebook, docker-compose, nbstripout, pip-tools
+**Pitfalls addressed:** Reproducibility failures
+
+### Phase 2: Planning Artifacts & Framework Skeleton
+**Rationale:** DoML needs its own planning infrastructure (like GSD's .planning/ system) before analysis skills can be built.
+**Delivers:** PROJECT.md, ROADMAP.md, STATE.md templates for DoML analysis projects; config.json; `/doml-new-project` skill skeleton; guided interview workflow
+**Stack:** GSD-inspired skill/workflow/agent architecture pattern
+**Pitfalls addressed:** Poor business framing (interview enforces problem type detection)
+
+### Phase 3: Business Understanding Phase
+**Rationale:** The critical root — problem type flows from here to all downstream phases.
+**Delivers:** `/doml-business-understanding` skill; guided interview agent; business_understanding.ipynb template; problem type detection logic; business_summary.html
+**Stack:** nbformat (notebook construction), nbconvert, Jinja2
+**Pitfalls addressed:** Poor business framing, temporal contamination (time factor confirmation)
+
+### Phase 4: Data Understanding Phase (EDA)
+**Rationale:** Must follow Business Understanding — test selection is problem-type dependent.
+**Delivers:** `/doml-data-understanding` skill; data_understanding.ipynb template with DuckDB integration; distribution analysis, correlation, missing values, stationarity tests (if time series); eda_report.html
+**Stack:** DuckDB, pandas, scipy, statsmodels, plotly, seaborn, ydata-profiling (supplemental)
+**Pitfalls addressed:** Distribution assumption violations, stationarity ignored
+
+### Phase 5: Data Modelling — Regression & Classification
+**Rationale:** Supervised learning (regression + classification) is the most common problem type; implement first.
+**Delivers:** Modelling notebook templates for regression and classification; leaderboard with baseline; SHAP explainability; Optuna tuning; model_report.html
+**Stack:** scikit-learn Pipelines, XGBoost, LightGBM, SHAP, Optuna
+**Pitfalls addressed:** Data leakage (Pipelines), overfitting (held-out leaderboard), causal language
+
+### Phase 6: Data Modelling — Clustering & Dimensionality Reduction
+**Rationale:** Unsupervised methods; separate from supervised to keep phases focused.
+**Delivers:** Clustering notebook templates (KMeans, DBSCAN, hierarchical); dimensionality reduction templates (PCA, UMAP, t-SNE); internal metrics; visualization
+**Stack:** scikit-learn, umap-learn, plotly
+**Pitfalls addressed:** Wrong evaluation metric (internal metrics only for clustering)
+
+### Phase 7: Time Series & Forecasting Phase
+**Rationale:** Optional phase; depends on Business Understanding confirming time factor.
+**Delivers:** Time series EDA additions (stationarity, decomposition); forecasting notebook templates (ARIMA, Prophet); prediction intervals; forecast_report.html; temporal CV enforcement
+**Stack:** statsmodels, Prophet, TimeSeriesSplit, plotly
+**Pitfalls addressed:** Temporal contamination, missing prediction intervals, stationarity ignored
+
+### Phase 8: HTML Report Generation & Stakeholder Outputs
+**Rationale:** Dual-output system must work across all phases; implement as a cross-cutting concern.
+**Delivers:** nbconvert pipeline (`--no-input` HTML export); Claude-generated executive summary templates; Jinja2 report templates; report generation workflow
+**Stack:** nbconvert, Jinja2, Claude API (narrative generation)
+**Pitfalls addressed:** Causal language in reports (prompt-enforced language rules)
+
+### Phase Ordering Rationale
+
+- Phases 1-2 are pure infrastructure — nothing else works without them
+- Phase 3 (Business Understanding) must precede all analysis phases — problem type gates downstream behavior
+- Phases 4-7 follow the CRISP-DM pipeline order; each phase depends on the previous
+- Phase 8 (Reports) is a cross-cutting concern but implemented last — after all notebook templates exist to export
+- Time series (Phase 7) is last among analysis phases because it's optional and most specialized
+
+### Research Flags
+
+Phases needing deeper research during planning:
+- **Phase 3 (Business Understanding):** LLM interview design is novel — research best practices for structured elicitation and problem type classification
+- **Phase 8 (Reports):** nbconvert customization and Jinja2 HTML templating — verify current nbconvert API for hiding code cells
+
+Phases with standard patterns (can skip research-phase):
+- **Phase 1 (Docker):** jupyter/datascience-notebook is well-documented
+- **Phase 5 (Regression/Classification):** scikit-learn Pipelines are well-established
+
+## Confidence Assessment
+
+| Area | Confidence | Notes |
+|------|------------|-------|
+| Stack | HIGH | All tools are established; DuckDB + jupyter/datascience-notebook combination is proven |
+| Features | HIGH | CRISP-DM and similar frameworks provide strong prior; DoML differentiators are clear |
+| Architecture | MEDIUM | GSD pattern adaptation is HIGH; exact DoML tooling binary needs validation |
+| Pitfalls | HIGH | ML best practice literature is extensive; LLM-specific pitfalls are novel but well-reasoned |
+
+**Overall confidence:** HIGH
+
+### Gaps to Address
+
+- **DoML tooling binary:** Decide whether to adapt `gsd-tools.cjs` or build a separate `doml-tools.cjs` — impacts Phase 2
+- **Notebook template format:** Decide between static `.ipynb` templates vs programmatic generation via nbformat — impacts Phases 3-7
+- **R vs Python default:** When both languages are available, how does DoML decide which to use? User preference at project init?
+
+## Sources
+
+### Primary (HIGH confidence)
+- GSD source code (`/home/bill/source/DoML/.claude/get-shit-done/`) — architecture pattern, directly inspected
+- scikit-learn documentation — Pipeline patterns, CV protocols
+- Jupyter Docker Stacks — base image contents
+
+### Secondary (MEDIUM confidence)
+- CRISP-DM methodology — phase pipeline structure
+- Cookiecutter Data Science — project directory conventions
+- DuckDB documentation — SQL API patterns
+- "Forecasting: Principles and Practice" (Hyndman) — time series CV and stationarity
+
+### Tertiary (LOW confidence / needs verification)
+- nbconvert `--no-input` behavior — verify against current version
+- Prophet Python API — verify installation name (`prophet` not `fbprophet`)
+
+---
+*Research completed: 2026-04-04*
+*Ready for roadmap: yes*
