@@ -15,6 +15,7 @@ Milestone 1 delivers the framework foundation plus Business Understanding and Da
 - [x] **INFR-04**: Project directory structure scaffolded: `/data/raw/`, `/data/processed/`, `/data/external/`, `/notebooks/`, `/reports/`, `/models/`
 - [x] **INFR-05**: Raw data in `/data/raw/` is treated as immutable — framework enforces no in-place modification of raw files
 - [ ] **INFR-06**: `CLAUDE.md` generated at project creation with DoML-specific instructions for Claude Code
+- [ ] **INFR-07**: Smoke test notebooks execute end-to-end inside the container and produce viewable output cells confirming the Python ML stack, R/tidyverse stack, and DuckDB are operational
 
 ### Planning Artifacts
 
@@ -121,6 +122,7 @@ Updated during roadmap creation.
 | INFR-04 | Phase 1 | Complete |
 | INFR-05 | Phase 1 | Complete |
 | INFR-06 | Phase 1 | Pending |
+| INFR-07 | Phase 1 | Pending |
 | PLAN-01 | Phase 2 | Pending |
 | PLAN-02 | Phase 2 | Pending |
 | PLAN-03 | Phase 2 | Pending |
@@ -158,8 +160,8 @@ Updated during roadmap creation.
 | OUT-03 | Phase 4–5 | Pending |
 
 **Coverage:**
-- v1 requirements: 38 total
-- Mapped to phases: 38
+- v1 requirements: 39 total
+- Mapped to phases: 39
 - Unmapped: 0 ✓
 
 ---
