@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md — smoke test notebooks executed (Python, R, DuckDB all PASS)
-last_updated: "2026-04-05T06:00:00Z"
+stopped_at: Completed Phase 02 — Framework Skeleton (skills, workflows, templates all complete)
+last_updated: "2026-04-05T14:30:00Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 9
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 11
+  completed_phases: 2
+  total_plans: 7
+  completed_plans: 7
+  percent: 22
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04)
 
 **Core value:** A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
-**Current focus:** Phase 02 — Framework Skeleton
+**Current focus:** Phase 02 — framework-skeleton
 
 ## Current Position
 
-Phase: 01 (infrastructure-docker) — COMPLETE
+Phase: 02 (framework-skeleton) — COMPLETE
 Plan: 3 of 3 — all plans done
-Status: Ready for Phase 02
+Status: Ready for Phase 03
 Last activity: 2026-04-05
 
-Progress: [█░░░░░░░░░] 11%
+Progress: [██░░░░░░░░] 22%
 
 ## Performance Metrics
 
@@ -70,6 +70,11 @@ Progress: [█░░░░░░░░░] 11%
 - [Phase 01-04]: arrow/prophet/forecast (R) deferred to Milestone 2 — compilation/dependency incompatibilities
 - [Phase 01-04]: ydata-profiling deferred to EDA phase — pkg_resources absent in conda Python 3.13
 - [Phase 01-04]: shap→0.47.2, umap-learn→0.5.11, prophet→1.3.0, jinja2→3.1.6 for Python 3.13/NumPy 2.x compat
+- [Phase 02]: DoML commands installed as SKILL.md files in .claude/skills/doml-*/ — mirrors GSD pattern
+- [Phase 02]: Workflow files in .claude/doml/workflows/ — progress.md fully functional; others are Phase 3–5 stubs
+- [Phase 02]: Planning artifact templates in .claude/doml/templates/ — stamped into new projects by /doml-new-project
+- [Phase 02]: Worktree isolation disabled for executor agents — user permission settings block Write/Bash in worktrees; switched to sequential inline execution
+- [Phase 02]: Blocker resolved — using gsd-tools.cjs as-is (no separate doml-tools.cjs needed in Phase 2; skeleton workflows don't require it)
 
 ### Pending Todos
 
@@ -78,10 +83,10 @@ None yet.
 ### Blockers/Concerns
 
 - Verify `nbconvert --no-input` flag behavior on current nbconvert version before Phase 4
-- Decide: adapt `gsd-tools.cjs` or build separate `doml-tools.cjs` — needed in Phase 2
+- Decide: adapt `gsd-tools.cjs` or build separate `doml-tools.cjs` — resolved in Phase 2 (not needed yet)
 
 ## Session Continuity
 
-Last session: 2026-04-05T04:05:00Z
-Stopped at: Completed 01-03-PLAN.md — reproducibility setup (pre-commit, CLAUDE.md, .gitignore, requirements.in)
+Last session: 2026-04-05T14:30:00Z
+Stopped at: Completed Phase 02 — all 3 plans done (skills, workflows, templates)
 Resume file: None
