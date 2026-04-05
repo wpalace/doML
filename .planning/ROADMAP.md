@@ -95,8 +95,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Interview workflow (questions, branching logic, problem type classification, time-factor detection)
-- [ ] 03-02: Data folder validation and format detection (CSV/Parquet/Excel via DuckDB schema introspection)
+- [ ] 03-01-PLAN.md — Interview workflow: AskUserQuestion sequence, ML type inference, domain research offer, atomic PROJECT.md + config.json write
+- [ ] 03-02-PLAN.md — Data scan module: doml/data_scan.py DuckDB introspection for CSV/Parquet/Excel, pytest infrastructure
 
 ---
 
