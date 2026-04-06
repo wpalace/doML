@@ -74,10 +74,11 @@ Ask using AskUserQuestion:
 "No Docker environment found. Set up JupyterLab with Python, R, and DuckDB? [yes/no]"
 
 If yes:
-1. Copy the DoML docker-compose template into the project root:
-   - Source: `.claude/doml/templates/docker-compose.yml`
-   - Destination: `./docker-compose.yml`
-   - Use the Write tool to copy it (read source first, then write to destination)
+1. Copy the three DoML Docker templates into the project root (read each source first, then write to destination). Do not overwrite files that already exist:
+   - `.claude/doml/templates/docker-compose.yml` → `./docker-compose.yml`
+   - `.claude/doml/templates/Dockerfile` → `./Dockerfile`
+   - `.claude/doml/templates/requirements.txt` → `./requirements.txt`
+   - `.claude/doml/templates/requirements.in` → `./requirements.in`
 2. Start the environment:
    ```bash
    docker compose up -d
