@@ -10,8 +10,6 @@ services:
       - JUPYTER_ENABLE_LAB=yes
       - JUPYTER_TOKEN=${JUPYTER_TOKEN:-}
       - PROJECT_ROOT=/home/jovyan/work
-      - CHOWN_HOME=yes
-      - CHOWN_HOME_OPTS=-R
     volumes:
       # INFR-05: raw + external data mounted read-only — immutability enforced at OS level
       - ./data/raw:/home/jovyan/work/data/raw:ro
