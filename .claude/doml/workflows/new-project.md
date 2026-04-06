@@ -9,11 +9,12 @@ Guided kickoff for a new DoML analysis project: interview → Docker environment
 
 | Step | Implemented | Phase |
 |------|-------------|-------|
-| Data folder validation | Phase 3 | INTV-03 |
+| Existing project detection | Phase 2 | PLAN-01 |
+| Docker environment setup | Phase 3 | INFR-02 |
+| Data folder validation and scan | Phase 3 | INTV-03 |
 | Business interview | Phase 3 | INTV-01, INTV-02, INTV-04, INTV-05 |
 | ML problem type detection | Phase 3 | INTV-02 |
 | Planning artifact generation | Phase 2 | PLAN-01–04 |
-| Docker template output | Phase 1 (templates exist) | INFR-02 |
 | Business Understanding notebook | Phase 4 | BU-01–05 |
 | Data Understanding notebook | Phase 5 | EDA-01–10 |
 
@@ -36,38 +37,144 @@ To re-run the kickoff interview, delete .planning/ and try again.
 
 Then stop.
 
-### Step 2 — Data folder validation and scan
+### Step 2 — Docker environment setup
 
-Run a DuckDB scan of `data/raw/` to detect file formats and display schema context before the interview begins.
+Check whether a JupyterLab Docker environment is already configured and running. All Python analysis runs inside the container — no local Python is assumed on the host machine.
+
+**Detection check:**
+
+Use the Bash tool to check whether `docker-compose.yml` exists in the project root AND references a `jupyter` service with the DoML volume layout:
+
+```bash
+test -f docker-compose.yml && grep -q "jupyter" docker-compose.yml && grep -q "/home/jovyan/work" docker-compose.yml
+```
+
+**If the check passes (matching setup found):**
+
+Display:
+```
+Docker environment detected — using existing docker-compose.yml
+```
+
+Verify the container is running:
+```bash
+docker compose ps --services --filter status=running 2>/dev/null | grep -q jupyter
+```
+
+If not running, start it:
+```bash
+docker compose up -d
+```
+
+Wait up to 15 seconds for the container to be ready, then proceed to Step 3.
+
+**If the check fails (no matching setup):**
+
+Ask using AskUserQuestion:
+"No Docker environment found. Set up JupyterLab with Python, R, and DuckDB? [yes/no]"
+
+If yes:
+1. Copy the DoML docker-compose template into the project root:
+   - Source: `.claude/doml/templates/docker-compose.yml`
+   - Destination: `./docker-compose.yml`
+   - Use the Write tool to copy it (read source first, then write to destination)
+2. Start the environment:
+   ```bash
+   docker compose up -d
+   ```
+3. Wait up to 15 seconds for the container to be ready, then proceed to Step 3.
+
+If no:
+Display:
+```
+Warning: Analysis phases require the Docker environment (JupyterLab with Python, R, and DuckDB).
+Steps 3–5 will be skipped. You can set up the environment later by running:
+  docker compose up -d
+```
+Then stop — do not proceed to Step 3.
+
+### Step 3 — Data folder validation and scan
+
+Run a DuckDB scan of `data/raw/` to detect file formats and display schema context before the interview begins. The scan runs **inside the container** — no local Python required on the host.
 
 **Implementation:**
 
-Use the Bash tool to run the following Python snippet. This calls the `doml.data_scan` module built in Phase 3 Plan 02.
+Use the Bash tool to run the following inline Python via `docker compose exec`:
 
-```python
-import os
+```bash
+docker compose exec jupyter python -c "
+import duckdb, json, os
 from pathlib import Path
-from doml.data_scan import scan_data_folder, format_scan_report
 
-PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', '.'))
-data_dir = PROJECT_ROOT / 'data' / 'raw'
+data_dir = Path('/home/jovyan/work/data/raw')
 
-try:
-    scan_results = scan_data_folder(data_dir)
-    report = format_scan_report(scan_results)
-    print(report)
-except ValueError as e:
-    print(f"\nError: {e}\n")
+# Validate directory
+if not data_dir.exists():
+    print('\nError: data/raw/ directory not found. Create it and add at least one CSV, Parquet, or XLSX file.\n')
     raise SystemExit(1)
+
+# Find supported files
+extensions = {'.csv', '.parquet', '.xlsx', '.xls'}
+files = [f for f in data_dir.iterdir() if f.suffix.lower() in extensions and not f.name.startswith('.')]
+
+if not files:
+    print('\nError: data/raw/ is empty. Add at least one CSV, Parquet, or XLSX file before running the interview.\n')
+    raise SystemExit(1)
+
+# Check for unsupported .xls files
+xls_files = [f for f in files if f.suffix.lower() == '.xls']
+if xls_files:
+    names = ', '.join(f.name for f in xls_files)
+    print(f'\nError: Legacy .xls files are not supported ({names}). Convert to .xlsx or .csv first.\n')
+    raise SystemExit(1)
+
+# Scan each file with DuckDB
+results = []
+for f in sorted(files):
+    ext = f.suffix.lower()
+    fmt = ext.lstrip('.')
+    if fmt == 'parquet':
+        rel = f'read_parquet(\"{f}\")'
+    elif fmt == 'xlsx':
+        rel = f'read_xlsx(\"{f}\")'  # requires duckdb spatial or xlsx extension
+    else:
+        rel = f'\"{f}\"'
+    try:
+        con = duckdb.connect()
+        row_count = con.execute(f'SELECT COUNT(*) FROM {rel}').fetchone()[0]
+        cols = con.execute(f'DESCRIBE SELECT * FROM {rel}').fetchall()
+        col_info = [{'name': c[0], 'dtype': c[1]} for c in cols]
+        results.append({'path': str(f), 'format': fmt.upper(), 'row_count': row_count, 'col_count': len(col_info), 'columns': col_info})
+        con.close()
+    except Exception as e:
+        print(f'Warning: Could not scan {f.name}: {e}')
+
+# Print formatted report
+print()
+print('=== Data Scan: data/raw/ ===')
+print()
+for r in results:
+    fname = Path(r['path']).name
+    print(f'  {fname}  [{r[\"format\"]}]  {r[\"row_count\"]:,} rows x {r[\"col_count\"]} columns')
+    for c in r['columns']:
+        print(f'    {c[\"name\"]:30s}  {c[\"dtype\"]}')
+    print()
+
+# Output JSON for agent memory
+print('__SCAN_JSON__')
+print(json.dumps(results))
+"
 ```
 
-If the scan raises ValueError (missing directory, empty directory, or .xls file), print the error message and STOP. Do not write any planning artifacts. Do not proceed to Step 3.
+Parse the output:
+- Everything before `__SCAN_JSON__` is the human-readable report — display it to the user.
+- The line after `__SCAN_JSON__` is the JSON array — parse it and store as `scan_results` in memory for Step 4.
 
-If the scan succeeds, display the `format_scan_report` output to the user. Store `scan_results` in memory — it will be used to auto-populate dataset fields in Step 3.
+If the command exits with non-zero status (container not running, data/raw missing, empty directory, .xls file), display the error message printed by the script and STOP. Do not write any planning artifacts. Do not proceed to Step 4.
 
-**No partial writes.** If Step 2 fails, Steps 3–5 do not run.
+**No partial writes.** If Step 3 fails, Steps 4–6 do not run.
 
-### Step 3 — Kickoff interview
+### Step 4 — Kickoff interview
 
 Conduct the guided business context interview. Collect all answers before writing any files. Write PROJECT.md and config.json atomically after the user confirms the decision framing sentence.
 
@@ -211,7 +318,7 @@ Do not change any other config.json fields. Do not write a partially-updated con
 
 **No partial writes (Pitfall 3):** If the interview is interrupted before the framing sentence is confirmed, do not write PROJECT.md or config.json. The templates remain in their initial state, which is safe for downstream phases.
 
-### Step 4 — Generate planning artifacts
+### Step 5 — Generate planning artifacts
 
 Read templates from `.claude/doml/templates/`:
 - `PROJECT.md` → `.planning/PROJECT.md`
@@ -222,7 +329,7 @@ Read templates from `.claude/doml/templates/`:
 Create `.planning/` directory if it does not exist.
 Write each template file. Do not overwrite existing files — skip with a warning if already present.
 
-### Step 5 — Display summary
+### Step 6 — Display summary
 
 ```
 DoML project initialized.
