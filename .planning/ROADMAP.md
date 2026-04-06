@@ -19,7 +19,7 @@ Milestone 1 delivers a fully installable DoML framework: a Docker-based Jupyter 
 
 - [ ] **Phase 1: Infrastructure & Docker** — Scaffold project structure, generate Docker environment, enforce reproducibility
 - [ ] **Phase 2: Framework Skeleton** — Install DoML skills/workflows/agents; planning artifact templates; four core commands
-- [ ] **Phase 3: Kickoff Interview** — Guided business context interview with problem type detection and data validation
+- [x] **Phase 3: Kickoff Interview** — Guided business context interview with problem type detection and data validation (completed 2026-04-06)
 - [ ] **Phase 4: Business Understanding Phase** — Notebook template + stakeholder HTML report
 - [ ] **Phase 5: Data Understanding Phase** — EDA notebook with DuckDB, statistical tests, tidy validation + stakeholder HTML report
 
@@ -95,8 +95,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Interview workflow: AskUserQuestion sequence, ML type inference, domain research offer, atomic PROJECT.md + config.json write
-- [ ] 03-02-PLAN.md — Data scan module: doml/data_scan.py DuckDB introspection for CSV/Parquet/Excel, pytest infrastructure
+- [x] 03-01-PLAN.md — Interview workflow: AskUserQuestion sequence, ML type inference, domain research offer, atomic PROJECT.md + config.json write
+- [x] 03-02-PLAN.md — Data scan module: doml/data_scan.py DuckDB introspection for CSV/Parquet/Excel, pytest infrastructure
 
 ---
 
@@ -237,7 +237,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1. Infrastructure & Docker | M1 | 3/3 | Complete | 2026-04-05 |
 | 2. Framework Skeleton | M1 | 0/3 | Not started | — |
-| 3. Kickoff Interview | M1 | 0/2 | Not started | — |
+| 3. Kickoff Interview | M1 | 2/2 | Complete   | 2026-04-06 |
 | 4. Business Understanding Phase | M1 | 0/3 | Not started | — |
 | 5. Data Understanding Phase | M1 | 0/4 | Not started | — |
 | 6. Modelling — Regression & Classification | M2 | TBD | Not started | — |

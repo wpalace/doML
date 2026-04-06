@@ -33,11 +33,11 @@ Milestone 1 delivers the framework foundation plus Business Understanding and Da
 
 ### Project Kickoff Interview
 
-- [ ] **INTV-01**: Guided interview extracts: dataset description, business question, stakeholder context, and expected outcome
-- [ ] **INTV-02**: Interview always asks whether time is a factor in the dataset (determines if forecasting phase applies)
+- [x] **INTV-01**: Guided interview extracts: dataset description, business question, stakeholder context, and expected outcome
+- [x] **INTV-02**: Interview always asks whether time is a factor in the dataset (determines if forecasting phase applies)
 - [ ] **INTV-03**: Interview validates that `/data/` folder is populated and detects file formats (CSV, Parquet, Excel) before proceeding
-- [ ] **INTV-04**: Interview produces a written decision framing: "We are trying to [decision] using [metric] as a proxy"
-- [ ] **INTV-05**: Python is the default analysis language; interview allows user to opt into R for the project
+- [x] **INTV-04**: Interview produces a written decision framing: "We are trying to [decision] using [metric] as a proxy"
+- [x] **INTV-05**: Python is the default analysis language; interview allows user to opt into R for the project
 
 ### Business Understanding Phase
 
@@ -131,11 +131,11 @@ Updated during roadmap creation.
 | CMD-02 | Phase 2 | Pending |
 | CMD-03 | Phase 2 | Pending |
 | CMD-04 | Phase 2 | Pending |
-| INTV-01 | Phase 3 | Pending |
-| INTV-02 | Phase 3 | Pending |
+| INTV-01 | Phase 3 | Complete |
+| INTV-02 | Phase 3 | Complete |
 | INTV-03 | Phase 3 | Pending |
-| INTV-04 | Phase 3 | Pending |
-| INTV-05 | Phase 3 | Pending |
+| INTV-04 | Phase 3 | Complete |
+| INTV-05 | Phase 3 | Complete |
 | BU-01 | Phase 4 | Pending |
 | BU-02 | Phase 4 | Pending |
 | BU-03 | Phase 4 | Pending |
