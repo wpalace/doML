@@ -201,7 +201,13 @@ Plans:
 3. Internal metrics (silhouette, Davies-Bouldin, Calinski-Harabasz) used — no accuracy metric for clustering
 4. UMAP 2D visualization of clusters included
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Clustering notebook template (KMeans, DBSCAN, hierarchical, ANOVA feature importance, UMAP 2D)
+- [ ] 07-02-PLAN.md — Dimensionality reduction notebook template (PCA scree/biplot/loadings, UMAP 2D/3D/sensitivity, t-SNE perplexity sweep)
+- [ ] 07-03-PLAN.md — execute-phase.md Phase 7 executor extension (Steps 3n-3t, routing table update)
+- [ ] 07-04-PLAN.md — /doml-iterate-unsupervised command (SKILL.md + full 10-step iterate-unsupervised.md workflow)
 
 ---
 
@@ -253,3 +259,4 @@ Plans:
 | 7. Modelling — Clustering & Dim. Reduction | M2 | TBD | Not started | — |
 | 8. Time Series Modelling & Forecasting | M2 | TBD | Not started | — |
 | 9. Modelling Reports & Leaderboard UI | M2 | TBD | Not started | — |
+
