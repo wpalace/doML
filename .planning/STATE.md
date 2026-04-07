@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 04 executed — 04-01/02 complete, 04-03 code done but UAT deferred (skipped by user)
-last_updated: "2026-04-06T19:30:00.000Z"
-last_activity: 2026-04-06
+stopped_at: Phase 05 executed — 05-01/02/03/04 complete; 05-04 Task 2 UAT (HTML report end-to-end) deferred
+last_updated: "2026-04-07T00:00:00.000Z"
+last_activity: 2026-04-07
 progress:
   total_phases: 9
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
-  percent: 100
+  completed_phases: 4
+  total_plans: 13
+  completed_plans: 13
+  percent: 44
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-04)
 
 ## Current Position
 
-Phase: 04 (business-understanding) — PLANNED
-Plan: 0 of 3
-Status: Ready to execute
-Last activity: 2026-04-06
+Phase: 05 (data-understanding) — COMPLETE
+Plan: 4 of 4
+Status: All plans executed; 05-04 Task 2 UAT deferred
+Last activity: 2026-04-07
 
-Progress: [███░░░░░░░] 33%
+Progress: [████░░░░░░] 44%
 
 ## Performance Metrics
 
@@ -83,6 +83,13 @@ Progress: [███░░░░░░░] 33%
 ### Pending Todos
 
 - UAT deferred: verify /doml-execute-phase 1 produces correct reports/business_summary.html (04-03 Task 2)
+- UAT deferred: verify /doml-execute-phase 2 produces reports/eda_report.html with code hidden, executive summary, and caveats (05-04 Task 2)
+
+- [Phase 05]: corrplot, naniar, psych R packages missing from container — replaced with ggplot2 tile heatmaps and base R cor() for point-biserial
+- [Phase 05]: Python EDA notebook: 26 cells covering EDA-01–EDA-08, REPR-01, REPR-02, OUT-03
+- [Phase 05]: R EDA notebook: 23 cells with IRkernel (ir), ggplot2 heatmaps replacing corrplot
+- [Phase 05]: execute-phase.md Steps 3d/3e/3f implement language-adaptive EDA executor (Python vs R)
+- [Phase 05]: execute-phase.md Steps 5e/5f/5g/5h implement EDA HTML report with Claude narrative → eda_report.html
 
 ### Blockers/Concerns
 

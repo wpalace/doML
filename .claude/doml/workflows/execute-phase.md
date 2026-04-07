@@ -123,7 +123,81 @@ assert code_cells_with_output > 0, 'No cell outputs found — execution may have
 
 If verification fails, report the error and stop. Do not generate the HTML report on an unexecuted notebook.
 
-**Note for Phase 2 (Data Understanding):** Executor will be implemented in DoML Phase 5.
+#### Phase 2 — Data Understanding executor
+
+**Pre-condition:** `.planning/config.json` must exist with `language` field. If missing, display:
+```
+PROJECT.md or config.json not found. Run /doml-new-project first.
+```
+and stop.
+
+**Step 3d — Detect language + copy notebook template**
+
+Read the `language` field from `.planning/config.json`:
+```bash
+LANG=$(python3 -c "import json; c = json.load(open('.planning/config.json')); print(c.get('language','python'))")
+echo "Analysis language: $LANG"
+```
+
+Copy the appropriate template:
+```bash
+mkdir -p notebooks
+
+if [ "$LANG" = "r" ]; then
+  TEMPLATE=".claude/doml/templates/notebooks/data_understanding_r.ipynb"
+else
+  TEMPLATE=".claude/doml/templates/notebooks/data_understanding_python.ipynb"
+fi
+
+echo "Using template: $TEMPLATE"
+```
+
+If `notebooks/02_data_understanding.ipynb` already exists, ask before overwriting:
+```
+notebooks/02_data_understanding.ipynb already exists. Overwrite? (yes / no)
+```
+Use AskUserQuestion for this. If the user says no, stop without overwriting.
+
+Copy the template:
+```bash
+cp "$TEMPLATE" notebooks/02_data_understanding.ipynb
+```
+
+**Step 3e — Execute the notebook inside Docker**
+
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --execute \
+  --to notebook \
+  --inplace \
+  notebooks/02_data_understanding.ipynb \
+  --ExecutePreprocessor.timeout=600
+```
+
+If the container is not running, display:
+```
+Docker container is not running. Start it with:
+  docker compose up -d
+Then run /doml-execute-phase 2 again.
+```
+and stop.
+
+On execution failure (non-zero exit code), display the nbconvert error output and stop. Do not proceed to HTML generation.
+
+**Step 3f — Verify notebook output**
+
+```bash
+python3 -c "
+import nbformat
+with open('notebooks/02_data_understanding.ipynb') as f:
+    nb = nbformat.read(f, as_version=4)
+code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
+print(f'Executed notebook: {code_cells_with_output} code cells with output')
+assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
+"
+```
+
+If verification fails, report the error and stop. Do not generate the HTML report on an unexecuted notebook.
 
 ### Step 4 — Execute PLAN.md tasks
 
@@ -225,7 +299,98 @@ grep -c "Executive Summary" reports/business_summary.html && echo "EXEC_SUMMARY_
 
 If any check fails, report which check failed. Do not suppress failures.
 
-**Note for Phase 2 (Data Understanding):** Step 5 for EDA will use `eda_report.html` as output. Implemented in DoML Phase 5.
+#### Phase 2 — Data Understanding HTML report
+
+**Step 5e — Write EDA executive narrative**
+
+Before converting to HTML, generate a 2–3 paragraph executive summary interpreting EDA findings for non-technical stakeholders.
+
+Read the following to inform the narrative:
+- `.planning/PROJECT.md` — business question, stakeholder, decision framing
+- `.planning/config.json` — problem_type, time_factor
+- The executed notebook `notebooks/02_data_understanding.ipynb` — cell outputs showing DuckDB profiling results, normality tests, correlation values, and tidy violations
+
+The EDA narrative must:
+- Avoid technical jargon (no "DuckDB", "Shapiro-Wilk", "nbformat", "ADF")
+- State dataset size in plain language (e.g., "The dataset contains 12,000 observations and 15 features")
+- Highlight top correlated features in business terms
+- Note whether key numeric features are normally distributed or skewed — use plain language ("most values cluster near the middle" vs "most values are low with a long tail of high values")
+- If time_factor is true: state in plain language whether the series appears stationary or trending
+- Flag any data quality issues found (missing values, tidy violations) in plain language
+- Be 2–3 short paragraphs
+
+Write the narrative to a temporary Python script to avoid special-character quoting issues, then run it:
+
+```python
+# /tmp/doml_insert_eda_summary.py
+import nbformat, uuid
+
+NARRATIVE = """[WRITE YOUR 2-3 PARAGRAPH EDA EXECUTIVE SUMMARY HERE]"""
+
+with open('notebooks/02_data_understanding.ipynb') as f:
+    nb = nbformat.read(f, as_version=4)
+
+summary_cell = nbformat.v4.new_markdown_cell(source='## Executive Summary\n\n' + NARRATIVE)
+summary_cell['id'] = uuid.uuid4().hex[:8]
+nb.cells.insert(0, summary_cell)
+
+with open('notebooks/02_data_understanding.ipynb', 'w') as f:
+    nbformat.write(nb, f)
+
+print('EDA executive narrative inserted as cell 0')
+```
+
+Write the actual narrative into `NARRATIVE`, then run:
+```bash
+python3 /tmp/doml_insert_eda_summary.py
+```
+
+**Step 5f — Create reports/ directory**
+
+```bash
+mkdir -p reports
+```
+
+**Step 5g — Convert EDA notebook to HTML (code cells hidden)**
+
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --to html \
+  --no-input \
+  notebooks/02_data_understanding.ipynb \
+  --output-dir reports \
+  --output eda_report
+```
+
+This produces `reports/eda_report.html`. The `--no-input` flag hides all code cells (OUT-02).
+
+**If Docker is not running**, run on host as fallback:
+```bash
+jupyter nbconvert \
+  --to html \
+  --no-input \
+  notebooks/02_data_understanding.ipynb \
+  --output-dir reports \
+  --output eda_report
+```
+
+**Step 5h — Verify EDA HTML report**
+
+```bash
+# Check 1: File exists
+test -f reports/eda_report.html && echo "REPORT_EXISTS" || echo "REPORT_MISSING"
+
+# Check 2: Code cells are hidden (OUT-02) — expected: 0 matches
+grep -c 'class="input"' reports/eda_report.html && echo "CODE_VISIBLE_VIOLATION" || echo "CODE_HIDDEN_OK"
+
+# Check 3: Caveats section present (OUT-03) — expected: >= 1 match
+grep -ci "correlation is not causation" reports/eda_report.html && echo "CAVEATS_OK" || echo "CAVEATS_MISSING"
+
+# Check 4: Executive summary present — expected: >= 1 match
+grep -c "Executive Summary" reports/eda_report.html && echo "EXEC_SUMMARY_OK" || echo "EXEC_SUMMARY_MISSING"
+```
+
+If any check fails, report which check failed. Do not suppress failures.
 
 ### Step 6 — Update STATE.md
 
