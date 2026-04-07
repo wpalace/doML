@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 05 executed — 05-01/02/03/04 complete; 05-04 Task 2 UAT (HTML report end-to-end) deferred
-last_updated: "2026-04-07T00:00:00.000Z"
+stopped_at: Phase 06 executed — 06-01/02/03/04/05 complete; all 5 plans done
+last_updated: "2026-04-07T12:00:00.000Z"
 last_activity: 2026-04-07
 progress:
   total_phases: 9
-  completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
-  percent: 44
+  completed_phases: 5
+  total_plans: 18
+  completed_plans: 18
+  percent: 56
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04)
 
 **Core value:** A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
-**Current focus:** Phase 04 — business-understanding
+**Current focus:** Phase 07 — clustering & dimensionality reduction (next to plan)
 
 ## Current Position
 
-Phase: 05 (data-understanding) — COMPLETE
-Plan: 4 of 4
-Status: All plans executed; 05-04 Task 2 UAT deferred
+Phase: 06 (data-modelling-regression-classification) — COMPLETE
+Plan: 5 of 5
+Status: All plans executed
 Last activity: 2026-04-07
 
 Progress: [████░░░░░░] 44%
@@ -90,6 +90,11 @@ Progress: [████░░░░░░] 44%
 - [Phase 05]: R EDA notebook: 23 cells with IRkernel (ir), ggplot2 heatmaps replacing corrplot
 - [Phase 05]: execute-phase.md Steps 3d/3e/3f implement language-adaptive EDA executor (Python vs R)
 - [Phase 05]: execute-phase.md Steps 5e/5f/5g/5h implement EDA HTML report with Claude narrative → eda_report.html
+- [Phase 06]: preprocessing.ipynb: 23-cell template — imputation comparison (SimpleImputer/KNN), OHE/Ordinal encoding, Standard/Robust scaling, ColumnTransformer pipeline, VIF, mutual_info, writes preprocessed_{filename} to data/processed/
+- [Phase 06]: modelling_regression.ipynb + modelling_classification.ipynb: 23 cells each — DummyRegressor/Classifier baseline, 5-fold CV, RMSE/ROC-AUC leaderboard, SHAP (Tree/Linear explainers), Optuna top-3 x 30 trials, best_model.pkl + model_metadata.json
+- [Phase 06]: execute-phase.md Steps 3g–3m implement Phase 3 executor (preprocessing → modelling → Claude interpretation cell); Steps 5i–5l generate model_report.html
+- [Phase 06]: Modelling phases are Python-only (Decision 7) — scikit-learn/SHAP/Optuna have no R equivalents; R tidymodels deferred to Milestone 3
+- [Phase 06]: /doml-iterate-model stub registered — SKILL.md + iterate-model.md workflow stub (7 planned steps documented); full implementation deferred to Phase 6b
 
 ### Blockers/Concerns
 
@@ -97,6 +102,6 @@ Progress: [████░░░░░░] 44%
 
 ## Session Continuity
 
-Last session: 2026-04-06T19:30:00.000Z
-Stopped at: Phase 04 complete (code); 04-03 UAT skipped by user — revisit before Milestone 1 sign-off
+Last session: 2026-04-07T12:00:00.000Z
+Stopped at: Phase 06 complete — all 5 plans executed and committed
 Resume file: None
