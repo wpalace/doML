@@ -664,22 +664,25 @@ This phase generates data analysis notebook templates and workflow files. No aut
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **UMAP default `init` in 0.5.11**
    - What we know: The plotly docs example uses `init='random'`; newer umap-learn may default to `spectral` or `pca`
    - What's unclear: Whether `init` default changed between 0.5.8 and 0.5.11
-   - Recommendation: Explicitly set `init='spectral'` (the umap-learn default) for 2D, `init='random'` for 3D (spectral init has issues with >2 components in some builds). [ASSUMED]
+   - Recommendation: Explicitly set `init='spectral'` (the umap-learn default) for 2D, `init='random'` for 3D (spectral init has issues with >2 components in some builds).
+   - RESOLVED: Both templates explicitly set `init='spectral'` for 2D UMAP and `init='random'` for 3D UMAP per plan actions (Plans 07-01, 07-02).
 
 2. **Notebook file number for Phase 7 outputs**
    - What we know: Phase 6 produces `03_preprocessing.ipynb` and `04_modelling_{type}_v{N}.ipynb`
    - What's unclear: If a project runs Phase 7 without Phase 6 (dim reduction as first modelling phase), what number is correct?
    - Recommendation: execute-phase.md Phase 7 executor should glob `notebooks/0*_modelling_*.ipynb` and auto-detect the next available number, just as Phase 6 does for version numbers.
+   - RESOLVED: Plan 07-03 executor globs existing `notebooks/0*_modelling_*.ipynb` files and auto-detects the next available number — no hardcoded numbering assumption.
 
 3. **Plotly HTML embedding in nbconvert output (Phase 9 concern)**
    - What we know: plotly figures render interactively in JupyterLab; nbconvert may or may not embed plotly.js
    - What's unclear: Whether `jupyter nbconvert --to html` correctly embeds plotly interactive charts without extra configuration
    - Recommendation: This is a Phase 9 concern (HTML reports). For Phase 7, just `fig.show()` in the notebook. Flag for Phase 9 research.
+   - RESOLVED: Phase 7 templates use `fig.show()` only. HTML embedding deferred to Phase 9 research scope (noted in Plans 07-02 and 07-03).
 
 ---
 
