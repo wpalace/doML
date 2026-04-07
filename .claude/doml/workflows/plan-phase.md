@@ -47,16 +47,31 @@ Read `.planning/config.json`:
 
 | Phase | Analysis Phase | Planner |
 |-------|---------------|---------|
-| 1 | Business Understanding | BU planner (DoML Phase 4) |
+| 1 | Business Understanding | Built-in executor (DoML Phase 4) — use `/doml-execute-phase 1` directly |
 | 2 | Data Understanding | EDA planner (DoML Phase 5) |
 
-**Phase 2 stub:** For unimplemented phases, display:
+**For Phase 1 (Business Understanding):** Display:
+
+```
+Business Understanding (Phase 1) does not require a separate plan.
+
+The executor is built into /doml-execute-phase and runs automatically after the kickoff interview.
+
+To generate the Business Understanding notebook and report, run:
+  /doml-execute-phase 1
+
+Prerequisites:
+  - /doml-new-project has been run and PROJECT.md + config.json are present
+  - Docker container is running (docker compose up -d)
+  - data/raw/ contains at least one CSV, Parquet, or Excel file
+```
+
+**For all other unimplemented phases**, display:
 
 ```
 Phase [N] planner not yet implemented.
 
 The plan for this phase will be added in:
-  - Business Understanding: DoML Phase 4
   - Data Understanding: DoML Phase 5
 
 You can create .planning/phases/[N]-[name]/[N]-01-PLAN.md manually using the

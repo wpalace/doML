@@ -41,12 +41,13 @@ No DoML project found. Run /doml-new-project first.
 
 Stop.
 
-### Step 2 — Find PLAN.md
+### Step 2 — Determine target phase and executor
 
-Determine target phase (from argument or STATE.md `current_focus`).
-Look for `.planning/phases/[N]-*/[N]-*-PLAN.md`.
+Determine target phase number from the argument or STATE.md `current_focus`.
 
-If no PLAN.md found:
+**For analysis phases 1 (Business Understanding) and 2 (Data Understanding):** These phases use built-in executors embedded in this workflow (Step 3). No separate PLAN.md is required. Skip directly to Step 3.
+
+**For all other phases:** Look for `.planning/phases/[N]-*/[N]-*-PLAN.md`. If no PLAN.md found:
 
 ```
 No plan found for Phase [N]. Run /doml-plan-phase [N] first.
@@ -61,17 +62,68 @@ Stop.
 | 1 — Business Understanding | DoML Phase 4 | notebooks/01_business_understanding.ipynb | reports/business_summary.html |
 | 2 — Data Understanding | DoML Phase 5 | notebooks/02_data_understanding.ipynb | reports/eda_report.html |
 
-**Phase 2 stub:** For unimplemented phases, display:
+#### Phase 1 — Business Understanding executor
 
+**Pre-condition:** `.planning/config.json` and `.planning/PROJECT.md` must exist (produced by `/doml-new-project`). If either is missing, display:
 ```
-Executor for Phase [N] not yet implemented.
-
-Phase executors are added in:
-  - Business Understanding (Phase 1): implemented in DoML Phase 4
-  - Data Understanding (Phase 2): implemented in DoML Phase 5
-
-The framework skeleton is ready. Full execution will be available after DoML Phase 4.
+PROJECT.md or config.json not found. Run /doml-new-project first.
 ```
+and stop.
+
+**Step 3a — Copy notebook template**
+
+Copy the BU notebook template into the project's notebooks directory:
+```bash
+mkdir -p notebooks
+cp .claude/doml/templates/notebooks/business_understanding.ipynb \
+   notebooks/01_business_understanding.ipynb
+```
+
+If `notebooks/01_business_understanding.ipynb` already exists, ask before overwriting:
+```
+notebooks/01_business_understanding.ipynb already exists. Overwrite? (yes / no)
+```
+Use AskUserQuestion for this. If the user says no, stop without overwriting.
+
+**Step 3b — Execute the notebook inside Docker**
+
+Run the notebook to populate all cells with output:
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --execute \
+  --to notebook \
+  --inplace \
+  notebooks/01_business_understanding.ipynb \
+  --ExecutePreprocessor.timeout=600
+```
+
+If the container is not running, display:
+```
+Docker container is not running. Start it with:
+  docker compose up -d
+Then run /doml-execute-phase 1 again.
+```
+and stop.
+
+On execution failure (non-zero exit code), display the nbconvert error output and stop. Do not proceed to HTML generation.
+
+**Step 3c — Verify notebook output**
+
+After execution, verify the notebook has cell outputs:
+```bash
+python3 -c "
+import nbformat
+with open('notebooks/01_business_understanding.ipynb') as f:
+    nb = nbformat.read(f, as_version=4)
+code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
+print(f'Executed notebook: {code_cells_with_output} code cells with output')
+assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
+"
+```
+
+If verification fails, report the error and stop. Do not generate the HTML report on an unexecuted notebook.
+
+**Note for Phase 2 (Data Understanding):** Executor will be implemented in DoML Phase 5.
 
 ### Step 4 — Execute PLAN.md tasks
 
@@ -83,14 +135,97 @@ When a phase executor is available:
 
 ### Step 5 — Generate HTML report
 
-After all notebook tasks complete:
+#### Step 5a — Write executive narrative (BU phase only)
 
-```bash
-jupyter nbconvert --to html --no-input notebooks/[notebook_name].ipynb \
-  --output reports/[report_name].html
+Before converting to HTML, generate a 2–3 paragraph executive summary suitable for non-technical stakeholders.
+
+Read the following to inform the narrative:
+- `.planning/PROJECT.md` — business question, stakeholder, expected outcome, decision framing sentence
+- `.planning/config.json` — problem type, time factor, language
+- The executed notebook's cell outputs (`notebooks/01_business_understanding.ipynb`) for dataset counts
+
+Write the narrative as plain Markdown. It must:
+- Avoid technical jargon (no mentions of "DuckDB", "nbformat", "config.json")
+- Address the stakeholder's business question in plain language
+- Summarize what data was found (number of files, approximate row/column counts)
+- State the confirmed ML problem type in plain terms (e.g., "This is a prediction problem" instead of "regression")
+- Be 2–3 short paragraphs
+
+Insert the narrative as the FIRST cell in the notebook using this Python script (write to a temp file to avoid quoting issues):
+
+```python
+# /tmp/doml_insert_summary.py
+import nbformat
+
+NARRATIVE = """[WRITE THE 2-3 PARAGRAPH EXECUTIVE SUMMARY HERE]"""
+
+with open('notebooks/01_business_understanding.ipynb') as f:
+    nb = nbformat.read(f, as_version=4)
+
+import uuid
+summary_cell = nbformat.v4.new_markdown_cell(source='## Executive Summary\n\n' + NARRATIVE)
+summary_cell['id'] = uuid.uuid4().hex[:8]
+nb.cells.insert(0, summary_cell)
+
+with open('notebooks/01_business_understanding.ipynb', 'w') as f:
+    nbformat.write(nb, f)
+
+print('Executive narrative inserted as cell 0')
 ```
 
-Verify the HTML file was created. Confirm code cells are hidden (no `<div class="input">` blocks in output).
+Write the actual narrative into the script, then run:
+```bash
+python3 /tmp/doml_insert_summary.py
+```
+
+#### Step 5b — Create reports/ directory
+
+```bash
+mkdir -p reports
+```
+
+#### Step 5c — Convert notebook to HTML (code cells hidden)
+
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --to html \
+  --no-input \
+  notebooks/01_business_understanding.ipynb \
+  --output-dir reports \
+  --output business_summary
+```
+
+This produces `reports/business_summary.html`. The `--no-input` flag hides all code cells (OUT-02).
+
+**If Docker is not running**, run on host as fallback:
+```bash
+jupyter nbconvert \
+  --to html \
+  --no-input \
+  notebooks/01_business_understanding.ipynb \
+  --output-dir reports \
+  --output business_summary
+```
+
+#### Step 5d — Verify HTML report
+
+```bash
+# Check 1: File exists
+test -f reports/business_summary.html && echo "REPORT_EXISTS" || echo "REPORT_MISSING"
+
+# Check 2: Code cells are hidden (OUT-02) — expected: 0 matches
+grep -c 'class="input"' reports/business_summary.html && echo "CODE_VISIBLE_VIOLATION" || echo "CODE_HIDDEN_OK"
+
+# Check 3: Caveats section present (OUT-03) — expected: >= 1 match
+grep -ci "correlation is not causation" reports/business_summary.html && echo "CAVEATS_OK" || echo "CAVEATS_MISSING"
+
+# Check 4: Executive summary present — expected: >= 1 match
+grep -c "Executive Summary" reports/business_summary.html && echo "EXEC_SUMMARY_OK" || echo "EXEC_SUMMARY_MISSING"
+```
+
+If any check fails, report which check failed. Do not suppress failures.
+
+**Note for Phase 2 (Data Understanding):** Step 5 for EDA will use `eda_report.html` as output. Implemented in DoML Phase 5.
 
 ### Step 6 — Update STATE.md
 
