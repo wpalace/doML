@@ -158,23 +158,32 @@ Plans:
 
 **Milestone Goal:** Extend DoML with Data Modelling (all 5 traditional ML problem types with leaderboard, SHAP, and hyperparameter tuning) and optional Forecasting phase with prediction intervals.
 
-### Phase 6: Data Modelling — Regression & Classification
+### Phase 6: Data Preprocessing & Modelling — Regression & Classification
 
-**Goal**: Implement modelling notebooks for supervised learning problems (regression and classification) with scikit-learn Pipelines, XGBoost/LightGBM, leaderboard, SHAP explainability, and Optuna tuning.
+**Goal**: Implement a preprocessing notebook (imputation, encoding, scaling, feature engineering/selection) and modelling notebooks for supervised learning (regression and classification) with scikit-learn Pipelines, XGBoost/LightGBM, CV leaderboard, SHAP explainability, and Optuna tuning.
 
 **Depends on**: Phase 5
 
-**Requirements**: MOD-01, MOD-02, MOD-06, MOD-07, MOD-08, MOD-09, MOD-10
+**Requirements**: PREP-01, PREP-02, MOD-01, MOD-02, MOD-06, MOD-07, MOD-08, MOD-09, MOD-10
 
 **Success Criteria** (what must be TRUE):
-1. Modelling notebook generated for regression problems with DummyRegressor baseline always in leaderboard
-2. Modelling notebook generated for classification problems with DummyClassifier baseline and stratified CV
-3. Leaderboard (`models/leaderboard.csv`) shows only held-out validation metrics — never training scores
-4. SHAP values computed and visualized for every model in leaderboard
-5. Optuna tunes hyperparameters for top leaderboard model
-6. Best model serialized to `/models/best_model.pkl` with `model_metadata.json`
+1. Preprocessing notebook template covers imputation, encoding, scaling, feature engineering/selection (PREP-01)
+2. Preprocessed dataset written to `data/processed/preprocessed_{filename}` (PREP-02)
+3. Modelling notebook generated for regression problems with DummyRegressor baseline always in leaderboard
+4. Modelling notebook generated for classification problems with DummyClassifier baseline and stratified CV
+5. Leaderboard (`models/leaderboard.csv`) shows only held-out CV metrics — never training scores (MOD-06)
+6. SHAP values computed and visualized for every model in leaderboard (MOD-08)
+7. Optuna tunes top-3 leaderboard models, 30 trials each (MOD-09)
+8. Best model serialized to `/models/best_model.pkl` with `model_metadata.json` (MOD-10)
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 06-01: Preprocessing notebook template (`preprocessing.ipynb` — imputation, encoding, scaling, feature engineering)
+- [ ] 06-02: Regression modelling template (`modelling_regression.ipynb` — CV leaderboard, SHAP, Optuna)
+- [ ] 06-03: Classification modelling template (`modelling_classification.ipynb` — stratified CV, AUC leaderboard, SHAP, Optuna)
+- [ ] 06-04: execute-phase.md Phase 3 executor (preprocessing + problem-type routing + HTML model report)
+- [ ] 06-05: `/doml-iterate-model` command stub (new skill + iterate-model.md workflow stub)
 
 ---
 
@@ -240,7 +249,7 @@ Plans:
 | 3. Kickoff Interview | M1 | 2/2 | Complete   | 2026-04-06 |
 | 4. Business Understanding Phase | M1 | 0/3 | Not started | — |
 | 5. Data Understanding Phase | M1 | 0/4 | Not started | — |
-| 6. Modelling — Regression & Classification | M2 | TBD | Not started | — |
+| 6. Preprocessing & Modelling — Regression & Classification | M2 | 0/5 | Not started | — |
 | 7. Modelling — Clustering & Dim. Reduction | M2 | TBD | Not started | — |
 | 8. Time Series Modelling & Forecasting | M2 | TBD | Not started | — |
 | 9. Modelling Reports & Leaderboard UI | M2 | TBD | Not started | — |

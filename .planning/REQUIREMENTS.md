@@ -75,6 +75,11 @@ Milestone 1 delivers the framework foundation plus Business Understanding and Da
 
 ## v2 Requirements (Milestone 2)
 
+### Data Preprocessing
+
+- **PREP-01**: Preprocessing notebook template covers all four areas: imputation (numeric median/mean/KNN comparison + categorical most_frequent), encoding (OneHotEncoder for ≤10 unique values, OrdinalEncoder for >10), scaling (StandardScaler + RobustScaler comparison with tree-model note), feature engineering & selection (interaction candidates, importance ranking, |r|>0.95 redundancy flagging, VIF for regression)
+- **PREP-02**: Preprocessed dataset written to `data/processed/preprocessed_{original_filename}` — used as input to the modelling notebook; never overwrites raw data
+
 ### Data Modelling
 
 - **MOD-01**: Modelling notebook generated for regression problems (Linear, Ridge, Lasso, RandomForest, XGBoost)
@@ -136,6 +141,8 @@ Updated during roadmap creation.
 | INTV-03 | Phase 3 | Pending |
 | INTV-04 | Phase 3 | Complete |
 | INTV-05 | Phase 3 | Complete |
+| PREP-01 | Phase 6 | Pending |
+| PREP-02 | Phase 6 | Pending |
 | BU-01 | Phase 4 | Pending |
 | BU-02 | Phase 4 | Pending |
 | BU-03 | Phase 4 | Pending |
@@ -159,9 +166,25 @@ Updated during roadmap creation.
 | OUT-02 | Phase 4–5 | Pending |
 | OUT-03 | Phase 4–5 | Pending |
 
+| MOD-01 | Phase 6 | Pending |
+| MOD-02 | Phase 6 | Pending |
+| MOD-03 | Phase 7 | Pending |
+| MOD-04 | Phase 8 | Pending |
+| MOD-05 | Phase 7 | Pending |
+| MOD-06 | Phase 6 | Pending |
+| MOD-07 | Phase 6 | Pending |
+| MOD-08 | Phase 6 | Pending |
+| MOD-09 | Phase 6 | Pending |
+| MOD-10 | Phase 6 | Pending |
+| FORE-01 | Phase 8 | Pending |
+| FORE-02 | Phase 8 | Pending |
+| FORE-03 | Phase 8 | Pending |
+| FORE-04 | Phase 8 | Pending |
+
 **Coverage:**
 - v1 requirements: 39 total
-- Mapped to phases: 39
+- v2 requirements: 16 total (PREP-01–02, MOD-01–10, FORE-01–04)
+- Mapped to phases: 55
 - Unmapped: 0 ✓
 
 ---
