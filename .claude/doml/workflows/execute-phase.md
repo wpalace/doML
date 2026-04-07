@@ -15,6 +15,8 @@ in `notebooks/`, and generate stakeholder HTML reports in `reports/`.
 | Data Understanding notebook | DoML Phase 5 | EDA-01–10 |
 | nbconvert HTML report generation | DoML Phase 4 | OUT-01–03 |
 | STATE.md update on completion | Phase 2 skeleton | — |
+| Preprocessing notebook | DoML Phase 6 | PREP-01–02 |
+| Modelling notebooks (regression + classification) | DoML Phase 6 | MOD-01–02, 06–10 |
 
 ---
 
@@ -61,6 +63,7 @@ Stop.
 |-------|----------|----------|--------|
 | 1 — Business Understanding | DoML Phase 4 | notebooks/01_business_understanding.ipynb | reports/business_summary.html |
 | 2 — Data Understanding | DoML Phase 5 | notebooks/02_data_understanding.ipynb | reports/eda_report.html |
+| 3 — Preprocessing & Modelling | DoML Phase 6 | notebooks/03_preprocessing.ipynb + notebooks/04_modelling_{type}_v{N}.ipynb | reports/model_report.html |
 
 #### Phase 1 — Business Understanding executor
 
@@ -198,6 +201,217 @@ assert code_cells_with_output > 0, 'No cell outputs found — execution may have
 ```
 
 If verification fails, report the error and stop. Do not generate the HTML report on an unexecuted notebook.
+
+#### Phase 3 — Preprocessing & Modelling executor
+
+**Pre-condition:** `.planning/config.json` must exist with `problem_type` field. If missing:
+```
+PROJECT.md or config.json not found. Run /doml-new-project first.
+```
+and stop.
+
+**Step 3g — Read problem_type + route unsupervised types**
+
+```bash
+PROBLEM_TYPE=$(python3 -c "import json; c=json.load(open('.planning/config.json')); print(c.get('problem_type','regression'))")
+echo "Problem type: $PROBLEM_TYPE"
+```
+
+If PROBLEM_TYPE is `clustering` or `dimensionality_reduction`:
+```
+Clustering/dimensionality reduction detected. Use /doml-execute-phase 7 for these problem types.
+```
+Stop.
+
+If PROBLEM_TYPE is `time_series`:
+```
+Time series detected. Use /doml-execute-phase 8 for time series problems.
+```
+Stop.
+
+Note: This executor is Python-only. scikit-learn, SHAP, and Optuna do not have R equivalents. R projects that used the R EDA notebook (Phase 2) switch to Python for modelling (Decision 7).
+
+**Step 3h — Copy + execute preprocessing notebook**
+
+Copy template:
+```bash
+mkdir -p notebooks
+cp .claude/doml/templates/notebooks/preprocessing.ipynb notebooks/03_preprocessing.ipynb
+```
+
+If `notebooks/03_preprocessing.ipynb` already exists, ask before overwriting:
+```
+notebooks/03_preprocessing.ipynb already exists. Overwrite? (yes / no)
+```
+Use AskUserQuestion. If the user says no, stop without overwriting.
+
+Execute:
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --execute \
+  --to notebook \
+  --inplace \
+  notebooks/03_preprocessing.ipynb \
+  --ExecutePreprocessor.timeout=600
+```
+
+If the container is not running:
+```
+Docker container is not running. Start it with:
+  docker compose up -d
+Then run /doml-execute-phase 3 again.
+```
+Stop.
+
+Verify:
+```bash
+python3 -c "
+import nbformat
+with open('notebooks/03_preprocessing.ipynb') as f:
+    nb = nbformat.read(f, as_version=4)
+code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
+print(f'Preprocessing notebook: {code_cells_with_output} code cells with output')
+assert code_cells_with_output > 0, 'No cell outputs — execution may have failed'
+"
+```
+
+After execution, verify the preprocessed dataset was written:
+```bash
+python3 -c "
+import glob
+files = glob.glob('data/processed/preprocessed_*')
+assert files, 'No preprocessed_* file found in data/processed/ — preprocessing notebook did not complete Step PREP-02'
+print(f'Preprocessed dataset: {files[0]}')
+"
+```
+
+**Step 3i — Select modelling template + resolve version number**
+
+```bash
+NOTEBOOK_NUM=4
+
+# Resolve next version number
+VERSION=$(python3 -c "
+import glob, re
+pattern = 'notebooks/0${NOTEBOOK_NUM}_modelling_${PROBLEM_TYPE}_v*.ipynb'
+existing = glob.glob(pattern)
+versions = [int(re.search(r'_v(\d+)\.ipynb', f).group(1)) for f in existing if re.search(r'_v(\d+)\.ipynb', f)]
+print(max(versions) + 1 if versions else 1)
+")
+
+echo "Version: $VERSION"
+
+# Select template
+if [ "$PROBLEM_TYPE" = "regression" ]; then
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_regression.ipynb"
+elif [ "$PROBLEM_TYPE" = "binary_classification" ] || [ "$PROBLEM_TYPE" = "classification" ] || [ "$PROBLEM_TYPE" = "multiclass_classification" ]; then
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_classification.ipynb"
+  PROBLEM_TYPE="classification"  # normalize for filename
+else
+  echo "Unknown problem_type: $PROBLEM_TYPE — cannot select modelling template."
+  exit 1
+fi
+
+MODELLING_NOTEBOOK="notebooks/0${NOTEBOOK_NUM}_modelling_${PROBLEM_TYPE}_v${VERSION}.ipynb"
+echo "Modelling notebook: $MODELLING_NOTEBOOK"
+echo "Template: $TEMPLATE"
+```
+
+**Step 3j — Copy modelling template**
+
+```bash
+cp "$TEMPLATE" "$MODELLING_NOTEBOOK"
+echo "Template copied to $MODELLING_NOTEBOOK"
+```
+
+Never overwrite a prior version (new version number always increments — no overwrite check needed here).
+
+**Step 3k — Execute modelling notebook**
+
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --execute \
+  --to notebook \
+  --inplace \
+  "$MODELLING_NOTEBOOK" \
+  --ExecutePreprocessor.timeout=1200
+```
+
+Timeout is 1200s (20 min) — Optuna tuning adds execution time.
+
+On failure, display the nbconvert error and stop.
+
+**Step 3l — Verify modelling notebook output**
+
+```bash
+python3 -c "
+import nbformat
+with open('$MODELLING_NOTEBOOK') as f:
+    nb = nbformat.read(f, as_version=4)
+code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
+print(f'Modelling notebook: {code_cells_with_output} code cells with output')
+assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
+"
+
+# Verify leaderboard was produced
+python3 -c "
+import os
+assert os.path.exists('models/leaderboard.csv'), 'models/leaderboard.csv not found after modelling notebook execution'
+import pandas as pd
+lb = pd.read_csv('models/leaderboard.csv')
+print(f'Leaderboard: {len(lb)} rows')
+print(lb[['model','cv_primary_mean' if 'cv_primary_mean' in lb.columns else 'cv_rmse_mean']].to_string())
+"
+```
+
+**Step 3m — Write Claude interpretation cell (Decision 8)**
+
+After execution, Claude reads `models/leaderboard.csv` and `reports/shap_*.png` (file list only — not the images themselves), then writes an **Interpretation & Recommendations** Markdown cell as the final cell of the executed notebook.
+
+The interpretation must include:
+1. **Top model finding** — which model won, its CV score, and how much it beat the DummyRegressor/Classifier baseline
+2. **Any anomalies** — e.g., "XGBoost CV std of 0.42 is high relative to its mean of 0.51 — possible overfitting", or "Only +3% improvement over baseline — features may be weak predictors of this target"
+3. **Suggested next steps** — specific and actionable: e.g., "XGBoost dominates — try `/doml-iterate-model \"focus on XGBoost with engineered features\"`", or "Results look solid — proceed to `/doml-execute-phase 9` for reports"
+
+Write the interpretation using a Python script (write to temp file to avoid quoting issues):
+
+```python
+# /tmp/doml_insert_modelling_interpretation.py
+import nbformat, uuid
+
+INTERPRETATION = """## Interpretation & Recommendations
+
+[Claude writes this section based on leaderboard.csv and SHAP outputs]
+
+**Top model finding:**
+[Which model won, its CV score, gap over Dummy baseline]
+
+**Anomalies / watch points:**
+[High CV std, small baseline gap, overfitting signals, etc.]
+
+**Suggested next steps:**
+[Specific action: iterate, proceed to reports, or additional feature engineering]
+
+*To iterate: `/doml-iterate-model "your direction"`*
+"""
+
+with open('[MODELLING_NOTEBOOK]') as f:
+    nb = nbformat.read(f, as_version=4)
+
+interp_cell = nbformat.v4.new_markdown_cell(source=INTERPRETATION)
+interp_cell['id'] = uuid.uuid4().hex[:8]
+nb.cells.append(interp_cell)
+
+with open('[MODELLING_NOTEBOOK]', 'w') as f:
+    nbformat.write(nb, f)
+
+print('Interpretation cell appended')
+```
+
+Write the actual interpretation into `INTERPRETATION` (filled in from leaderboard data), replace `[MODELLING_NOTEBOOK]` with the actual path, then run:
+```bash
+python3 /tmp/doml_insert_modelling_interpretation.py
+```
 
 ### Step 4 — Execute PLAN.md tasks
 
@@ -391,6 +605,57 @@ grep -c "Executive Summary" reports/eda_report.html && echo "EXEC_SUMMARY_OK" ||
 ```
 
 If any check fails, report which check failed. Do not suppress failures.
+
+#### Phase 3 — Modelling HTML report
+
+**Step 5i — Write model report narrative**
+
+Generate a 2–3 paragraph executive summary of modelling results for non-technical stakeholders.
+
+Read to inform the narrative:
+- `models/leaderboard.csv` — all models, CV scores, test score
+- `models/model_metadata.json` — best model name, problem_type, test_score
+- `.planning/PROJECT.md` — business question, stakeholder
+
+The model report narrative must:
+- Avoid technical jargon (no "RMSE", "SHAP", "Optuna" — use plain language)
+- State which model performed best in plain terms (e.g., "A gradient boosted tree model outperformed all others")
+- Give the test score in context (e.g., "The model predicts sales within $450 on average")
+- Note if performance is strong vs. weak relative to the dummy baseline
+- Be 2–3 short paragraphs
+
+Insert narrative into the modelling notebook as cell 0 using the same insert-script pattern as Phase 1 (Step 5a).
+
+**Step 5j — Create reports/ directory**
+
+```bash
+mkdir -p reports
+```
+
+**Step 5k — Convert modelling notebook to HTML**
+
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --to html \
+  --no-input \
+  "$MODELLING_NOTEBOOK" \
+  --output-dir reports \
+  --output model_report
+```
+
+If Docker is not running, run on host:
+```bash
+jupyter nbconvert --to html --no-input "$MODELLING_NOTEBOOK" --output-dir reports --output model_report
+```
+
+**Step 5l — Verify model_report.html**
+
+```bash
+test -f reports/model_report.html && echo "REPORT_EXISTS" || echo "REPORT_MISSING"
+grep -c 'class="input"' reports/model_report.html && echo "CODE_VISIBLE_VIOLATION" || echo "CODE_HIDDEN_OK"
+grep -ci "correlation is not causation" reports/model_report.html && echo "CAVEATS_OK" || echo "CAVEATS_MISSING"
+grep -ci "leaderboard\|best model\|model" reports/model_report.html | head -1 && echo "MODEL_CONTENT_OK" || echo "MODEL_CONTENT_MISSING"
+```
 
 ### Step 6 — Update STATE.md
 
