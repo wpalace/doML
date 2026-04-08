@@ -17,6 +17,7 @@ in `notebooks/`, and generate stakeholder HTML reports in `reports/`.
 | STATE.md update on completion | Phase 2 skeleton | — |
 | Preprocessing notebook | DoML Phase 6 | PREP-01–02 |
 | Modelling notebooks (regression + classification) | DoML Phase 6 | MOD-01–02, 06–10 |
+| Clustering/Dim Reduction notebooks | DoML Phase 7 | MOD-03, MOD-05 |
 
 ---
 
@@ -64,6 +65,7 @@ Stop.
 | 1 — Business Understanding | DoML Phase 4 | notebooks/01_business_understanding.ipynb | reports/business_summary.html |
 | 2 — Data Understanding | DoML Phase 5 | notebooks/02_data_understanding.ipynb | reports/eda_report.html |
 | 3 — Preprocessing & Modelling | DoML Phase 6 | notebooks/03_preprocessing.ipynb + notebooks/04_modelling_{type}_v{N}.ipynb | reports/model_report.html |
+| 7 — Clustering/Dim Reduction | Phase 7 executor (Steps 3n–3t) | notebooks/0{N}_modelling_{type}_v{M}.ipynb | — (deferred to Phase 9) |
 
 #### Phase 1 — Business Understanding executor
 
@@ -218,10 +220,7 @@ echo "Problem type: $PROBLEM_TYPE"
 ```
 
 If PROBLEM_TYPE is `clustering` or `dimensionality_reduction`:
-```
-Clustering/dimensionality reduction detected. Use /doml-execute-phase 7 for these problem types.
-```
-Stop.
+  → Route to Phase 7 executor. Skip to Step 3n.
 
 If PROBLEM_TYPE is `time_series`:
 ```
@@ -676,3 +675,209 @@ Produced:
 
 Next: Run /doml-progress to see project status, or /doml-execute-phase [N+1] to continue.
 ```
+
+---
+
+#### Phase 7 — Clustering & Dimensionality Reduction executor
+
+**Pre-condition:** `.planning/config.json` must exist with `problem_type` field set to `clustering` or `dimensionality_reduction`. Phase 7 templates (`modelling_clustering.ipynb`, `modelling_dimreduction.ipynb`) must exist in `.claude/doml/templates/notebooks/`. If templates are missing:
+```
+Phase 7 templates not found. Run /doml-plan-phase 7 and /doml-execute-phase 7 plans 01-02 first.
+```
+and stop.
+
+**Step 3n — Select template + auto-detect notebook number + resolve version**
+
+```bash
+# Auto-detect next available notebook number (do not hardcode)
+NOTEBOOK_NUM=$(python3 -c "
+import glob, re
+existing = glob.glob('notebooks/0*_modelling_*.ipynb')
+if existing:
+    nums = [int(re.search(r'notebooks/0*(\d+)_', f).group(1)) for f in existing if re.search(r'notebooks/0*(\d+)_', f)]
+    print(max(nums) + 1 if nums else 5)
+else:
+    print(5)
+")
+
+# Resolve next version number for this problem type
+VERSION=$(python3 -c "
+import glob, re
+problem_type = '${PROBLEM_TYPE}'
+pattern = f'notebooks/0*_modelling_{problem_type}_v*.ipynb'
+existing = glob.glob(pattern)
+versions = [int(re.search(r'_v(\d+)\.ipynb', f).group(1)) for f in existing if re.search(r'_v(\d+)\.ipynb', f)]
+print(max(versions) + 1 if versions else 1)
+")
+
+echo "Notebook number: $NOTEBOOK_NUM, Version: $VERSION"
+
+# Select template based on problem_type
+if [ "$PROBLEM_TYPE" = "clustering" ]; then
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_clustering.ipynb"
+elif [ "$PROBLEM_TYPE" = "dimensionality_reduction" ]; then
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_dimreduction.ipynb"
+else
+  echo "Unexpected problem_type: $PROBLEM_TYPE — expected clustering or dimensionality_reduction"
+  exit 1
+fi
+
+MODELLING_NOTEBOOK="notebooks/0${NOTEBOOK_NUM}_modelling_${PROBLEM_TYPE}_v${VERSION}.ipynb"
+echo "Modelling notebook: $MODELLING_NOTEBOOK"
+echo "Template: $TEMPLATE"
+```
+
+**Step 3o — Copy template to notebooks/**
+
+```bash
+mkdir -p notebooks
+cp "$TEMPLATE" "$MODELLING_NOTEBOOK"
+echo "Template copied to $MODELLING_NOTEBOOK"
+```
+
+Version number always increments — no overwrite check needed (new version number guarantees uniqueness).
+
+**Step 3p — Execute unsupervised notebook inside Docker**
+
+```bash
+docker compose exec jupyter jupyter nbconvert \
+  --execute \
+  --to notebook \
+  --inplace \
+  "$MODELLING_NOTEBOOK" \
+  --ExecutePreprocessor.timeout=900
+```
+
+Timeout is 900s (15 min) — no Optuna hyperparameter tuning in unsupervised. Shorter than supervised (1200s).
+
+If the container is not running:
+```
+Docker container is not running. Start it with:
+  docker compose up -d
+Then run /doml-execute-phase 7 again.
+```
+Stop.
+
+On execution failure (non-zero exit code), display the nbconvert error output and stop.
+
+**Step 3q — Verify notebook output**
+
+```bash
+python3 -c "
+import nbformat
+with open('$MODELLING_NOTEBOOK') as f:
+    nb = nbformat.read(f, as_version=4)
+code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
+print(f'Unsupervised notebook: {code_cells_with_output} code cells with output')
+assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
+"
+```
+
+After execution, verify the unsupervised leaderboard was produced:
+
+```bash
+python3 -c "
+import os
+assert os.path.exists('models/unsupervised_leaderboard.csv'), (
+    'models/unsupervised_leaderboard.csv not found after unsupervised notebook execution'
+)
+import pandas as pd
+lb = pd.read_csv('models/unsupervised_leaderboard.csv')
+print(f'Unsupervised leaderboard: {len(lb)} rows')
+print(lb[['method', 'n_clusters' if 'n_clusters' in lb.columns else 'n_components']].to_string())
+"
+```
+
+If verification fails, report the error and stop.
+
+**Step 3r — Verify expected output files exist**
+
+For clustering:
+```bash
+if [ "$PROBLEM_TYPE" = "clustering" ]; then
+  python3 -c "
+import glob
+files = glob.glob('data/processed/cluster_assignments.csv')
+assert files, 'cluster_assignments.csv not found in data/processed/ — clustering notebook did not complete'
+print(f'Cluster assignments: {files[0]}')
+"
+fi
+```
+
+For dimensionality_reduction:
+```bash
+if [ "$PROBLEM_TYPE" = "dimensionality_reduction" ]; then
+  python3 -c "
+import glob
+umap_files = glob.glob('data/processed/umap_2d.csv')
+pca_files = glob.glob('data/processed/pca_*d.csv')
+assert umap_files, 'umap_2d.csv not found in data/processed/'
+assert pca_files, 'pca_*d.csv not found in data/processed/'
+print(f'UMAP 2D: {umap_files[0]}')
+print(f'PCA: {pca_files[0]}')
+"
+fi
+```
+
+**Step 3s — Write Claude interpretation cell**
+
+After execution, Claude reads `models/unsupervised_leaderboard.csv` and writes an **Interpretation & Recommendations** Markdown cell as the final cell of the executed notebook.
+
+For clustering notebooks, the interpretation must include:
+1. **Best clustering method** — which method won by silhouette score, the score value, Davies-Bouldin and Calinski-Harabasz
+2. **Structure assessment** — e.g., "Silhouette of 0.42 indicates moderately well-defined clusters" or "Silhouette < 0.25 suggests overlapping structure — consider dimensionality reduction before clustering"
+3. **Top separating features** — top 3 features by ANOVA F-statistic from the feature importance section
+4. **Suggested next steps** — e.g., "Try `/doml-iterate-unsupervised \"explore DBSCAN with finer eps grid\"`" or "Cluster structure looks stable — proceed to Phase 9 reports"
+
+For dimensionality reduction notebooks, the interpretation must include:
+1. **Variance explained** — components needed for 80%/90% variance; comment on whether high dimensionality suggests noise
+2. **Structure observations** — whether UMAP/t-SNE plots reveal visible groupings
+3. **Recommended n_components** — practical recommendation based on scree plot
+4. **Suggested next steps** — e.g., "Try `/doml-iterate-unsupervised \"explore 5-component PCA solution\"`"
+
+Write the interpretation cell using a Python script (write to temp file to avoid quoting issues):
+
+```python
+# /tmp/doml_insert_unsupervised_interpretation.py
+import nbformat
+
+INTERPRETATION = """## Interpretation & Recommendations
+
+[Claude writes this section based on unsupervised_leaderboard.csv and notebook outputs]
+
+### Key Findings
+
+[Method results, metric values, top features / variance explained]
+
+### Anomalies or Concerns
+
+[Low silhouette, all-noise DBSCAN, high-dimensional PCA, etc.]
+
+### Recommended Next Steps
+
+[Specific /doml-iterate-unsupervised direction or proceed to Phase 9]
+"""
+
+with open('NOTEBOOK_PATH') as f:
+    nb = nbformat.read(f, as_version=4)
+
+interp_cell = nbformat.v4.new_markdown_cell(source=INTERPRETATION)
+nb.cells.append(interp_cell)
+
+with open('NOTEBOOK_PATH', 'w') as f:
+    nbformat.write(nb, f)
+
+print("Interpretation cell appended.")
+```
+
+Replace `NOTEBOOK_PATH` with the actual `$MODELLING_NOTEBOOK` path before running.
+
+**Step 3t — No HTML report (Phase 9)**
+
+```
+Unsupervised notebook execution complete.
+No HTML report generated — unsupervised reports are handled by Phase 9 (Modelling Reports & Leaderboard UI).
+To generate reports, run /doml-execute-phase 9 after completing all modelling phases.
+```
+
+Update STATE.md to record Phase 7 execution.
