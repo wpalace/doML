@@ -7,7 +7,7 @@ stopped_at: Milestone 3 initialized — Phase 8 (command restructure) is next
 last_updated: "2026-04-09T00:00:00.000Z"
 last_activity: 2026-04-09 -- Milestone 3 (Refinement) kickoff; requirements and roadmap defined
 progress:
-  total_phases: 3
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -29,7 +29,7 @@ Milestone 3 (Refinement) — Phase 8 is next.
 Status: Planning — no plans created yet.
 Last activity: 2026-04-09 -- M3 kickoff; requirements + roadmap defined
 
-Progress: [░░░░░░░░░░] 0% (Milestone 3, 3 phases)
+Progress: [░░░░░░░░░░] 0% (Milestone 3, 5 phases)
 
 ## Performance Metrics
 

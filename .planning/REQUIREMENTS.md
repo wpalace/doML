@@ -102,27 +102,37 @@ Milestone 1 delivers the framework foundation plus Business Understanding and Da
 
 ## v3 Requirements (Milestone 3 — Refinement)
 
-### Command Restructure
+### Phase-Named Commands
 
-- **REF-01**: `/doml-new-project` renamed to `/doml-start` — more natural entry point; old name aliased for backwards compatibility
-- **REF-02**: `/doml-execute-phase [N]` renamed to `/doml-run [N]` — "run" matches data scientist mental model better than "execute-phase" (GSD jargon)
-- **REF-03**: `/doml-progress` renamed to `/doml-status` — standard CLI idiom; "progress" aliased for backwards compatibility
-- **REF-04**: `/doml-plan-phase` demoted to internal-only — never surfaced to users; invoked automatically by `/doml-run` when no PLAN.md exists
-- **REF-05**: `/doml-iterate-model` and `/doml-iterate-unsupervised` unified into a single `/doml-iterate` command — auto-detects supervised vs. unsupervised from `config.json` `problem_type` field
-- **REF-06**: All skill `SKILL.md` descriptions, argument hints, and cross-references updated to use new command names
+- **CMD-10**: `doml-business-understanding` — dedicated skill that runs the Business Understanding phase end-to-end (notebook + HTML report); replaces `doml-execute-phase 1`
+- **CMD-11**: `doml-data-understanding` — dedicated skill that runs the EDA phase end-to-end (notebook + HTML report); replaces `doml-execute-phase 2`
+- **CMD-12**: `doml-modelling` — dedicated skill that runs preprocessing + modelling for all supervised problem types (regression, classification, clustering, dimensionality reduction) in a single command; replaces `doml-execute-phase 3`
+- **CMD-13**: `doml-anomaly-detection` — optional dedicated skill that deep-dives into anomalies; runs after `doml-data-understanding`; produces anomaly notebook + HTML report
+- **CMD-14**: `doml-get-data` — dedicated skill that fetches datasets from Kaggle or direct URLs into `data/raw/`; runnable standalone or invoked automatically by `doml-new-project` when `/data/raw/` is empty
+- **CMD-15**: `doml-iterate` — unified skill that runs a new modelling iteration for any problem type; always produces new versioned notebooks and reports (never overwrites originals)
+- **CMD-16**: `doml-forecasting` — dedicated skill for time series modelling and forecasting (ARIMA, Prophet, temporal CV, prediction intervals); only runs when time-factor confirmed in Business Understanding
 
-### Skill Refinement
+### Data Acquisition (`doml-get-data`)
 
-- **REF-07**: `/doml-start` (new-project) workflow refined — cleaner interview flow, better error messages when `/data/` is empty or malformed
-- **REF-08**: `/doml-run` (execute-phase) workflow refined — validates notebook output exists before generating HTML report; surfaces clear error when Docker is not running
-- **REF-09**: `/doml-status` (progress) workflow refined — outputs actionable next step with exact command to run, not just phase list
-- **REF-10**: `/doml-iterate` workflow implemented fully — supervised path complete (was stub in M2); unsupervised path ported from `iterate-unsupervised.md`
+- **DATA-01**: Accepts a Kaggle dataset slug (`owner/dataset-name`) and downloads files to `data/raw/` using the Kaggle API
+- **DATA-02**: Accepts a direct URL (CSV, Parquet, Excel) and downloads to `data/raw/`
+- **DATA-03**: Invoked automatically by `doml-new-project` when `/data/raw/` is empty or contains no supported files — prompts user for source before continuing interview
+- **DATA-04**: Logs each download to `data/raw/README.md` with source URL/slug and download timestamp
 
-### Unified Iterate Command
+### Anomaly Detection (`doml-anomaly-detection`)
 
-- **REF-11**: `/doml-iterate` reads `config.json` `problem_type` and routes to supervised (regression/classification) or unsupervised (clustering/dim_reduction) pipeline
-- **REF-12**: Supervised iterate path implements the full 10-step workflow matching unsupervised (config detection, notebook discovery, prior interpretation read, version increment, template copy, cell modification, Docker exec, leaderboard append, interpretation cell)
-- **REF-13**: `/doml-iterate` accepts optional `--direction` flag for analyst-supplied guidance (mirrors existing unsupervised workflow)
+- **ANOM-01**: Generates `notebooks/anomaly_detection.ipynb` — covers Isolation Forest, Local Outlier Factor, and DBSCAN-based anomaly flagging
+- **ANOM-02**: Notebook follows all reproducibility rules (REPR-01, REPR-02) and tidy data validation before analysis
+- **ANOM-03**: Generates `reports/anomaly_report.html` — code hidden, Claude-generated narrative interpreting anomaly findings
+- **ANOM-04**: Anomaly flags written to `data/processed/anomaly_flags_{filename}.csv` for optional use in downstream modelling
+
+### Unified Iteration (`doml-iterate`)
+
+- **ITER-01**: Reads `config.json` `problem_type` and routes to the correct iteration pipeline (supervised or unsupervised)
+- **ITER-02**: Always produces a new versioned notebook (e.g., `modelling_regression_v2.ipynb`, `modelling_clustering_v3.ipynb`) — never overwrites the previous version
+- **ITER-03**: Always produces a new versioned HTML report (e.g., `model_report_v2.html`) — never overwrites the previous version
+- **ITER-04**: Appends new results to the leaderboard (`models/leaderboard.csv` or `models/unsupervised_leaderboard.csv`) rather than replacing prior rows
+- **ITER-05**: Accepts optional analyst-supplied direction via `--direction` flag to guide the iteration strategy
 
 ## Out of Scope
 

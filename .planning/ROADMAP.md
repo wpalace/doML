@@ -215,81 +215,98 @@ Plans:
 
 ## 📋 Milestone 3 — Refinement (In Progress)
 
-**Milestone Goal:** Restructure and rename DoML commands to match the actual data scientist workflow, refine each skill's workflow quality, and complete the unified `/doml-iterate` command with a fully-implemented supervised iteration path.
+**Milestone Goal:** Replace the generic `doml-execute-phase N` pattern with dedicated CRISP-DM-named commands, add data acquisition and anomaly detection capabilities, unify the iterate workflow, and add time series forecasting.
 
-### Phase 8: Command Restructure & Renaming
+### Phase 8: Phase-Named Commands
 
-**Goal**: Rename all user-facing DoML commands to match the data scientist's mental model, demote `plan-phase` to internal-only, and update all cross-references.
+**Goal**: Replace `doml-execute-phase` with dedicated CRISP-DM-named skills — `doml-business-understanding`, `doml-data-understanding`, and `doml-modelling` — each self-contained with its own workflow, notebook, and HTML report. Retire `doml-execute-phase` and `doml-plan-phase` as user-facing commands.
 
 **Depends on**: Phase 7
 
-**Requirements**: REF-01, REF-02, REF-03, REF-04, REF-05, REF-06
+**Requirements**: CMD-10, CMD-11, CMD-12
 
 **Success Criteria** (what must be TRUE):
-1. `/doml-start` skill exists and invokes the new-project workflow; `/doml-new-project` aliased
-2. `/doml-run [N]` skill exists and invokes the execute-phase workflow; `/doml-execute-phase` aliased
-3. `/doml-status` skill exists and invokes the progress workflow; `/doml-progress` aliased
-4. `/doml-plan-phase` SKILL.md updated to mark as internal — description warns users not to invoke directly
-5. All workflow files updated to use new command names in user-facing text
-6. CLAUDE.md updated with new command names
+1. `doml-business-understanding` skill exists and runs the full BU phase (notebook + HTML report) without requiring a phase number
+2. `doml-data-understanding` skill exists and runs the full EDA phase (notebook + HTML report) without requiring a phase number
+3. `doml-modelling` skill exists and routes to the correct modelling notebook based on `config.json` `problem_type` (regression, classification, clustering, dim_reduction), including preprocessing
+4. `doml-execute-phase` and `doml-plan-phase` removed from user-facing skills (or clearly marked internal)
+5. `CLAUDE.md` and `doml-progress` updated to reference new command names
 
 **Plans**: TBD
 
 ---
 
-### Phase 9: Skill Refinement
+### Phase 9: `doml-get-data`
 
-**Goal**: Improve the workflow quality of each DoML skill — better error messages, edge case handling, and actionable status output.
+**Goal**: Implement a data acquisition skill that downloads datasets from Kaggle or direct URLs into `data/raw/`, and integrates with `doml-new-project` as a fallback when no data is found.
 
 **Depends on**: Phase 8
 
-**Requirements**: REF-07, REF-08, REF-09
+**Requirements**: CMD-14, DATA-01, DATA-02, DATA-03, DATA-04
 
 **Success Criteria** (what must be TRUE):
-1. `/doml-start` surfaces a clear, actionable error when `/data/` is empty or contains no supported files
-2. `/doml-run` validates Docker is running before attempting notebook execution; surfaces a clear fix command
-3. `/doml-run` validates notebook output file exists before attempting HTML report generation
-4. `/doml-status` output ends with an exact command for the user to run next (not just a phase list)
+1. `doml-get-data kaggle owner/dataset-name` downloads dataset files to `data/raw/` using the Kaggle API
+2. `doml-get-data url https://...` downloads a CSV/Parquet/Excel file to `data/raw/`
+3. `doml-new-project` detects empty `data/raw/` and automatically invokes `doml-get-data` before continuing the interview
+4. Each download appends a log entry to `data/raw/README.md` with source and timestamp
 
 **Plans**: TBD
 
 ---
 
-### Phase 10: Unified `/doml-iterate` Command
+### Phase 10: `doml-anomaly-detection`
 
-**Goal**: Merge `/doml-iterate-model` and `/doml-iterate-unsupervised` into a single `/doml-iterate` command with a fully-implemented supervised path and auto-detection of problem type.
+**Goal**: Implement an optional anomaly detection phase that runs after `doml-data-understanding`, producing a dedicated notebook and HTML report covering Isolation Forest, LOF, and DBSCAN-based flagging.
 
 **Depends on**: Phase 8
 
-**Requirements**: REF-10, REF-11, REF-12, REF-13
+**Requirements**: CMD-13, ANOM-01, ANOM-02, ANOM-03, ANOM-04
 
 **Success Criteria** (what must be TRUE):
-1. `/doml-iterate` reads `config.json` `problem_type` and routes to supervised or unsupervised pipeline
-2. Supervised path implements full 10-step workflow (matching the existing unsupervised path)
-3. `/doml-iterate-model` and `/doml-iterate-unsupervised` skills removed; replaced by `/doml-iterate`
-4. `--direction` flag supported for analyst-supplied guidance in both paths
+1. `doml-anomaly-detection` skill exists and generates `notebooks/anomaly_detection.ipynb`
+2. Notebook covers Isolation Forest, Local Outlier Factor, and DBSCAN-based anomaly detection
+3. Notebook follows REPR-01, REPR-02, and tidy validation before analysis
+4. `reports/anomaly_report.html` generated with code hidden and Claude narrative
+5. Anomaly flags written to `data/processed/anomaly_flags_{filename}.csv`
 
 **Plans**: TBD
 
 ---
 
-## 📋 Milestone 4 — Forecasting (Planned)
+### Phase 11: Unified `doml-iterate`
 
-**Milestone Goal:** Add optional time series modelling and forecasting for datasets where time is a factor — ARIMA, Prophet, temporal CV, and prediction intervals.
+**Goal**: Merge `doml-iterate-model` and `doml-iterate-unsupervised` into a single `doml-iterate` command that auto-detects problem type, always produces new versioned notebooks and reports, and implements the full supervised iteration path (currently a stub).
 
-### Phase 11: Time Series Modelling & Forecasting
+**Depends on**: Phase 8
 
-**Goal**: Implement the time series modelling and optional Forecasting phase with ARIMA, Prophet, temporal cross-validation, and prediction intervals — only activated when time-factor confirmed in Business Understanding.
-
-**Depends on**: Phase 5 (requires stationarity analysis from EDA)
-
-**Requirements**: MOD-04, FORE-01, FORE-02, FORE-03, FORE-04
+**Requirements**: CMD-15, ITER-01, ITER-02, ITER-03, ITER-04, ITER-05
 
 **Success Criteria** (what must be TRUE):
-1. Time series modelling notebook uses only `TimeSeriesSplit` — no random splits
-2. ARIMA and Prophet models compared in leaderboard with temporal CV metrics
-3. Forecasting notebook generates point forecast + 80% and 95% prediction intervals
-4. Forecasting phase only activates when time-factor was confirmed in Business Understanding
+1. `doml-iterate` reads `config.json` `problem_type` and routes correctly for all problem types
+2. Every iteration produces a new versioned notebook — never overwrites a prior version
+3. Every iteration produces a new versioned HTML report — never overwrites a prior version
+4. Leaderboard appended (not replaced) with new iteration results
+5. Supervised iteration path is fully implemented (10-step workflow matching unsupervised)
+6. `doml-iterate-model` and `doml-iterate-unsupervised` skills removed
+
+**Plans**: TBD
+
+---
+
+### Phase 12: `doml-forecasting`
+
+**Goal**: Implement time series modelling and forecasting as a dedicated skill — ARIMA, Prophet, temporal CV, and prediction intervals — only activated when `time_factor=true` in `config.json`.
+
+**Depends on**: Phase 8
+
+**Requirements**: CMD-16, MOD-04, FORE-01, FORE-02, FORE-03, FORE-04
+
+**Success Criteria** (what must be TRUE):
+1. `doml-forecasting` skill exists and generates `notebooks/forecasting.ipynb`
+2. Notebook uses only `TimeSeriesSplit` — no random splits
+3. ARIMA and Prophet compared in leaderboard with temporal CV metrics
+4. Forecast output includes point prediction + 80% and 95% prediction intervals
+5. Skill exits early with a clear message if `time_factor=false` in `config.json`
 
 **Plans**: TBD
 
@@ -306,8 +323,9 @@ Plans:
 | 5. Data Understanding Phase | M2 | 4/4 | Complete | 2026-04-08 |
 | 6. Preprocessing & Modelling — Regression & Classification | M2 | 5/5 | Complete | 2026-04-08 |
 | 7. Modelling — Clustering & Dim. Reduction | M2 | 4/4 | Complete | 2026-04-07 |
-| 8. Command Restructure & Renaming | M3 | TBD | Not started | — |
-| 9. Skill Refinement | M3 | TBD | Not started | — |
-| 10. Unified `/doml-iterate` Command | M3 | TBD | Not started | — |
-| 11. Time Series Modelling & Forecasting | M4 | TBD | Deferred | — |
+| 8. Phase-Named Commands | M3 | TBD | Not started | — |
+| 9. `doml-get-data` | M3 | TBD | Not started | — |
+| 10. `doml-anomaly-detection` | M3 | TBD | Not started | — |
+| 11. Unified `doml-iterate` | M3 | TBD | Not started | — |
+| 12. `doml-forecasting` | M3 | TBD | Not started | — |
 
