@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Refinement
 status: planning
-stopped_at: Milestone 3 initialized — Phase 8 (command restructure) is next
-last_updated: "2026-04-09T00:00:00.000Z"
-last_activity: 2026-04-09 -- Milestone 3 (Refinement) kickoff; requirements and roadmap defined
+stopped_at: Phase 8 complete — doml-business-understanding, doml-data-understanding, doml-modelling created; doml-execute-phase and doml-plan-phase retired
+last_updated: "2026-04-10T00:00:00.000Z"
+last_activity: 2026-04-10 -- Phase 8 complete; CRISP-DM-named commands created, old commands retired
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 4
+  percent: 20
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-04-04)
 
 ## Current Position
 
-Milestone 3 (Refinement) — Phase 8 is next.
-Status: Planning — no plans created yet.
-Last activity: 2026-04-09 -- M3 kickoff; requirements + roadmap defined
+Milestone 3 (Refinement) — Phase 9 is next.
+Status: Planning — no plans created yet for Phase 9.
+Last activity: 2026-04-10 -- Phase 8 complete; CRISP-DM-named commands created
 
-Progress: [░░░░░░░░░░] 0% (Milestone 3, 5 phases)
+Progress: [██░░░░░░░░] 20% (Milestone 3, 5 phases)
 
 ## Performance Metrics
 
@@ -98,6 +98,11 @@ Progress: [░░░░░░░░░░] 0% (Milestone 3, 5 phases)
 - [Phase 07]: modelling_dimreduction.ipynb: 21-cell template — PCA scree/biplot/loadings, UMAP 2D/3D/n_neighbors sensitivity, t-SNE perplexity sweep (max_iter=1000), pca_{n}d.csv + umap_2d.csv + unsupervised_leaderboard.csv
 - [Phase 07]: execute-phase.md extended with Steps 3n–3t for clustering/dim_reduction routing (Step 3g → Step 3n); 900s timeout (no Optuna); no HTML report (deferred to Phase 9)
 - [Phase 07]: /doml-iterate-unsupervised registered — full 10-step workflow: config detection, notebook discovery, prior interpretation read, version increment, template copy, nbformat-based cell modification, Docker exec 900s, leaderboard append, interpretation cell
+- [Phase 08]: doml-business-understanding created — replaces doml-execute-phase 1; standalone business-understanding.md workflow; supports --guidance parameter
+- [Phase 08]: doml-data-understanding created — replaces doml-execute-phase 2; standalone data-understanding.md workflow; supports --guidance parameter
+- [Phase 08]: doml-modelling created — replaces doml-execute-phase 3 and Phase 7 executor; routes all four problem types; preprocessing included for supervised only; supports --guidance parameter
+- [Phase 08]: doml-execute-phase and doml-plan-phase skill directories deleted; execute-phase.md and plan-phase.md workflow files deleted
+- [Phase 08]: CLAUDE.md and progress.md updated to reference new command names
 
 ### Blockers/Concerns
 

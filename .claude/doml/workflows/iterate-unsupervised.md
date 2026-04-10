@@ -58,7 +58,7 @@ else:
 
 if [ -z "$LATEST_NOTEBOOK" ]; then
   echo "No ${PROBLEM_TYPE} notebook found in notebooks/."
-  echo "Run /doml-execute-phase 7 first to create an initial notebook."
+  echo "Run /doml-modelling first to create an initial notebook."
   exit 1
 fi
 
@@ -401,7 +401,7 @@ Display a structured summary to the analyst:
 
 ### Next Actions
 - Continue iterating: /doml-iterate-unsupervised "next direction"
-- Generate reports: /doml-execute-phase 9
+- View leaderboard summary: /doml-progress
 - View leaderboard: cat models/unsupervised_leaderboard.csv
 ```
 

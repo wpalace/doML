@@ -64,10 +64,12 @@ Route based on STATE.md `status` and phase/plan state:
 | Condition | Next action message |
 |-----------|---------------------|
 | No phases started | Run `/doml-new-project` to begin the kickoff interview |
-| Interview complete, no plans | Run `/doml-plan-phase [N]` to plan Phase [N] |
-| Plan exists, not executed | Run `/doml-execute-phase [N]` to run Phase [N] |
+| Interview complete, BU not run | Run `/doml-business-understanding` to generate the Business Understanding notebook and report |
+| BU complete, EDA not run | Run `/doml-data-understanding` to generate the EDA notebook and report |
+| EDA complete, modelling not run | Run `/doml-modelling` to run preprocessing and modelling for your problem type |
+| Modelling complete | Run `/doml-iterate-model "direction"` or `/doml-iterate-unsupervised "direction"` to refine |
 | Phase in progress | Continue with the current phase — check STATE.md `stopped_at` |
-| All M1 phases complete | Milestone 1 complete — run `/doml-new-milestone` or review reports in `reports/` |
+| All phases complete | Run `/doml-progress` to review status, or check `reports/` for stakeholder outputs |
 
 ### Step 6 — Show key decisions (if any)
 

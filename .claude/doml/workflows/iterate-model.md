@@ -117,7 +117,7 @@ Delta: {+/-X.XXXX}
 Full leaderboard: models/leaderboard.csv ({N} total entries)
 
 Next: Run /doml-iterate-model "your next direction" to continue, or
-      /doml-execute-phase 9 when ready to generate the model report.
+      /doml-progress to review overall project status.
 ```
 
 ---
