@@ -90,6 +90,59 @@ notebooks/01_business_understanding.ipynb already exists. Overwrite? (yes / no)
 ```
 Use AskUserQuestion for this. If the user says no, stop without overwriting.
 
+**Step 3a.1 — Check for headerless CSVs**
+
+Before executing the notebook, scan `data/raw/` for CSVs that have no header row:
+
+```bash
+python3 -c "
+import duckdb, pathlib, json
+
+raw = pathlib.Path('data/raw')
+config_path = pathlib.Path('.planning/config.json')
+config = json.loads(config_path.read_text()) if config_path.exists() else {}
+known_names = config.get('column_names', {})
+
+for csv in sorted(raw.glob('**/*.csv')):
+    con = duckdb.connect()
+    try:
+        cols = con.execute(f\"DESCRIBE SELECT * FROM read_csv_auto('{csv}')\").df()['column_name'].tolist()
+        auto_named = all(__import__('re').match(r'^column\d+$', c) for c in cols)
+        stem = csv.stem
+        if auto_named and stem not in known_names and csv.name not in known_names:
+            print(f'HEADERLESS:{csv.name}:{len(cols)}')
+    finally:
+        con.close()
+"
+```
+
+If any `HEADERLESS:` lines appear, for each affected file ask the user to provide column names using AskUserQuestion:
+
+```
+'{filename}' has no header row — DuckDB detected {N} columns.
+data/raw/ is read-only, so you cannot add headers to the source file.
+Please provide the column names as a comma-separated list (e.g. sepal_length,sepal_width,petal_length,petal_width,species):
+```
+
+After the user responds, write their names to `.planning/config.json` under `column_names`:
+
+```python
+# /tmp/doml_set_column_names.py
+import json, pathlib
+
+config_path = pathlib.Path('.planning/config.json')
+config = json.loads(config_path.read_text())
+config.setdefault('column_names', {})
+config['column_names']['{stem}'] = [n.strip() for n in '{user_response}'.split(',')]
+config_path.write_text(json.dumps(config, indent=2))
+print('column_names saved to config.json')
+```
+
+Replace `{stem}` and `{user_response}` with the actual values before running:
+```bash
+python3 /tmp/doml_set_column_names.py
+```
+
 **Step 3b — Execute the notebook inside Docker**
 
 Run the notebook to populate all cells with output:
@@ -135,6 +188,43 @@ If verification fails, report the error and stop. Do not generate the HTML repor
 PROJECT.md or config.json not found. Run /doml-new-project first.
 ```
 and stop.
+
+**Step 3d.0 — Check for headerless CSVs without column names**
+
+Before proceeding, scan `data/raw/` for any CSVs that have no header row and no `column_names` entry in `config.json`. The EDA notebook will show auto-named columns (`column0`, `column1`, ...) throughout all analysis sections without proper names, making results uninterpretable.
+
+```bash
+python3 -c "
+import duckdb, pathlib, json, re
+
+raw = pathlib.Path('data/raw')
+config_path = pathlib.Path('.planning/config.json')
+config = json.loads(config_path.read_text()) if config_path.exists() else {}
+known_names = config.get('column_names', {})
+
+for csv in sorted(raw.glob('**/*.csv')):
+    con = duckdb.connect()
+    try:
+        cols = con.execute(f\"DESCRIBE SELECT * FROM read_csv_auto('{csv}')\").df()['column_name'].tolist()
+        auto_named = all(re.match(r'^column\d+$', c) for c in cols)
+        if auto_named and csv.stem not in known_names and csv.name not in known_names:
+            print(f'HEADERLESS:{csv.name}:{len(cols)}')
+    finally:
+        con.close()
+"
+```
+
+If any `HEADERLESS:` lines appear, for each affected file use AskUserQuestion to strongly encourage the user to provide column names:
+
+```
+'{filename}' has no header row — the EDA report will show column0, column1, ... throughout all analysis sections.
+data/raw/ is read-only, so you cannot add headers to the source file.
+
+Providing column names now will give you a meaningful, readable report.
+Please enter the {N} column names as a comma-separated list, or type 'skip' to proceed with auto-names:
+```
+
+If the user provides names (not 'skip'), save them to `.planning/config.json` under `column_names` using the same pattern as Step 3a.1. If the user skips, proceed but note in output that column names will appear as `column0..N`.
 
 **Step 3d — Detect language + copy notebook template**
 
@@ -399,18 +489,30 @@ with open('[MODELLING_NOTEBOOK]') as f:
 
 interp_cell = nbformat.v4.new_markdown_cell(source=INTERPRETATION)
 interp_cell['id'] = uuid.uuid4().hex[:8]
-nb.cells.append(interp_cell)
+
+# Replace the template placeholder if present; otherwise append
+placeholder_idx = next(
+    (i for i, c in enumerate(nb.cells)
+     if c.cell_type == 'markdown' and c.source.startswith('## Interpretation & Recommendations')),
+    None
+)
+if placeholder_idx is not None:
+    nb.cells[placeholder_idx] = interp_cell
+else:
+    nb.cells.append(interp_cell)
 
 with open('[MODELLING_NOTEBOOK]', 'w') as f:
     nbformat.write(nb, f)
 
-print('Interpretation cell appended')
+print('Interpretation cell written')
 ```
 
 Write the actual interpretation into `INTERPRETATION` (filled in from leaderboard data), replace `[MODELLING_NOTEBOOK]` with the actual path, then run:
 ```bash
 python3 /tmp/doml_insert_modelling_interpretation.py
 ```
+
+After interpretation is written, **proceed directly to Steps 5i–5l** to generate the model HTML report. Phase 3 has no additional PLAN.md tasks.
 
 ### Step 4 — Execute PLAN.md tasks
 
@@ -484,15 +586,13 @@ docker compose exec jupyter jupyter nbconvert \
 
 This produces `reports/business_summary.html`. The `--no-input` flag hides all code cells (OUT-02).
 
-**If Docker is not running**, run on host as fallback:
-```bash
-jupyter nbconvert \
-  --to html \
-  --no-input \
-  notebooks/01_business_understanding.ipynb \
-  --output-dir reports \
-  --output business_summary
+If the container is not running, display:
 ```
+Docker container is not running. Start it with:
+  docker compose up -d
+Then run /doml-execute-phase 1 again.
+```
+and stop.
 
 #### Step 5d — Verify HTML report
 
@@ -577,15 +677,13 @@ docker compose exec jupyter jupyter nbconvert \
 
 This produces `reports/eda_report.html`. The `--no-input` flag hides all code cells (OUT-02).
 
-**If Docker is not running**, run on host as fallback:
-```bash
-jupyter nbconvert \
-  --to html \
-  --no-input \
-  notebooks/02_data_understanding.ipynb \
-  --output-dir reports \
-  --output eda_report
+If the container is not running, display:
 ```
+Docker container is not running. Start it with:
+  docker compose up -d
+Then run /doml-execute-phase 2 again.
+```
+and stop.
 
 **Step 5h — Verify EDA HTML report**
 
@@ -623,7 +721,31 @@ The model report narrative must:
 - Note if performance is strong vs. weak relative to the dummy baseline
 - Be 2–3 short paragraphs
 
-Insert narrative into the modelling notebook as cell 0 using the same insert-script pattern as Phase 1 (Step 5a).
+Insert the narrative as cell 0 of the modelling notebook using this script:
+
+```python
+# /tmp/doml_insert_model_narrative.py
+import nbformat, uuid
+
+NARRATIVE = """[WRITE THE 2-3 PARAGRAPH EXECUTIVE SUMMARY HERE]"""
+
+with open('[MODELLING_NOTEBOOK]') as f:
+    nb = nbformat.read(f, as_version=4)
+
+summary_cell = nbformat.v4.new_markdown_cell(source='## Executive Summary\n\n' + NARRATIVE)
+summary_cell['id'] = uuid.uuid4().hex[:8]
+nb.cells.insert(0, summary_cell)
+
+with open('[MODELLING_NOTEBOOK]', 'w') as f:
+    nbformat.write(nb, f)
+
+print('Executive narrative inserted as cell 0')
+```
+
+Write the actual narrative into `NARRATIVE`, replace `[MODELLING_NOTEBOOK]` with the actual path, then run:
+```bash
+python3 /tmp/doml_insert_model_narrative.py
+```
 
 **Step 5j — Create reports/ directory**
 
@@ -642,10 +764,13 @@ docker compose exec jupyter jupyter nbconvert \
   --output model_report
 ```
 
-If Docker is not running, run on host:
-```bash
-jupyter nbconvert --to html --no-input "$MODELLING_NOTEBOOK" --output-dir reports --output model_report
+If the container is not running, display:
 ```
+Docker container is not running. Start it with:
+  docker compose up -d
+Then run /doml-execute-phase 3 again.
+```
+and stop.
 
 **Step 5l — Verify model_report.html**
 

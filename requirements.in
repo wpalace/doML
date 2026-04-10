@@ -7,9 +7,11 @@
 # --- Core DB / notebook tooling ---
 duckdb
 papermill
-nbconvert
-nbformat
+# nbconvert and nbformat are provided by the conda base image (quay.io/jupyter/datascience-notebook)
+# Do NOT pip-install nbconvert — it conflicts with the conda-managed version
 jinja2
+# mistune 3.x breaks the conda-managed nbconvert — pin to 2.x
+mistune<3
 
 # --- Reproducibility ---
 nbstripout

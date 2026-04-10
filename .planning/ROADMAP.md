@@ -154,9 +154,9 @@ Plans:
 
 ---
 
-## 📋 Milestone 2 — Modelling + Forecasting (Planned)
+## ✅ Milestone 2 — Modelling (Complete)
 
-**Milestone Goal:** Extend DoML with Data Modelling (all 5 traditional ML problem types with leaderboard, SHAP, and hyperparameter tuning) and optional Forecasting phase with prediction intervals.
+**Milestone Goal:** Extend DoML with Data Modelling (all traditional ML problem types with leaderboard, SHAP, and hyperparameter tuning) — supervised (regression/classification) and unsupervised (clustering/dimensionality reduction).
 
 ### Phase 6: Data Preprocessing & Modelling — Regression & Classification
 
@@ -211,6 +211,12 @@ Plans:
 
 ---
 
+---
+
+## 📋 Milestone 3 — Forecasting (Planned)
+
+**Milestone Goal:** Add optional time series modelling and forecasting for datasets where time is a factor — ARIMA, Prophet, temporal CV, and prediction intervals.
+
 ### Phase 8: Time Series Modelling & Forecasting
 
 **Goal**: Implement the time series modelling and optional Forecasting phase with ARIMA, Prophet, temporal cross-validation, and prediction intervals — only activated when time-factor confirmed in Business Understanding.
@@ -229,34 +235,16 @@ Plans:
 
 ---
 
-### Phase 9: Modelling Reports & Leaderboard UI
-
-**Goal**: Extend HTML report generation to cover modelling and forecasting phases — leaderboard display, SHAP visualizations, forecast charts with prediction intervals, and executive summaries.
-
-**Depends on**: Phases 6–8
-
-**Requirements**: MOD-06, OUT-01, OUT-02, OUT-03
-
-**Success Criteria** (what must be TRUE):
-1. `reports/model_report.html` generated with leaderboard, SHAP plots, code hidden
-2. `reports/forecast_report.html` generated with forecast chart + prediction intervals
-3. HTML reports include caveats: model limitations, out-of-sample risks, correlation ≠ causation
-
-**Plans**: TBD
-
----
-
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Infrastructure & Docker | M1 | 3/3 | Complete | 2026-04-05 |
-| 2. Framework Skeleton | M1 | 0/3 | Not started | — |
-| 3. Kickoff Interview | M1 | 2/2 | Complete   | 2026-04-06 |
-| 4. Business Understanding Phase | M1 | 0/3 | Not started | — |
-| 5. Data Understanding Phase | M1 | 0/4 | Not started | — |
-| 6. Preprocessing & Modelling — Regression & Classification | M2 | 0/5 | Not started | — |
-| 7. Modelling — Clustering & Dim. Reduction | M2 | TBD | Not started | — |
-| 8. Time Series Modelling & Forecasting | M2 | TBD | Not started | — |
-| 9. Modelling Reports & Leaderboard UI | M2 | TBD | Not started | — |
+| 1. Infrastructure & Docker | M1 | 4/4 | Complete | 2026-04-05 |
+| 2. Framework Skeleton | M1 | 3/3 | Complete | 2026-04-06 |
+| 3. Kickoff Interview | M1 | 2/2 | Complete | 2026-04-06 |
+| 4. Business Understanding Phase | M2 | 3/3 | Complete | 2026-04-08 |
+| 5. Data Understanding Phase | M2 | 4/4 | Complete | 2026-04-08 |
+| 6. Preprocessing & Modelling — Regression & Classification | M2 | 5/5 | Complete | 2026-04-08 |
+| 7. Modelling — Clustering & Dim. Reduction | M2 | 4/4 | Complete | 2026-04-07 |
+| 8. Time Series Modelling & Forecasting | M3 | TBD | Deferred | — |
 

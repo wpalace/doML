@@ -14,6 +14,8 @@ services:
       # INFR-05: raw + external data mounted read-only — immutability enforced at OS level
       - ./data/raw:/home/jovyan/work/data/raw:ro
       - ./data/external:/home/jovyan/work/data/external:ro
+      # Planning artifacts mounted read-only — notebooks read config.json and PROJECT.md
+      - ./.planning:/home/jovyan/work/.planning:ro
       # Writable mounts — analysis outputs
       - ./data/processed:/home/jovyan/work/data/processed
       - ./notebooks:/home/jovyan/work/notebooks

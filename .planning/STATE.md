@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Phase 07 complete — all 4 plans executed and committed
-last_updated: "2026-04-07T22:00:00.000Z"
-last_activity: 2026-04-07 -- Phase 7 execution complete
+milestone: v2.0
+milestone_name: Forecasting
+status: planning
+stopped_at: Milestone 2 complete — Phase 9 removed (captured in execute-phase), Phase 8 deferred to Milestone 3
+last_updated: "2026-04-09T00:00:00.000Z"
+last_activity: 2026-04-09 -- Milestone 2 wrapped up; Milestone 3 (Forecasting) is next
 progress:
-  total_phases: 9
-  completed_phases: 7
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,12 +25,14 @@ See: .planning/PROJECT.md (updated 2026-04-04)
 
 ## Current Position
 
-Phase: 07 (data-modelling-clustering-dimensionality-reduction) — COMPLETE
-Plan: 4 of 4
-Status: Ready for Phase 08
-Last activity: 2026-04-07 -- Phase 7 execution complete
+Milestone 2 COMPLETE — Phases 1–7 all done.
+Phase 8 (Time Series) deferred to Milestone 3.
+Phase 9 (Modelling Reports) removed — report generation is already built into execute-phase.md.
 
-Progress: [████░░░░░░] 44%
+Status: Ready to begin Milestone 3 (Forecasting) when needed.
+Last activity: 2026-04-09 -- Milestone 2 wrapped up
+
+Progress: [██████████] 100% (Milestone 2)
 
 ## Performance Metrics
 
@@ -82,8 +84,8 @@ Progress: [████░░░░░░] 44%
 
 ### Pending Todos
 
-- UAT deferred: verify /doml-execute-phase 1 produces correct reports/business_summary.html (04-03 Task 2)
-- UAT deferred: verify /doml-execute-phase 2 produces reports/eda_report.html with code hidden, executive summary, and caveats (05-04 Task 2)
+- [UAT 2026-04-08]: /doml-execute-phase 1 UAT passed. Fixes applied: mistune<3 pin (conda nbconvert incompatibility), .planning/:ro volume mount added to docker-compose, headerless CSV detection + column_names config support, bracketed placeholder fields → "Not specified", target column auto-name resolution, Evaluation Criteria subsection added to BU notebook
+- [UAT 2026-04-08]: /doml-execute-phase 2 UAT passed. Fixes applied: column_names threaded through get_read_fn() across all EDA cells, duplicate drop deferred to preprocessing, infer_datetime_format removed (format='mixed'), requirement/decision refs moved to HTML comments, DuckDB removed from headings
 
 - [Phase 05]: corrplot, naniar, psych R packages missing from container — replaced with ggplot2 tile heatmaps and base R cor() for point-biserial
 - [Phase 05]: Python EDA notebook: 26 cells covering EDA-01–EDA-08, REPR-01, REPR-02, OUT-03
