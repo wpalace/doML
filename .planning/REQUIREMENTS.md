@@ -100,6 +100,30 @@ Milestone 1 delivers the framework foundation plus Business Understanding and Da
 - **FORE-03**: Temporal cross-validation enforced (`TimeSeriesSplit` — no random splits)
 - **FORE-04**: Forecast tracking support: compare predictions to actuals as new data arrives
 
+## v3 Requirements (Milestone 3 — Refinement)
+
+### Command Restructure
+
+- **REF-01**: `/doml-new-project` renamed to `/doml-start` — more natural entry point; old name aliased for backwards compatibility
+- **REF-02**: `/doml-execute-phase [N]` renamed to `/doml-run [N]` — "run" matches data scientist mental model better than "execute-phase" (GSD jargon)
+- **REF-03**: `/doml-progress` renamed to `/doml-status` — standard CLI idiom; "progress" aliased for backwards compatibility
+- **REF-04**: `/doml-plan-phase` demoted to internal-only — never surfaced to users; invoked automatically by `/doml-run` when no PLAN.md exists
+- **REF-05**: `/doml-iterate-model` and `/doml-iterate-unsupervised` unified into a single `/doml-iterate` command — auto-detects supervised vs. unsupervised from `config.json` `problem_type` field
+- **REF-06**: All skill `SKILL.md` descriptions, argument hints, and cross-references updated to use new command names
+
+### Skill Refinement
+
+- **REF-07**: `/doml-start` (new-project) workflow refined — cleaner interview flow, better error messages when `/data/` is empty or malformed
+- **REF-08**: `/doml-run` (execute-phase) workflow refined — validates notebook output exists before generating HTML report; surfaces clear error when Docker is not running
+- **REF-09**: `/doml-status` (progress) workflow refined — outputs actionable next step with exact command to run, not just phase list
+- **REF-10**: `/doml-iterate` workflow implemented fully — supervised path complete (was stub in M2); unsupervised path ported from `iterate-unsupervised.md`
+
+### Unified Iterate Command
+
+- **REF-11**: `/doml-iterate` reads `config.json` `problem_type` and routes to supervised (regression/classification) or unsupervised (clustering/dim_reduction) pipeline
+- **REF-12**: Supervised iterate path implements the full 10-step workflow matching unsupervised (config detection, notebook discovery, prior interpretation read, version increment, template copy, cell modification, Docker exec, leaderboard append, interpretation cell)
+- **REF-13**: `/doml-iterate` accepts optional `--direction` flag for analyst-supplied guidance (mirrors existing unsupervised workflow)
+
 ## Out of Scope
 
 | Feature | Reason |

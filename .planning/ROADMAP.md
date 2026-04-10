@@ -213,11 +213,71 @@ Plans:
 
 ---
 
-## 📋 Milestone 3 — Forecasting (Planned)
+## 📋 Milestone 3 — Refinement (In Progress)
+
+**Milestone Goal:** Restructure and rename DoML commands to match the actual data scientist workflow, refine each skill's workflow quality, and complete the unified `/doml-iterate` command with a fully-implemented supervised iteration path.
+
+### Phase 8: Command Restructure & Renaming
+
+**Goal**: Rename all user-facing DoML commands to match the data scientist's mental model, demote `plan-phase` to internal-only, and update all cross-references.
+
+**Depends on**: Phase 7
+
+**Requirements**: REF-01, REF-02, REF-03, REF-04, REF-05, REF-06
+
+**Success Criteria** (what must be TRUE):
+1. `/doml-start` skill exists and invokes the new-project workflow; `/doml-new-project` aliased
+2. `/doml-run [N]` skill exists and invokes the execute-phase workflow; `/doml-execute-phase` aliased
+3. `/doml-status` skill exists and invokes the progress workflow; `/doml-progress` aliased
+4. `/doml-plan-phase` SKILL.md updated to mark as internal — description warns users not to invoke directly
+5. All workflow files updated to use new command names in user-facing text
+6. CLAUDE.md updated with new command names
+
+**Plans**: TBD
+
+---
+
+### Phase 9: Skill Refinement
+
+**Goal**: Improve the workflow quality of each DoML skill — better error messages, edge case handling, and actionable status output.
+
+**Depends on**: Phase 8
+
+**Requirements**: REF-07, REF-08, REF-09
+
+**Success Criteria** (what must be TRUE):
+1. `/doml-start` surfaces a clear, actionable error when `/data/` is empty or contains no supported files
+2. `/doml-run` validates Docker is running before attempting notebook execution; surfaces a clear fix command
+3. `/doml-run` validates notebook output file exists before attempting HTML report generation
+4. `/doml-status` output ends with an exact command for the user to run next (not just a phase list)
+
+**Plans**: TBD
+
+---
+
+### Phase 10: Unified `/doml-iterate` Command
+
+**Goal**: Merge `/doml-iterate-model` and `/doml-iterate-unsupervised` into a single `/doml-iterate` command with a fully-implemented supervised path and auto-detection of problem type.
+
+**Depends on**: Phase 8
+
+**Requirements**: REF-10, REF-11, REF-12, REF-13
+
+**Success Criteria** (what must be TRUE):
+1. `/doml-iterate` reads `config.json` `problem_type` and routes to supervised or unsupervised pipeline
+2. Supervised path implements full 10-step workflow (matching the existing unsupervised path)
+3. `/doml-iterate-model` and `/doml-iterate-unsupervised` skills removed; replaced by `/doml-iterate`
+4. `--direction` flag supported for analyst-supplied guidance in both paths
+
+**Plans**: TBD
+
+---
+
+## 📋 Milestone 4 — Forecasting (Planned)
 
 **Milestone Goal:** Add optional time series modelling and forecasting for datasets where time is a factor — ARIMA, Prophet, temporal CV, and prediction intervals.
 
-### Phase 8: Time Series Modelling & Forecasting
+### Phase 11: Time Series Modelling & Forecasting
 
 **Goal**: Implement the time series modelling and optional Forecasting phase with ARIMA, Prophet, temporal cross-validation, and prediction intervals — only activated when time-factor confirmed in Business Understanding.
 
@@ -246,5 +306,8 @@ Plans:
 | 5. Data Understanding Phase | M2 | 4/4 | Complete | 2026-04-08 |
 | 6. Preprocessing & Modelling — Regression & Classification | M2 | 5/5 | Complete | 2026-04-08 |
 | 7. Modelling — Clustering & Dim. Reduction | M2 | 4/4 | Complete | 2026-04-07 |
-| 8. Time Series Modelling & Forecasting | M3 | TBD | Deferred | — |
+| 8. Command Restructure & Renaming | M3 | TBD | Not started | — |
+| 9. Skill Refinement | M3 | TBD | Not started | — |
+| 10. Unified `/doml-iterate` Command | M3 | TBD | Not started | — |
+| 11. Time Series Modelling & Forecasting | M4 | TBD | Deferred | — |
 

@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Forecasting
+milestone: v3.0
+milestone_name: Refinement
 status: planning
-stopped_at: Milestone 2 complete — Phase 9 removed (captured in execute-phase), Phase 8 deferred to Milestone 3
+stopped_at: Milestone 3 initialized — Phase 8 (command restructure) is next
 last_updated: "2026-04-09T00:00:00.000Z"
-last_activity: 2026-04-09 -- Milestone 2 wrapped up; Milestone 3 (Forecasting) is next
+last_activity: 2026-04-09 -- Milestone 3 (Refinement) kickoff; requirements and roadmap defined
 progress:
-  total_phases: 1
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -25,14 +25,11 @@ See: .planning/PROJECT.md (updated 2026-04-04)
 
 ## Current Position
 
-Milestone 2 COMPLETE — Phases 1–7 all done.
-Phase 8 (Time Series) deferred to Milestone 3.
-Phase 9 (Modelling Reports) removed — report generation is already built into execute-phase.md.
+Milestone 3 (Refinement) — Phase 8 is next.
+Status: Planning — no plans created yet.
+Last activity: 2026-04-09 -- M3 kickoff; requirements + roadmap defined
 
-Status: Ready to begin Milestone 3 (Forecasting) when needed.
-Last activity: 2026-04-09 -- Milestone 2 wrapped up
-
-Progress: [██████████] 100% (Milestone 2)
+Progress: [░░░░░░░░░░] 0% (Milestone 3, 3 phases)
 
 ## Performance Metrics
 
