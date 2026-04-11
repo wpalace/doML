@@ -273,7 +273,11 @@ Plans:
 4. `reports/anomaly_report.html` generated with code hidden and Claude narrative
 5. Anomaly flags written to `data/processed/anomaly_flags_{filename}.csv`
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 10-01-PLAN.md — SKILL.md entry point + anomaly-detection.md workflow (Steps 1–11, --file / --guidance, Docker execution, HTML report, flag CSV verification)
+- [x] 10-02-PLAN.md — Static nbformat v4 notebook template (anomaly_detection.ipynb — Setup → Data Load → Tidy Validation → Isolation Forest → LOF → DBSCAN → Consensus → Save Flags → Caveats)
 
 ---
 
@@ -328,7 +332,7 @@ Plans:
 | 6. Preprocessing & Modelling — Regression & Classification | M2 | 5/5 | Complete | 2026-04-08 |
 | 7. Modelling — Clustering & Dim. Reduction | M2 | 4/4 | Complete | 2026-04-07 |
 | 8. Phase-Named Commands | M3 | TBD | Not started | — |
-| 9. `doml-get-data` | M3 | 1/2 | In Progress|  |
-| 10. `doml-anomaly-detection` | M3 | TBD | Not started | — |
+| 9. `doml-get-data` | M3 | 2/2 | Complete   | 2026-04-11 |
+| 10. `doml-anomaly-detection` | M3 | 2/2 | Complete   | 2026-04-11 |
 | 11. Unified `doml-iterate` | M3 | TBD | Not started | — |
 | 12. `doml-forecasting` | M3 | TBD | Not started | — |
