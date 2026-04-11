@@ -250,7 +250,11 @@ Plans:
 3. `doml-new-project` detects empty `data/raw/` and automatically invokes `doml-get-data` before continuing the interview
 4. Each download appends a log entry to `data/raw/README.md` with source and timestamp
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — SKILL.md entry point, get-data.md acquisition workflow (Steps 1–8), docker-compose.yml template update, requirements.in, .gitignore
+- [ ] 09-02-PLAN.md — new-project.md Step 3 modification: inline AskUserQuestion choice when data/raw/ is empty
 
 ---
 
@@ -324,8 +328,7 @@ Plans:
 | 6. Preprocessing & Modelling — Regression & Classification | M2 | 5/5 | Complete | 2026-04-08 |
 | 7. Modelling — Clustering & Dim. Reduction | M2 | 4/4 | Complete | 2026-04-07 |
 | 8. Phase-Named Commands | M3 | TBD | Not started | — |
-| 9. `doml-get-data` | M3 | TBD | Not started | — |
+| 9. `doml-get-data` | M3 | 0/2 | Planning | — |
 | 10. `doml-anomaly-detection` | M3 | TBD | Not started | — |
 | 11. Unified `doml-iterate` | M3 | TBD | Not started | — |
 | 12. `doml-forecasting` | M3 | TBD | Not started | — |
-
