@@ -10,6 +10,8 @@ services:
       - JUPYTER_ENABLE_LAB=yes
       - JUPYTER_TOKEN=${JUPYTER_TOKEN:-}
       - PROJECT_ROOT=/home/jovyan/work
+      - KAGGLE_USERNAME=${KAGGLE_USERNAME:-}
+      - KAGGLE_KEY=${KAGGLE_KEY:-}
     volumes:
       # INFR-05: raw + external data mounted read-only — immutability enforced at OS level
       - ./data/raw:/home/jovyan/work/data/raw:ro

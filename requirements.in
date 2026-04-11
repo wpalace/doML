@@ -30,3 +30,9 @@ prophet
 
 # --- Visualization / profiling ---
 plotly
+
+# --- Data acquisition ---
+# Note: after adding kaggle here, regenerate requirements.txt with:
+#   docker compose run --rm jupyter pip-compile requirements.in
+# Then rebuild the image: docker compose build
+kaggle
