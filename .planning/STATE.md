@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: Refinement
-status: planning
-stopped_at: Phase 8 complete — doml-business-understanding, doml-data-understanding, doml-modelling created; doml-execute-phase and doml-plan-phase retired
-last_updated: "2026-04-10T00:00:00.000Z"
-last_activity: 2026-04-10 -- Phase 8 complete; CRISP-DM-named commands created, old commands retired
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: Completed 09-doml-get-data/09-02-PLAN.md
+last_updated: "2026-04-11T07:16:56.745Z"
+last_activity: 2026-04-11
 progress:
-  total_phases: 5
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 20
+  total_phases: 12
+  completed_phases: 9
+  total_plans: 31
+  completed_plans: 31
+  percent: 100
 ---
 
 # Project State
@@ -21,13 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04)
 
 **Core value:** A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
-**Current focus:** Phase 08 — time series forecasting (next phase)
+**Current focus:** Phase 9 — doml-get-data
 
 ## Current Position
 
+Phase: 9 (doml-get-data) — EXECUTING
+Plan: 2 of 2
 Milestone 3 (Refinement) — Phase 9 is next.
-Status: Planning — no plans created yet for Phase 9.
-Last activity: 2026-04-10 -- Phase 8 complete; CRISP-DM-named commands created
+Status: Ready to execute
+Last activity: 2026-04-11
 
 Progress: [██░░░░░░░░] 20% (Milestone 3, 5 phases)
 
@@ -47,6 +49,7 @@ Progress: [██░░░░░░░░] 20% (Milestone 3, 5 phases)
 | Phase 01 P02 | 3 | 2 tasks | 7 files |
 | Phase 01 P03 | 3 | 3 tasks | 4 files |
 | Phase 03-kickoff-interview P01 | 45min | 5 tasks | 5 files |
+| Phase 09-doml-get-data P02 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -78,6 +81,8 @@ Progress: [██░░░░░░░░] 20% (Milestone 3, 5 phases)
 - [Phase 03-01]: Docker setup step added to new-project.md (Step 2) — copies 4 templates on first run, checks for existing setup
 - [Phase 03-01]: Scan runs via docker compose exec jupyter — no local Python dependency; container-first architecture
 - [Phase 03-01]: CHOWN_HOME/CHOWN_HOME_OPTS removed from docker-compose templates — crashed containers on :ro mounts
+- [Phase 09-doml-get-data]: EMPTY_DATA_DIR sentinel + exit code 2 distinguishes recoverable empty-dir from fatal errors in new-project.md Step 3
+- [Phase 09-doml-get-data]: Step 3b acquisition loop is unconditional on still-empty re-scan — interview cannot proceed without data
 
 ### Pending Todos
 
@@ -110,6 +115,6 @@ Progress: [██░░░░░░░░] 20% (Milestone 3, 5 phases)
 
 ## Session Continuity
 
-Last session: 2026-04-07T12:00:00.000Z
-Stopped at: Phase 06 complete — all 5 plans executed and committed
+Last session: 2026-04-11T07:16:56.743Z
+Stopped at: Completed 09-doml-get-data/09-02-PLAN.md
 Resume file: None
