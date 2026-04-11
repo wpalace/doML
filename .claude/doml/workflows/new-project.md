@@ -119,8 +119,8 @@ extensions = {'.csv', '.parquet', '.xlsx', '.xls'}
 files = [f for f in data_dir.iterdir() if f.suffix.lower() in extensions and not f.name.startswith('.')]
 
 if not files:
-    print('\nError: data/raw/ is empty. Add at least one CSV, Parquet, or XLSX file before running the interview.\n')
-    raise SystemExit(1)
+    print('\nEMPTY_DATA_DIR\n')
+    raise SystemExit(2)
 
 # Check for unsupported .xls files
 xls_files = [f for f in files if f.suffix.lower() == '.xls']
@@ -171,9 +171,65 @@ Parse the output:
 - Everything before `__SCAN_JSON__` is the human-readable report — display it to the user.
 - The line after `__SCAN_JSON__` is the JSON array — parse it and store as `scan_results` in memory for Step 4.
 
-If the command exits with non-zero status (container not running, data/raw missing, empty directory, .xls file), display the error message printed by the script and STOP. Do not write any planning artifacts. Do not proceed to Step 4.
+Parse the exit code:
+- If exit code is **0** → scan succeeded, continue to Step 4.
+- If exit code is **2** AND output contains `EMPTY_DATA_DIR` → do NOT stop. Proceed to Step 3b (acquisition loop).
+- If exit code is **1** → display the error message printed by the script and STOP. Do not write any planning artifacts. Do not proceed to Step 3b or Step 4.
 
-**No partial writes.** If Step 3 fails, Steps 4–6 do not run.
+This applies for container not running, data/raw missing, or .xls file errors (all exit 1).
+
+**No partial writes.** If Step 3 fails (exit code 1), Steps 3b and 4–6 do not run.
+
+### Step 3b — Data acquisition fallback (when data/raw/ is empty)
+
+If the Step 3 scan exits with code 2 AND output contains `EMPTY_DATA_DIR`, do NOT stop. Instead, enter the acquisition loop:
+
+**Present AskUserQuestion:**
+```
+data/raw/ is empty. No datasets found.
+
+How would you like to get your data?
+  → Get data now (Kaggle or URL)
+  → Add files manually
+```
+
+**If user chooses "Get data now":**
+
+Run the full doml-get-data acquisition flow inline:
+1. Ask using AskUserQuestion: "Enter your data source:"
+   - For Kaggle: `kaggle owner/dataset-name` (e.g. `kaggle titanic/titanic-dataset`)
+   - For URL: `url https://example.com/data.csv`
+2. Parse the response as `SOURCE_TYPE` (first word) and `SOURCE_VALUE` (remainder).
+3. Execute the get-data workflow steps (Steps 1–8 of @.claude/doml/workflows/get-data.md) inline.
+4. After get-data completes, re-run the Step 3 DuckDB scan.
+5. If scan now finds files → display the scan report and continue to Step 4.
+6. If scan still finds no files → loop back to the AskUserQuestion above.
+
+**If user chooses "Add files manually":**
+
+Display:
+```
+Add your dataset files to the ./data/raw/ directory on your host machine.
+
+Supported formats: CSV (.csv), TSV (.tsv), Parquet (.parquet), Excel (.xlsx)
+Note: Legacy .xls files are not supported — convert to .xlsx or .csv first.
+
+Docker mounts data/raw/ automatically — no container restart needed after adding files.
+```
+
+Then ask using AskUserQuestion:
+```
+I've added my files to data/raw/ — continue
+```
+
+After the user confirms, re-run the Step 3 DuckDB scan.
+- If scan finds files → display the scan report and continue to Step 4.
+- If scan still finds no files → loop back to the top AskUserQuestion ("Get data now" / "Add files manually").
+
+**What still stops with an error (unchanged):**
+- `data/raw/` directory does not exist → stop with error (exit code 1)
+- `.xls` files found → stop with format error (exit code 1)
+- Container not running → stop with error (exit code 1)
 
 ### Step 4 — Kickoff interview
 
