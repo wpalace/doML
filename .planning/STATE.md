@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-doml-anomaly-detection/10-02-PLAN.md
-last_updated: "2026-04-11T20:30:00.000Z"
-last_activity: 2026-04-11 -- Phase 10 complete (doml-anomaly-detection)
+stopped_at: Completed 11-unified-doml-iterate/11-02-PLAN.md
+last_updated: "2026-04-12T07:30:00.000Z"
+last_activity: 2026-04-12 -- Phase 11 complete (doml-iterate unified command)
 progress:
   total_phases: 12
-  completed_phases: 10
-  total_plans: 33
-  completed_plans: 33
+  completed_phases: 11
+  total_plans: 35
+  completed_plans: 35
   percent: 100
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-04)
 
 **Core value:** A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
-**Current focus:** Phase 10 complete — /doml-anomaly-detection skill ready
+**Current focus:** Phase 12 is next — doml-forecasting
 
 ## Current Position
 
-Phase: 10 (doml-anomaly-detection) — COMPLETE
+Phase: 11 (unified-doml-iterate) — COMPLETE
 Plan: 2 of 2
-Milestone 3 (Refinement) — Phase 11 is next.
-Status: Executing Phase 10
-Last activity: 2026-04-11 -- Phase 10 execution started
+Milestone 3 (Refinement) — Phase 12 (doml-forecasting) is next.
+Status: Executing
+Last activity: 2026-04-12 -- Phase 11 complete (doml-iterate unified command)
 
-Progress: [██░░░░░░░░] 20% (Milestone 3, 5 phases)
+Progress: [████░░░░░░] 40% (Milestone 3, 5 phases)
 
 ## Performance Metrics
 
@@ -111,6 +111,11 @@ Progress: [██░░░░░░░░] 20% (Milestone 3, 5 phases)
 - [Phase 10]: doml-anomaly-detection completed — SKILL.md + anomaly-detection.md (11-step workflow) + anomaly_detection.ipynb template (18 cells, 9 sections)
 - [Phase 10]: /doml-anomaly-detection supports --file (override default input) and --guidance (shapes narrative); tidy validation runs before algorithms (ANOM-02)
 - [Phase 10]: Notebook template: IF (contamination='auto', n_estimators=100) + LOF (n_neighbors=20) + DBSCAN (k-distance eps heuristic) + majority-vote consensus flag + anomaly_flags_{filename}.csv output
+- [Phase 11]: doml-iterate unified — replaces doml-iterate-model (stub) + doml-iterate-unsupervised (full); single command auto-detects problem_type from config.json
+- [Phase 11]: iterate.md — 11-step workflow: config routing → versioned notebook discovery → regex-first direction parsing (model focus, trials=N, hyperparameters, feature directives) → Claude fallback → Docker nbconvert execute → append-only leaderboard → versioned HTML reports for all 4 types → interpretation cell → analyst summary
+- [Phase 11]: HTML reports for ALL problem types: model_report_v{N}.html (supervised), clustering_report_v{N}.html, dimreduction_report_v{N}.html — closes ITER-03 for unsupervised iterations
+- [Phase 11]: Direction string always passed via sys.argv[1] to Python scripts — never shell-interpolated (injection prevention)
+- [Phase 11]: Old skills deleted: doml-iterate-model, doml-iterate-unsupervised; old workflows deleted: iterate-model.md, iterate-unsupervised.md
 
 ### Blockers/Concerns
 
