@@ -140,6 +140,5 @@ This project uses DoML. Framework commands available in Claude Code:
 - `/doml-business-understanding` — run the Business Understanding phase (notebook + HTML report)
 - `/doml-data-understanding` — run the Data Understanding / EDA phase (notebook + HTML report)
 - `/doml-modelling` — run Modelling for any problem type (preprocessing + modelling + report where applicable)
-- `/doml-iterate-model` — run a new supervised modelling iteration with analyst direction
-- `/doml-iterate-unsupervised` — run a new unsupervised modelling iteration with analyst direction
+- `/doml-iterate` — run a new modelling iteration for any problem type; reads `problem_type` from `config.json` and routes automatically (regression, classification, clustering, dimensionality_reduction)
 - `/doml-progress` — show current project status, completed phases, and next recommended action

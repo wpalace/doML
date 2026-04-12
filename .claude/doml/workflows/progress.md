@@ -67,7 +67,7 @@ Route based on STATE.md `status` and phase/plan state:
 | Interview complete, BU not run | Run `/doml-business-understanding` to generate the Business Understanding notebook and report |
 | BU complete, EDA not run | Run `/doml-data-understanding` to generate the EDA notebook and report |
 | EDA complete, modelling not run | Run `/doml-modelling` to run preprocessing and modelling for your problem type |
-| Modelling complete | Run `/doml-iterate-model "direction"` or `/doml-iterate-unsupervised "direction"` to refine |
+| Modelling complete | Run `/doml-iterate "direction"` to refine — reads `problem_type` from `config.json` and routes to the correct iteration pipeline automatically |
 | Phase in progress | Continue with the current phase — check STATE.md `stopped_at` |
 | All phases complete | Run `/doml-progress` to review status, or check `reports/` for stakeholder outputs |
 
