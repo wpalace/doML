@@ -10,6 +10,8 @@ Implement a dedicated time series forecasting skill that activates only when `ti
 
 Input: `data/processed/` dataset (not raw). The analyst must specify a target column and optionally regressor columns. Prophet uses regressors; ARIMA/SARIMA runs univariate on the target.
 
+**EDA prerequisite (already implemented):** `doml-data-understanding` Section 6 already runs ADF + KPSS stationarity tests and `seasonal_decompose` on all numeric columns when `time_factor=true` (Phase 5, Plan 05-03, notebook Cell 20). The EDA output gives the analyst stationarity and seasonality findings before they invoke `doml-forecasting`.
+
 </domain>
 
 <decisions>
