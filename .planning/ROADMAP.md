@@ -297,7 +297,11 @@ Plans:
 5. Supervised iteration path is fully implemented (10-step workflow matching unsupervised)
 6. `doml-iterate-model` and `doml-iterate-unsupervised` skills removed
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — SKILL.md entry point + unified iterate.md workflow (full 10-step supervised implementation, unsupervised path integrated, all four problem types routed, versioned HTML reports)
+- [ ] 11-02-PLAN.md — Retire old commands: delete doml-iterate-model + doml-iterate-unsupervised skill dirs and workflow files; update progress.md + CLAUDE.md
 
 ---
 
@@ -334,5 +338,5 @@ Plans:
 | 8. Phase-Named Commands | M3 | TBD | Not started | — |
 | 9. `doml-get-data` | M3 | 2/2 | Complete   | 2026-04-11 |
 | 10. `doml-anomaly-detection` | M3 | 2/2 | Complete   | 2026-04-11 |
-| 11. Unified `doml-iterate` | M3 | TBD | Not started | — |
+| 11. Unified `doml-iterate` | M3 | 0/2 | Not started | — |
 | 12. `doml-forecasting` | M3 | TBD | Not started | — |
