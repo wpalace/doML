@@ -311,7 +311,12 @@ Plans:
 
 **Depends on**: Phase 8
 
-**Requirements**: CMD-16, MOD-04, FORE-01, FORE-02, FORE-03, FORE-04
+**Requirements**: CMD-16, MOD-04, FORE-01, FORE-02, FORE-03, FORE-04 (deferred to Milestone 4)
+
+**Note:** FORE-04 (forecast actuals tracking — compare predictions to actuals as new data arrives)
+is deferred to Milestone 4. It requires multi-session state (saving forecast CSVs and a --compare
+command to diff against actuals). The forecasting notebook includes a placeholder section documenting
+the manual comparison procedure for analysts who need it before Milestone 4.
 
 **Success Criteria** (what must be TRUE):
 1. `doml-forecasting` skill exists and generates `notebooks/forecasting.ipynb`
@@ -320,7 +325,11 @@ Plans:
 4. Forecast output includes point prediction + 80% and 95% prediction intervals
 5. Skill exits early with a clear message if `time_factor=false` in `config.json`
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — SKILL.md + forecasting.md workflow + pmdarima dependency
+- [ ] 12-02-PLAN.md — Static forecasting.ipynb notebook template (6-model leaderboard + prediction intervals)
 
 ---
 
@@ -339,4 +348,4 @@ Plans:
 | 9. `doml-get-data` | M3 | 2/2 | Complete   | 2026-04-11 |
 | 10. `doml-anomaly-detection` | M3 | 2/2 | Complete   | 2026-04-11 |
 | 11. Unified `doml-iterate` | M3 | 2/2 | Complete   | 2026-04-12 |
-| 12. `doml-forecasting` | M3 | TBD | Not started | — |
+| 12. `doml-forecasting` | M3 | 0/2 | Not started | — |
