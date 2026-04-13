@@ -28,6 +28,9 @@ lightgbm
 statsmodels
 prophet
 
+# --- Time series forecasting ---
+pmdarima
+
 # --- Visualization / profiling ---
 plotly
 
