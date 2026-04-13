@@ -328,8 +328,8 @@ the manual comparison procedure for analysts who need it before Milestone 4.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — SKILL.md + forecasting.md workflow + pmdarima dependency
-- [ ] 12-02-PLAN.md — Static forecasting.ipynb notebook template (6-model leaderboard + prediction intervals)
+- [x] 12-01-PLAN.md — SKILL.md + forecasting.md workflow + pmdarima dependency
+- [x] 12-02-PLAN.md — Static forecasting.ipynb notebook template (6-model leaderboard + prediction intervals)
 
 ---
 
@@ -348,4 +348,4 @@ Plans:
 | 9. `doml-get-data` | M3 | 2/2 | Complete   | 2026-04-11 |
 | 10. `doml-anomaly-detection` | M3 | 2/2 | Complete   | 2026-04-11 |
 | 11. Unified `doml-iterate` | M3 | 2/2 | Complete   | 2026-04-12 |
-| 12. `doml-forecasting` | M3 | 0/2 | Not started | — |
+| 12. `doml-forecasting` | M3 | 2/2 | Complete   | 2026-04-13 |
