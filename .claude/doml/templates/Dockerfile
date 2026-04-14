@@ -24,6 +24,15 @@ RUN pip install --no-cache-dir --requirement /tmp/requirements.txt && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
 
+# --- Data acquisition (kaggle CLI) ---
+# Installed as a separate layer so it is always present even before requirements.txt is regenerated.
+# Once pip-compile adds kaggle to requirements.txt this layer becomes a no-op upgrade.
+USER root
+RUN pip install --no-cache-dir kaggle && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+USER ${NB_UID}
+
 # --- DoML working directory ---
 ENV PROJECT_ROOT=/home/jovyan/work
 WORKDIR ${PROJECT_ROOT}

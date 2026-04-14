@@ -189,21 +189,55 @@ If the Step 3 scan exits with code 2 AND output contains `EMPTY_DATA_DIR`, do NO
 data/raw/ is empty. No datasets found.
 
 How would you like to get your data?
-  → Get data now (Kaggle or URL)
+  → Kaggle dataset
+  → Direct download URL
   → Add files manually
 ```
 
-**If user chooses "Get data now":**
+**If user chooses "Kaggle dataset":**
 
-Run the full doml-get-data acquisition flow inline:
-1. Ask using AskUserQuestion: "Enter your data source:"
-   - For Kaggle: `kaggle owner/dataset-name` (e.g. `kaggle titanic/titanic-dataset`)
-   - For URL: `url https://example.com/data.csv`
-2. Parse the response as `SOURCE_TYPE` (first word) and `SOURCE_VALUE` (remainder).
-3. Execute the get-data workflow steps (Steps 1–8 of @.claude/doml/workflows/get-data.md) inline.
+1. Run the Kaggle credential pre-check (same logic as Step 1.5 of @.claude/doml/workflows/get-data.md):
+   - Check `.env` for non-placeholder `KAGGLE_USERNAME` and `KAGGLE_KEY` values.
+   - If credentials are missing or still have `xxxxxxxxxxxxxxxx` placeholders:
+     a. Create/update `.env` with placeholders (same bash block as Step 1.5).
+     b. Display the credential setup instructions (same message as Step 1.5).
+     c. Ask using AskUserQuestion — **no options, free-text confirmation**:
+        ```
+        Open .env and replace the xxxxxxxxxxxxxxxx values with your Kaggle username and API key,
+        then restart the container with: docker compose down && docker compose up -d
+        Type "done" once the container is back up.
+        ```
+     d. Re-run the credential check. If credentials are now valid, proceed to step 2.
+        If still invalid (placeholders unchanged), display:
+        ```
+        Credentials still show placeholder values. Open .env and replace both xxxxxxxxxxxxxxxx entries,
+        restart the container (docker compose down && docker compose up -d), then confirm again.
+        ```
+        Then loop back to step 1c.
+2. Ask using AskUserQuestion — **no options, free-text input only, do not present choices**:
+   ```
+   Enter the Kaggle dataset slug (owner/dataset-name):
+   ```
+   The user must type the slug directly (e.g. `titanic/titanic-dataset`). Do not offer example slugs as
+   selectable options — this is always a free-text field.
+3. Set `SOURCE_TYPE = "kaggle"` and `SOURCE_VALUE` = the slug the user entered.
+4. Execute the get-data workflow steps (Steps 2–8 of @.claude/doml/workflows/get-data.md) inline
+   (Step 1 argument parsing and Step 1.5 credential check are already done above).
+5. After get-data completes, re-run the Step 3 DuckDB scan.
+6. If scan now finds files → display the scan report and continue to Step 4.
+7. If scan still finds no files → loop back to the top AskUserQuestion.
+
+**If user chooses "Direct download URL":**
+
+1. Ask using AskUserQuestion:
+   ```
+   Enter the download URL (must start with http:// or https://):
+   ```
+2. Set `SOURCE_TYPE = "url"` and `SOURCE_VALUE` = the URL the user entered.
+3. Execute the get-data workflow steps (Steps 2–8 of @.claude/doml/workflows/get-data.md) inline.
 4. After get-data completes, re-run the Step 3 DuckDB scan.
 5. If scan now finds files → display the scan report and continue to Step 4.
-6. If scan still finds no files → loop back to the AskUserQuestion above.
+6. If scan still finds no files → loop back to the top AskUserQuestion.
 
 **If user chooses "Add files manually":**
 

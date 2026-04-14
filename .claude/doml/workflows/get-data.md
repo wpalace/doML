@@ -39,6 +39,63 @@ Set variables:
 
 ---
 
+### Step 1.5 — Kaggle credential pre-check (if SOURCE_TYPE == "kaggle")
+
+Skip this step entirely if `SOURCE_TYPE` is `"url"`.
+
+Before checking Docker or asking for anything else, verify that Kaggle credentials are configured in the
+project's `.env` file. This runs on the host and fails fast so the user learns about missing credentials
+before any download is attempted.
+
+```bash
+KAGGLE_CREDS_OK=false
+
+if [ -f ".env" ]; then
+  KU=$(grep "^KAGGLE_USERNAME=" .env 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+  KK=$(grep "^KAGGLE_KEY=" .env 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+  if [ -n "$KU" ] && [ "$KU" != "xxxxxxxxxxxxxxxx" ] && \
+     [ -n "$KK" ] && [ "$KK" != "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" ]; then
+    KAGGLE_CREDS_OK=true
+  fi
+fi
+
+if [ "$KAGGLE_CREDS_OK" = false ]; then
+  # Create .env with placeholders if it doesn't exist, or append missing entries
+  if [ ! -f ".env" ]; then
+    cat > .env << 'ENVEOF'
+KAGGLE_USERNAME=xxxxxxxxxxxxxxxx
+KAGGLE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ENVEOF
+  else
+    grep -q "^KAGGLE_USERNAME=" .env || echo "KAGGLE_USERNAME=xxxxxxxxxxxxxxxx" >> .env
+    grep -q "^KAGGLE_KEY=" .env    || echo "KAGGLE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" >> .env
+  fi
+fi
+```
+
+If `KAGGLE_CREDS_OK` is false, display:
+
+```
+Kaggle credentials not configured.
+
+A .env file has been created (or updated) with placeholder values:
+
+  KAGGLE_USERNAME=xxxxxxxxxxxxxxxx
+  KAGGLE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+To fill them in:
+1. Go to https://www.kaggle.com → Account → API → Create New API Token
+2. Open the downloaded kaggle.json — it contains "username" and "key"
+3. Replace the xxxxxxxxxxxxxxxx values in .env with your actual username and key
+4. Restart the container so it picks up the new credentials:
+     docker compose down && docker compose up -d
+5. Re-run /doml-get-data kaggle owner/dataset-name once the container is back up
+```
+
+Then stop.
+
+---
+
 ### Step 2 — Check Docker is running
 
 ```bash
