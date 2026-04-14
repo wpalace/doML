@@ -354,7 +354,11 @@ Plans:
 4. `src/<modelname>/v1/` directory is created with `deployment_metadata.json` containing model file, target, build date, and feature schema
 5. `model_metadata.json` contains a `model_name` field after the workflow runs (derived from estimator class name if absent)
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — SKILL.md entry point + deploy-model.md workflow (11 steps: model resolution, target selection, versioned directory creation, deployment_metadata.json)
+- [ ] 13-02-PLAN.md — Update progress.md to surface /doml-deploy-model as next action after modelling
 
 ---
 
@@ -477,7 +481,7 @@ Plans:
 | 10. `doml-anomaly-detection` | M3 | 2/2 | Complete | 2026-04-11 |
 | 11. Unified `doml-iterate` | M3 | 2/2 | Complete | 2026-04-12 |
 | 12. `doml-forecasting` | M3 | 2/2 | Complete | 2026-04-13 |
-| 13. Deployment Workflow Skeleton | M4 | — | Not started | — |
+| 13. Deployment Workflow Skeleton | M4 | 0/2 | Planned | — |
 | 14. CLI Binary Target | M4 | — | Not started | — |
 | 15. Web Service Target | M4 | — | Not started | — |
 | 16. ONNX/WASM Target | M4 | — | Not started | — |
