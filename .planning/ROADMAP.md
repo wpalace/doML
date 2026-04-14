@@ -379,7 +379,11 @@ Plans:
 6. Binary exits 0 on success, 1 on input error, 2 on model error
 7. `deployment_metadata.json` records `"platform": "linux-x86_64"`
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Docker infra prerequisites: add src/ volume mount to docker-compose.yml template, add pyinstaller to requirements.in template
+- [ ] 14-02-PLAN.md — SKILL.md entry point + deploy-cli.md workflow (predict.py generation, predict.spec generation, PyInstaller build, metadata platform update)
 
 ---
 
