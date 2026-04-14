@@ -1,153 +1,97 @@
-# Stack Research
+# Stack Research — v1.4 Deployment
 
-**Domain:** Meta-prompting ML analysis framework (DoML)
-**Researched:** 2026-04-04
+**Domain:** DoML model deployment (CLI binary, FastAPI web service, ONNX/WASM)
+**Researched:** 2026-04-14
 **Confidence:** HIGH
 
-## Recommended Stack
+---
 
-### Core Technologies
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| jupyter/datascience-notebook | latest-ubuntu (pinned) | Base Docker image | Official Jupyter team image; ships Python 3.11+, R 4.3+, conda, JupyterLab 4.x — reduces Docker setup to near-zero |
-| DuckDB | 1.x | Large-dataset EDA and wrangling | In-process SQL on CSV/Parquet/Excel without a server; zero-copy reads; available in both Python and R |
-| papermill | 2.x | Parameterized notebook execution | Execute notebooks programmatically with injected parameters; standard for notebook-as-pipeline pattern |
-| nbconvert | 7.x | HTML report generation from notebooks | Ships with Jupyter; `--no-input` flag hides code cells for stakeholder output |
-| pandas | 2.x | Tabular data manipulation (Python) | De facto standard; tidy data in Python; native Parquet/CSV/Excel support |
-| tidyverse | 2.x | Tabular data manipulation (R) | dplyr + tidyr + ggplot2 + readr — canonical tidy data stack in R |
-| scikit-learn | 1.4+ | Traditional ML models and preprocessing | Unified API across all traditional ML problem types; Pipeline enforces leak-free preprocessing |
-| statsmodels | 0.14+ | Statistical tests and time series | EDA-level statistical tests (normality, stationarity, regression diagnostics) |
-| Prophet | 1.1+ | Time series forecasting | Robust to missing data, seasonality, holiday effects; Python and R |
-
-### Supporting Libraries
-
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| XGBoost | 2.x | Gradient boosted trees | Regression and classification leaderboard — often best performer on tabular data |
-| LightGBM | 4.x | Fast gradient boosting | Large datasets where XGBoost is too slow; same API |
-| SHAP | 0.44+ | Model explainability | Every model in leaderboard — feature importance and individual prediction explanations |
-| Optuna | 3.x | Hyperparameter tuning | Bayesian optimization; integrates with scikit-learn, XGBoost, LightGBM |
-| umap-learn | 0.5+ | Dimensionality reduction | UMAP for visualization and feature reduction; faster than t-SNE on large datasets |
-| scipy | 1.12+ | Statistical tests | Normality tests (Shapiro-Wilk), hypothesis tests, distribution fitting |
-| plotly | 5.x | Interactive visualizations | EDA and report charts — renders in notebooks and HTML exports |
-| seaborn | 0.13+ | Statistical visualization | Distribution plots, correlation matrices, pair plots |
-| ydata-profiling | 4.x | Automated EDA report | One-line `ProfileReport` for initial data overview — use to supplement, not replace, EDA |
-| great-expectations | 0.x | Data quality validation | Assert data schema and distribution assumptions before modelling |
-| nbformat | 5.x | Programmatic notebook creation | Build notebook cells from templates in DoML skill execution |
-| Jinja2 | 3.x | HTML report templating | Render executive summary HTML from structured findings |
-| tidymodels | 1.x | Tidy ML in R | Unified R API for model fitting/evaluation; R equivalent of scikit-learn |
-| forecast (R) | 8.x | Time series in R | Hyndman's package; ARIMA, ETS, auto.arima |
-| duckdb (R) | 1.x | DuckDB R bindings | Same DuckDB engine in R notebooks |
-| arrow (R/Python) | 14+ | Parquet I/O | Read/write Parquet files efficiently in both languages |
-
-### Development Tools
-
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| docker-compose | Container orchestration | Single `docker-compose up` starts JupyterLab at localhost:8888 |
-| nbstripout | Strip notebook outputs before git commit | Prevents large binary diffs in version control |
-| pre-commit | Git hook management | Runs nbstripout automatically on `git add` |
-| renv (R) | R dependency lockfile | `renv.lock` pins R package versions for reproducibility |
-| pip-tools | Python dependency management | `requirements.in` → `requirements.txt` with pinned versions |
-
-## Installation
-
-```bash
-# Docker (recommended — installs everything)
-docker-compose up
-
-# Python extras (add to requirements.txt in Docker image)
-pip install duckdb papermill nbconvert shap optuna umap-learn \
-            ydata-profiling great-expectations plotly xgboost \
-            lightgbm statsmodels prophet jinja2 nbformat nbstripout
-
-# R extras (add to Dockerfile as R install commands)
-# install.packages(c("tidyverse", "tidymodels", "duckdb", "arrow",
-#                    "forecast", "prophet", "umap", "DataExplorer"))
-```
-
-## Alternatives Considered
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|------------------------|
-| jupyter/datascience-notebook | rocker/tidyverse (R-only) | Pure R projects with no Python requirement |
-| jupyter/datascience-notebook | Custom Dockerfile from python:3.11-slim | Fine-grained control over image size — more setup work |
-| DuckDB | Spark / PySpark | Dataset > 100GB that doesn't fit on a single machine |
-| DuckDB | SQLite | When persistent writes are needed, not just analytical queries |
-| papermill | Ploomber | More complex DAG pipelines; overkill for DoML's linear phase structure |
-| Optuna | scikit-learn GridSearchCV | Simple hyperparameter grids with few parameters — less overhead |
-| Optuna | Ray Tune | Distributed hyperparameter search across multiple machines |
-| Prophet | statsmodels ARIMA/SARIMAX | When interpretability of ARIMA parameters matters; Prophet is less transparent |
-| SHAP | LIME | When global (not just local) explanations are needed — SHAP is preferred |
-| plotly | matplotlib | Static figures only — plotly preferred for interactive HTML reports |
-| ydata-profiling | sweetviz | Both good; ydata-profiling more comprehensive and actively maintained |
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| TensorFlow / PyTorch | Deep learning — deferred to Milestone 2; adds complexity, large Docker image | Milestone 2 |
-| MLflow / DVC | Full MLOps stack — overkill for analysis framework; adds server dependencies | models/ directory + leaderboard.csv |
-| Streamlit / Dash | Interactive dashboards — not the output format for DoML | nbconvert HTML reports |
-| PyCaret | AutoML black box — hides the process DoML is trying to make explicit and teachable | scikit-learn Pipelines with explicit steps |
-| Spark | Overkill for single-machine analysis; DuckDB handles GB-scale files natively | DuckDB |
-| Conda environments outside Docker | Conflicts with Docker; creates "works on my machine" situations | Docker only |
-| Jupyter Classic (non-Lab) | Outdated; JupyterLab 4 ships with datascience image | JupyterLab 4 |
-| sklearn's `train_test_split` for time series | Random split contaminates temporal data | `sklearn.model_selection.TimeSeriesSplit` |
-
-## Stack Patterns by Problem Type
-
-**Regression:**
-- Models: LinearRegression, Ridge, Lasso, RandomForestRegressor, XGBRegressor, LGBMRegressor
-- Metrics: RMSE, MAE, R², MAPE
-- Validation: KFold(n_splits=5, shuffle=True)
-- Explainability: SHAP waterfall + summary plots
-
-**Classification (Binary/Multi-class):**
-- Models: LogisticRegression, RandomForestClassifier, XGBClassifier, LGBMClassifier
-- Metrics: ROC-AUC, precision, recall, F1, confusion matrix; accuracy only for balanced classes
-- Validation: StratifiedKFold(n_splits=5)
-- Calibration: CalibratedClassifierCV for probability outputs
-- Explainability: SHAP beeswarm + force plots
-
-**Clustering:**
-- Models: KMeans (elbow + silhouette), DBSCAN, AgglomerativeClustering, GaussianMixture
-- Metrics: Silhouette score, Davies-Bouldin, Calinski-Harabasz
-- Validation: No labels — use internal metrics across k range
-- Visualization: UMAP + PCA for cluster visualization
-
-**Time Series:**
-- Models: auto_arima (statsmodels), Prophet, ExponentialSmoothing (statsmodels)
-- Validation: TimeSeriesSplit — strictly chronological
-- Preprocessing: ADF + KPSS stationarity tests; differencing if needed
-- Metrics: RMSE, MAE, MAPE, coverage of prediction intervals
-- Forecasting output: point forecast + 80% + 95% prediction intervals
-
-**Dimensionality Reduction:**
-- Methods: PCA (variance explained curve), t-SNE (perplexity tuning), UMAP (n_neighbors tuning)
-- Use cases: Visualization (t-SNE/UMAP for 2D), Feature reduction (PCA), Anomaly detection preprocessing
-- Always retain explained variance metrics
-
-## Version Compatibility
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| scikit-learn 1.4+ | Python 3.9-3.12 | Avoid 1.x with Python 3.8 (deprecated) |
-| XGBoost 2.x | scikit-learn 1.x | Use `XGBRegressor(device='cpu')` — `tree_method='hist'` default changed in v2 |
-| Prophet 1.1 | pandas 2.x | Install via `pip install prophet` — not `fbprophet` (old name) |
-| DuckDB 1.x | pandas 2.x, Arrow 14+ | DuckDB can query pandas DataFrames directly via `duckdb.query()` |
-| tidymodels 1.x | R 4.2+ | Full tidyverse compatibility |
-
-## Sources
-
-- Jupyter Docker Stacks documentation — image contents and Python/R versions
-- DuckDB documentation — SQL API for Python and R
-- Scikit-learn documentation — Pipeline, CV patterns
-- "Forecasting: Principles and Practice" — Hyndman — Prophet, ARIMA patterns
-- ydata-profiling GitHub — EDA automation capabilities
-- SHAP documentation — model explainability patterns
+## Existing Validated Capabilities (DO NOT re-research)
+- scikit-learn pipelines (preprocessing + model), joblib serialization → `models/best_model.pkl`
+- `model_metadata.json` stores feature names, problem type, target column, CV metrics
+- Docker environment (jupyter/datascience-notebook base) already running
+- Python 3.11/3.12, numpy 2.x, pandas, jinja2 already pinned
 
 ---
-*Stack research for: Meta-prompting ML analysis framework (DoML)*
-*Researched: 2026-04-04*
+
+## New Stack Additions Required
+
+### CLI Binary — PyInstaller
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `pyinstaller` | `6.11.1` | Compile Python + deps into self-contained executable |
+| `pyinstaller-hooks-contrib` | `2024.11` | Community hooks for sklearn, numpy, pandas auto-collection |
+
+**Key build flags:**
+- `--onedir` preferred over `--onefile` for ML models — avoids slow extraction on each run; `--onefile` adds ~2s cold-start penalty unpacking to temp dir
+- `--hidden-import sklearn.utils._cython_blas` and other sklearn Cython internals must be declared explicitly
+- `--add-data models/best_model.pkl:models` to bundle the serialized model
+- `--collect-all sklearn` ensures all sklearn submodules are collected (critical — sklearn uses lazy imports extensively)
+- `--collect-all joblib` — model loading dependency
+
+**Cross-platform constraint (critical):** PyInstaller does NOT cross-compile. A Linux binary must be built inside a Linux container; macOS binary must be built on macOS. The build runs inside the existing Docker environment — no host Python needed. Output binary: `src/<modelname>/v1/dist/predict` (Linux/macOS) or `predict.exe` (Windows).
+
+**Alternative considered — Nuitka 2.5:** Compiles Python to C, ~2–3× faster startup, better IP protection. Rejected for DoML: requires C compiler on build host, ~10× slower build time, complex hook system for numpy/sklearn. PyInstaller is pragmatic for a framework that generates binaries on demand.
+
+---
+
+### Web Service — FastAPI
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `fastapi` | `0.115.6` | Async web framework, auto OpenAPI docs at `/docs` |
+| `uvicorn[standard]` | `0.32.1` | ASGI server (includes websockets, http-tools) |
+| `pydantic` | `2.10.3` | Request/response models; dynamically built from feature schema |
+| `jinja2` | `3.1.6` | Already pinned — auto-generated prediction form HTML |
+| `python-multipart` | `0.0.20` | Required for HTML form POST (multipart/form-data) |
+
+**Inference Docker image:** `python:3.11-slim` base (~150MB). Full ML deps add ~1.4GB. Trimmed image (only inference libs, no Jupyter) ~600MB. DoML generates a dedicated `Dockerfile.serve` — separate from the analysis Docker environment.
+
+**Prediction form pattern:** Jinja2 template reads `model_metadata.json` → renders typed `<input>` fields per feature. Numeric dtypes → `type="number" step="any"`. Categorical (object dtype) → `<select>` populated with training set unique values (stored in metadata). Plain `fetch()` POST to `/predict` — no JS framework, no build step. Response rendered inline.
+
+---
+
+### ONNX / WebAssembly
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `skl2onnx` | `1.17.0` | Convert scikit-learn Pipeline → ONNX |
+| `onnxmltools` | `1.12.2` | XGBoost/LightGBM → ONNX (extends skl2onnx) |
+| `onnxruntime` | `1.20.1` | Server-side ONNX inference (used in parity testing) |
+| `onnxruntime-web` | `1.20.1` | Browser WASM inference (CDN delivery, not pip) |
+
+**ONNX operator coverage for DoML models:**
+| Model | ONNX support |
+|-------|-------------|
+| LinearRegression, Ridge, Lasso | ✅ Full |
+| RandomForestRegressor/Classifier | ✅ Full |
+| GradientBoostingRegressor/Classifier | ✅ Full |
+| XGBRegressor/XGBClassifier | ✅ via onnxmltools |
+| LightGBMRegressor/Classifier | ✅ via onnxmltools |
+| KMeans | ✅ Full |
+| DBSCAN | ❌ No ONNX export — clustering WASM limited to KMeans |
+| Prophet / ARIMA (pmdarima) | ❌ No ONNX export — forecasting excluded from WASM target |
+
+**Self-contained HTML delivery pattern:**
+1. Convert fitted pipeline → `model.onnx` (skl2onnx)
+2. Base64-encode → embed in HTML as JS constant (`const MODEL_B64 = "..."`)
+3. Load `onnxruntime-web` from jsDelivr CDN
+4. On page load: decode base64 → `Uint8Array` → `ort.InferenceSession.create(buffer)`
+5. Form submit: build `ort.Tensor` from inputs → `session.run()` → render output
+
+**Size warning:** Large ensemble models (RF 500 trees) → 50–200MB ONNX. Threshold: warn + block if `model.onnx > 20MB`. Suggest web service target instead.
+
+---
+
+### Performance Benchmarking
+- `timeit` (stdlib) — single/batch prediction latency
+- `requests` (already pinned) — HTTP endpoint benchmarking for web service target
+- `subprocess` (stdlib) — CLI binary invocation timing
+- No new packages needed
+
+---
+
+## What NOT to Add
+- Triton Inference Server — overkill for framework use case
+- TorchScript / TensorRT — no PyTorch in DoML
+- MLflow serving — DoML uses own model_metadata.json; MLflow adds registry complexity
+- BentoML / Seldon / KServe — external platforms out of scope
+- gRPC — REST/HTTP sufficient for single-model inference
