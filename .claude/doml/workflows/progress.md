@@ -68,6 +68,7 @@ Route based on STATE.md `status` and phase/plan state:
 | BU complete, EDA not run | Run `/doml-data-understanding` to generate the EDA notebook and report |
 | EDA complete, modelling not run | Run `/doml-modelling` to run preprocessing and modelling for your problem type |
 | Modelling complete | Run `/doml-iterate "direction"` to refine — reads `problem_type` from `config.json` and routes to the correct iteration pipeline automatically |
+| Deployment not yet run (no src/ directory) | Run `/doml-deploy-model` to scaffold the deployment directory for the best leaderboard model. Choose from CLI binary, web service, or ONNX/WASM targets. |
 | Phase in progress | Continue with the current phase — check STATE.md `stopped_at` |
 | All phases complete | Run `/doml-progress` to review status, or check `reports/` for stakeholder outputs |
 
