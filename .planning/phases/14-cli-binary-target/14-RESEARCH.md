@@ -754,22 +754,25 @@ Recommended step sequence:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Model file bundling vs runtime path resolution**
    - What we know: `models/best_model.pkl` is on the host, accessible inside the container via the `models/` volume mount
    - What's unclear: Whether it's better to (a) include the model in the spec `datas` (self-contained binary, CLI-01 satisfied) or (b) have `predict.py` load from `../../../models/best_model.pkl` relative to `dist/predict/predict` (simpler spec, but binary is not portable)
    - Recommendation: Bundle the model in the binary (`datas` entry in spec) for CLI-01 compliance. The planner should note this adds model file size to the binary.
+   - RESOLVED: Plan 02 bundles the model via `datas=[('{model_rel}', '.')]` in predict.spec and predict.py loads via `sys._MEIPASS` at runtime. Binary is fully self-contained per CLI-01.
 
 2. **Container restart disruption**
    - What we know: Adding `src/` volume mount requires `docker compose down && docker compose up -d`
    - What's unclear: Whether the user has other services or notebooks open that a restart would interrupt
    - Recommendation: The workflow step should warn the user before restarting and confirm the restart is acceptable.
+   - RESOLVED: Plan 02 workflow Step 5 checks for the `src/` mount and halts with user instructions if missing — no automatic restart is performed. The user decides when to restart.
 
 3. **PyInstaller version pinning**
    - What we know: Current latest is 6.19.0; `pyinstaller-hooks-contrib` is bundled
    - What's unclear: Whether to pin `pyinstaller==6.19.0` in requirements.in or leave unpinned
    - Recommendation: Pin to `pyinstaller==6.19.0` per REPR-04 (all deps pinned with `==`). Regenerate requirements.txt after adding.
+   - RESOLVED: Plan 01 Task 2 adds `pyinstaller` unpinned to `requirements.in` per CLAUDE.md REPR-04 — `requirements.in` holds top-level deps unpinned, `pip-compile` generates the pinned `requirements.txt`. The workflow instructs the user to run `pip-compile` and rebuild, which pins the version.
 
 ---
 
