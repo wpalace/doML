@@ -610,22 +610,13 @@ Based on CONTEXT.md D-03 discretion note ("step ordering within the workflow"):
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Leaderboard column schema**
-   - What we know: The modelling notebook templates write `models/leaderboard.csv` with model names and CV metrics
-   - What's unclear: Whether there is a `model_file` column or only a `model` name column
-   - Recommendation: The plan should include a step to inspect leaderboard.csv schema (or document the columns from the notebook template) before accessing specific columns
+1. **Leaderboard column schema** — RESOLVED: `model_file` is read from `model_metadata.json`, not from leaderboard CSV. The leaderboard is used only for ranking (model name/CV metrics). The plan reads model file path exclusively from `model_metadata.json`.
 
-2. **Unsupervised pkl existence**
-   - What we know: Supervised modelling writes `models/best_model.pkl`; clustering writes `cluster_assignments.csv`
-   - What's unclear: Whether clustering/dim_reduction workflows serialize a `.pkl` artifact
-   - Recommendation: The plan should handle the no-pkl case with a clear error and suggest running `/doml-modelling` first
+2. **Unsupervised pkl existence** — RESOLVED: The workflow validates `os.path.exists(model_file)` before proceeding and stops with a clear error message ("No model file found at {path}. Run /doml-modelling first.") if the pkl is absent.
 
-3. **feature_schema dtype source for forecasting problems**
-   - What we know: forecasting uses a different leaderboard (`forecast_leaderboard.csv`) and likely different metadata
-   - What's unclear: Whether `doml-deploy-model` should support forecasting problem type at all in Phase 13
-   - Recommendation: Route forecasting identically to supervised (leaderboard.csv → top model), but document that ONNX/WASM target will be blocked in Phase 16
+3. **feature_schema dtype source for forecasting problems** — RESOLVED: `time_series` problem type is routed to `models/leaderboard.csv` identically to supervised. ONNX/WASM target blocking for forecasting is deferred to Phase 16.
 
 ---
 
