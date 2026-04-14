@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 14 context gathered
-last_updated: "2026-04-14T19:00:11.648Z"
-last_activity: 2026-04-14 -- Phase 13 execution started
+stopped_at: Phase 14 CLI binary target complete
+last_updated: "2026-04-14"
+last_activity: 2026-04-14 -- Phase 14 execution complete
 progress:
   total_phases: 18
-  completed_phases: 13
-  total_plans: 39
-  completed_plans: 39
+  completed_phases: 14
+  total_plans: 41
+  completed_plans: 41
   percent: 100
 ---
 
@@ -115,6 +115,9 @@ Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 - [Phase 11]: HTML reports for ALL problem types: model_report_v{N}.html (supervised), clustering_report_v{N}.html, dimreduction_report_v{N}.html — closes ITER-03 for unsupervised iterations
 - [Phase 11]: Direction string always passed via sys.argv[1] to Python scripts — never shell-interpolated (injection prevention)
 - [Phase 11]: Old skills deleted: doml-iterate-model, doml-iterate-unsupervised; old workflows deleted: iterate-model.md, iterate-unsupervised.md
+- [Phase 14]: ./src:/home/jovyan/work/src (writable) added to docker-compose.yml template — enables PyInstaller to read/write src/ from inside container
+- [Phase 14]: pyinstaller added to requirements.in template — REPR-04 compliant; new projects inherit automatically; existing projects must add manually
+- [Phase 14]: doml-deploy-cli created — SKILL.md + deploy-cli.md (10-step workflow); generates predict.py + predict.spec, builds via docker compose exec jupyter pyinstaller predict.spec --noconfirm, updates deployment_metadata.json with platform: linux-x86_64
 
 ### Blockers/Concerns
 
@@ -122,6 +125,6 @@ Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 
 ## Session Continuity
 
-Last session: 2026-04-14T19:00:11.646Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-cli-binary-target/14-CONTEXT.md
+Last session: 2026-04-14
+Stopped at: Phase 14 complete — /doml-deploy-cli skill + deploy-cli.md workflow delivered
+Resume file: .planning/ROADMAP.md (advance to Phase 15)

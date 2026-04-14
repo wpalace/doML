@@ -35,3 +35,6 @@ ydata-profiling
 #   docker compose run --rm jupyter pip-compile requirements.in
 # Then rebuild: docker compose build
 kaggle
+
+# --- Deployment tools ---
+pyinstaller

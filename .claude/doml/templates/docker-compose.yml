@@ -23,6 +23,7 @@ services:
       - ./notebooks:/home/jovyan/work/notebooks
       - ./reports:/home/jovyan/work/reports
       - ./models:/home/jovyan/work/models
+      - ./src:/home/jovyan/work/src
     working_dir: /home/jovyan/work
     user: root
     command: start-notebook.py --NotebookApp.token='${JUPYTER_TOKEN:-}'
