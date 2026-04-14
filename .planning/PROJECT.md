@@ -8,6 +8,18 @@ DoML is a meta-prompting framework (inspired by GSD) that guides a data science 
 
 A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
 
+## Current Milestone: v1.4 Deployment
+
+**Goal:** Add `doml-deploy-model` and `doml-iterate-deployment` to package the best leaderboard model into production-ready artifacts with performance benchmarking and versioned iteration.
+
+**Target features:**
+- `doml-deploy-model` with three deployment targets: PyInstaller CLI binary, FastAPI Docker web service (with auto-generated prediction form), ONNX/WebAssembly self-contained HTML page
+- Model selection: defaults to #1 leaderboard model, override supported
+- Performance report: Jupyter notebook + HTML (latency benchmarks + parity test against test data)
+- Output layout: `src/<modelname>/v1/` with versioned iterations
+- `doml-iterate-deployment`: re-deploy with same model (version bump) or new model (new folder); `--guidance` supported; runnable without a new model
+- Problem type support: Regression, Classification, Clustering, Forecasting
+
 ## Requirements
 
 ### Validated
@@ -15,6 +27,17 @@ A data scientist can drop a dataset into `/data`, answer a few questions, and ge
 (None yet — ship to validate)
 
 ### Active
+
+**Deployment (v1.4)**
+- [ ] `doml-deploy-model` command deploys the #1 leaderboard model (or user-specified override) to a chosen target
+- [ ] CLI target: PyInstaller-compiled portable binary, no Python required on target machine
+- [ ] Web service target: FastAPI app in Docker with auto-generated HTML prediction form (feature schema → input fields → prediction result)
+- [ ] ONNX/WASM target: self-contained HTML page using onnxruntime-web, zero server dependency
+- [ ] Performance report: Jupyter notebook + HTML with individual/batch latency benchmarks and parity test against test data
+- [ ] Output layout: `src/<modelname>/v1/` — additional iterations at `v2`, `v3`, etc.
+- [ ] `doml-iterate-deployment` re-deploys with same model (version bump within same folder) or new model (new model folder in `src/`)
+- [ ] `doml-iterate-deployment` accepts `--guidance` parameter and runs without requiring a new model
+- [ ] Supported problem types: Regression, Classification, Clustering, Forecasting
 
 **Framework Architecture**
 - [ ] DoML-specific skill/agent/workflow structure inspired by GSD (not a GSD plugin — standalone framework)
@@ -106,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 after initialization*
+*Last updated: 2026-04-14 — Milestone v1.4 Deployment started*
