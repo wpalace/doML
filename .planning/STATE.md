@@ -30,7 +30,7 @@ Plan: —
 Status: Defining requirements
 Last activity: 2026-04-14 — Milestone v1.4 started
 
-Progress: [████░░░░░░] 40% (Milestone 3, 5 phases)
+Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 
 ## Performance Metrics
 

@@ -333,6 +333,134 @@ Plans:
 
 ---
 
+## 🚧 Milestone 4 — Deployment (In Progress)
+
+**Milestone Goal:** Add `doml-deploy-model` and `doml-iterate-deployment` to package the best leaderboard model into three production-ready artifact types — a portable CLI binary, a containerised FastAPI web service, and a browser-side ONNX/WASM page — each accompanied by a performance benchmarking report.
+
+---
+
+### Phase 13: Deployment Workflow Skeleton
+
+**Goal**: Implement the `doml-deploy-model` SKILL.md entry point and `deploy-model.md` workflow orchestration: model resolution (leaderboard #1 or override), target selection, versioned `src/<modelname>/v1/` directory creation, `deployment_metadata.json`, and `model_name` extension to `model_metadata.json`.
+
+**Depends on**: Phase 12
+
+**Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04, DEPLOY-05
+
+**Success Criteria**:
+1. `doml-deploy-model` skill is recognised and invokable in Claude Code
+2. Running `doml-deploy-model` without arguments selects the #1 leaderboard model and prompts for target
+3. Running `doml-deploy-model --model <file>` uses the specified model instead
+4. `src/<modelname>/v1/` directory is created with `deployment_metadata.json` containing model file, target, build date, and feature schema
+5. `model_metadata.json` contains a `model_name` field after the workflow runs (derived from estimator class name if absent)
+
+**Plans**: TBD
+
+---
+
+### Phase 14: CLI Binary Target
+
+**Goal**: Implement the CLI deployment target — generating `predict.py` with argparse, a PyInstaller spec file, and running the PyInstaller build inside the existing Docker container to produce a self-contained `dist/predict` Linux binary.
+
+**Depends on**: Phase 13
+
+**Requirements**: CLI-01, CLI-02, CLI-03, CLI-04, CLI-05, CLI-06
+
+**Success Criteria**:
+1. `src/<modelname>/v1/predict.py` is generated with JSON string input, JSON/CSV file input, and `--output` flag support
+2. `src/<modelname>/v1/predict.spec` PyInstaller spec includes `--collect-all sklearn`, `--collect-all joblib`, and `--onedir`
+3. PyInstaller build runs inside Docker and produces `src/<modelname>/v1/dist/predict`
+4. Binary runs on a Linux machine with no Python installed and returns correct predictions
+5. `--help` output lists all feature names, types, and example values
+6. Binary exits 0 on success, 1 on input error, 2 on model error
+7. `deployment_metadata.json` records `"platform": "linux-x86_64"`
+
+**Plans**: TBD
+
+---
+
+### Phase 15: Web Service Target
+
+**Goal**: Implement the FastAPI web service deployment target — generating `app.py` (with dynamic Pydantic model, `/predict`, `/health`, `/schema` endpoints), a Jinja2 prediction form template, `Dockerfile.serve`, and `docker-compose.serve.yml`.
+
+**Depends on**: Phase 13
+
+**Requirements**: WEB-01, WEB-02, WEB-03, WEB-04, WEB-05, WEB-06, WEB-07
+
+**Success Criteria**:
+1. `docker compose -f src/<modelname>/v1/docker-compose.serve.yml up` starts the service with no manual setup
+2. `POST /predict` with a valid JSON body returns a correctly typed prediction response
+3. `GET /health` returns `{"status": "ok", "model": "<name>", "version": "v1"}`
+4. `GET /schema` returns feature names, types, and example values
+5. `GET /docs` shows FastAPI auto-generated OpenAPI documentation
+6. `GET /` renders an HTML form with one input per feature; numeric features use `type="number"`, categoricals use `<select>` populated from the processed dataset
+7. Submitting the form returns the prediction result inline via `fetch()` without a page reload
+
+**Plans**: TBD
+
+---
+
+### Phase 16: ONNX/WASM Target
+
+**Goal**: Implement the ONNX/WebAssembly deployment target — converting the full sklearn Pipeline to ONNX via skl2onnx, enforcing the 20 MB size gate, and generating a self-contained `index.html` with the model embedded as base64 and inference running via onnxruntime-web.
+
+**Depends on**: Phase 13
+
+**Requirements**: WASM-01, WASM-02, WASM-03, WASM-04, WASM-05
+
+**Success Criteria**:
+1. Full sklearn Pipeline (ColumnTransformer + estimator) is exported as a single ONNX graph (not just the estimator)
+2. `index.html` loads and runs inference in a browser with no server — zero network requests after initial page load
+3. Prediction form is auto-generated from the feature schema embedded in the HTML
+4. Submitting the form runs ONNX inference and displays the result inline
+5. Workflow blocks WASM target for `forecasting` problem type and DBSCAN clustering with a clear message
+6. Workflow blocks and warns if `model.onnx` exceeds 20 MB, suggesting the web service target
+
+**Plans**: TBD
+
+---
+
+### Phase 17: Performance Report
+
+**Goal**: Implement the `deployment_report.ipynb` notebook template and nbconvert pipeline — covering single/batch latency benchmarks, memory footprint, throughput projection, and a parity test that asserts the deployed endpoint matches in-memory model output.
+
+**Depends on**: Phase 13 (requires deployment target files to exist)
+
+**Requirements**: PERF-01, PERF-02, PERF-03, PERF-04, PERF-05, PERF-06, PERF-07
+
+**Success Criteria**:
+1. `notebooks/deployment_report.ipynb` is generated and executed after every `doml-deploy-model` run
+2. Report shows single-prediction latency (mean ± std, 1000 runs) for the deployed target
+3. Report shows batch latency at 10, 100, 1 000, and 10 000 rows
+4. Parity test passes: test set predictions from deployed endpoint match in-memory model within tolerance (regression atol=1e-4; classification exact labels; clustering exact cluster IDs)
+5. Report shows model load memory delta and per-prediction memory cost
+6. Report shows projected throughput (requests/sec)
+7. `reports/deployment_report.html` is generated with code hidden and a Claude narrative summarising results
+
+**Plans**: TBD
+
+---
+
+### Phase 18: `doml-iterate-deployment`
+
+**Goal**: Implement the `doml-iterate-deployment` skill and `iterate-deployment.md` workflow — detecting the current deployment version, routing to same-model version bump or new-model folder, re-running the deployment step and performance report, and supporting `--guidance` for direction without requiring a new model.
+
+**Depends on**: Phases 13–17
+
+**Requirements**: ITER-01, ITER-02, ITER-03, ITER-04, ITER-05
+
+**Success Criteria**:
+1. `doml-iterate-deployment` is recognised and invokable in Claude Code
+2. Same model → new `src/<modelname>/v<N+1>/` with version scanned from existing directories (not assumed)
+3. Different model → new `src/<newmodelname>/v1/` created
+4. `--guidance` parameter is accepted and shapes the iteration direction
+5. Running without a new model (inference tuning or target change) completes successfully
+6. A fresh `deployment_report.ipynb` and `deployment_report.html` are generated for the new version
+
+**Plans**: TBD
+
+---
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -345,7 +473,13 @@ Plans:
 | 6. Preprocessing & Modelling — Regression & Classification | M2 | 5/5 | Complete | 2026-04-08 |
 | 7. Modelling — Clustering & Dim. Reduction | M2 | 4/4 | Complete | 2026-04-07 |
 | 8. Phase-Named Commands | M3 | TBD | Not started | — |
-| 9. `doml-get-data` | M3 | 2/2 | Complete   | 2026-04-11 |
-| 10. `doml-anomaly-detection` | M3 | 2/2 | Complete   | 2026-04-11 |
-| 11. Unified `doml-iterate` | M3 | 2/2 | Complete   | 2026-04-12 |
-| 12. `doml-forecasting` | M3 | 2/2 | Complete   | 2026-04-13 |
+| 9. `doml-get-data` | M3 | 2/2 | Complete | 2026-04-11 |
+| 10. `doml-anomaly-detection` | M3 | 2/2 | Complete | 2026-04-11 |
+| 11. Unified `doml-iterate` | M3 | 2/2 | Complete | 2026-04-12 |
+| 12. `doml-forecasting` | M3 | 2/2 | Complete | 2026-04-13 |
+| 13. Deployment Workflow Skeleton | M4 | — | Not started | — |
+| 14. CLI Binary Target | M4 | — | Not started | — |
+| 15. Web Service Target | M4 | — | Not started | — |
+| 16. ONNX/WASM Target | M4 | — | Not started | — |
+| 17. Performance Report | M4 | — | Not started | — |
+| 18. `doml-iterate-deployment` | M4 | — | Not started | — |
