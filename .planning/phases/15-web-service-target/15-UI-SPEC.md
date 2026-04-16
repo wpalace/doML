@@ -79,7 +79,7 @@ One font stack only: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
 | Page heading (h1) | 20px | 600 | 1.2 | Model name at top of card |
 | Label | 14px | 600 | 1.4 | `<label>` above each input |
 | Body / input text | 16px | 400 | 1.5 | Input field values, select text, paragraph copy |
-| Result heading | 18px | 600 | 1.2 | "Prediction:" label in result card |
+| Result heading | 20px | 600 | 1.2 | "Prediction:" label in result card |
 | Small / hint | 12px | 400 | 1.4 | Error message text, probability percentage labels |
 
 ---
@@ -157,7 +157,7 @@ Fields are stacked vertically with 16px gap between each field group (`<div clas
 | Text color | #ffffff |
 | Font size | 16px |
 | Font weight | 600 |
-| Padding | 12px 24px |
+| Padding | 8px 24px |
 | Border-radius | 4px |
 | Border | none |
 | Cursor | pointer |
@@ -185,7 +185,7 @@ The `<div id="result">` is empty on initial page load. After `fetch()` resolves,
 ### All problem types — prediction value
 
 ```html
-<p style="font-size:18px; font-weight:600; color:#111827; margin:0 0 8px 0;">
+<p style="font-size:20px; font-weight:600; color:#111827; margin:0 0 8px 0;">
   Prediction: <span style="color:#4f46e5;">{{ value }}</span>
 </p>
 ```
@@ -198,7 +198,7 @@ The `<div id="result">` is empty on initial page load. After `fetch()` resolves,
 Rendered below the prediction line when the API response includes a `probabilities` key (object mapping class label → probability float 0–1).
 
 ```html
-<table style="width:100%; border-collapse:collapse; margin-top:12px;">
+<table style="width:100%; border-collapse:collapse; margin-top:8px;">
   <thead>
     <tr>
       <th style="text-align:left; font-size:12px; font-weight:600; color:#6b7280; padding-bottom:4px;">Class</th>
@@ -241,7 +241,7 @@ Source: CONTEXT.md — "Error handling wording for `/predict` validation errors 
 When `fetch()` returns a non-200 status, inject into `<div id="result">`:
 
 ```html
-<div style="padding:12px 16px; border:1px solid #dc2626; border-radius:4px; background:#fff5f5;">
+<div style="padding:8px 16px; border:1px solid #dc2626; border-radius:4px; background:#fff5f5;">
   <p style="font-size:14px; color:#dc2626; margin:0; font-weight:600;">Prediction failed</p>
   <p style="font-size:12px; color:#6b7280; margin:4px 0 0 0;">
     The server returned an error. Check your input values and try again.
@@ -399,7 +399,7 @@ input[type="number"], select {
   color: #111827;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  padding: 8px 12px;
+  padding: 8px 16px;
   width: 100%;
   background: #ffffff;
 }
@@ -410,7 +410,7 @@ input[type="number"]:focus, select:focus {
 }
 button[type="submit"] {
   width: 100%;
-  padding: 12px 24px;
+  padding: 8px 24px;
   font-size: 16px;
   font-weight: 600;
   color: #ffffff;
