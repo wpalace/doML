@@ -192,18 +192,34 @@ fi
 FEATURE_SCHEMA=$(python3 -c "
 import json, glob, os
 
-# Primary: read preprocessed dataset column dtypes (header-only for speed)
-processed_files = glob.glob('data/processed/preprocessed_*')
+processed_files = sorted(glob.glob('data/processed/preprocessed_*'))
 if processed_files:
     import pandas as pd
-    df = pd.read_csv(processed_files[0], nrows=0)
-    schema = [{'name': col, 'type': str(df[col].dtype)} for col in df.columns]
+    df = pd.read_csv(processed_files[0])
+    first_row = df.iloc[0] if len(df) > 0 else None
+    schema = []
+    for col in df.columns:
+        dtype_str = str(df[col].dtype)
+        entry = {'name': col, 'type': dtype_str}
+        # Example value from first data row
+        if first_row is not None:
+            val = first_row[col]
+            entry['example'] = str(val.item() if hasattr(val, 'item') else val)
+        else:
+            entry['example'] = '0' if ('int' in dtype_str or 'float' in dtype_str) else 'value'
+        # Categories for object (categorical) columns; null for numerics
+        if dtype_str == 'object':
+            cats = sorted(df[col].dropna().unique().tolist())
+            entry['categories'] = [str(c) for c in cats]
+        else:
+            entry['categories'] = None
+        schema.append(entry)
 else:
     # Fallback: use feature_names from model_metadata.json with unknown type
     with open('models/model_metadata.json') as f:
         meta = json.load(f)
     feature_names = meta.get('feature_names', [])
-    schema = [{'name': name, 'type': 'unknown'} for name in feature_names]
+    schema = [{'name': name, 'type': 'unknown', 'example': 'value', 'categories': None} for name in feature_names]
 
 print(json.dumps(schema))
 ")
