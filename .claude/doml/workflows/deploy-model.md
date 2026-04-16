@@ -238,6 +238,7 @@ model_slug = '${MODEL_SLUG}'
 version = ${VERSION}
 target_key = '${TARGET_KEY}'
 feature_schema = ${FEATURE_SCHEMA}
+problem_type = '${PROBLEM_TYPE}'
 
 with open('models/model_metadata.json') as f:
     meta = json.load(f)
@@ -250,6 +251,7 @@ metadata = {
     'model_file': model_file,
     'model_name': model_name,
     'target': target_key,
+    'problem_type': problem_type,
     'build_date': datetime.now(timezone.utc).isoformat(),
     'version': f'v{version}',
     'feature_schema': feature_schema
