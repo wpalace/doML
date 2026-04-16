@@ -487,7 +487,7 @@ Plans:
 | 12. `doml-forecasting` | M3 | 2/2 | Complete | 2026-04-13 |
 | 13. Deployment Workflow Skeleton | M4 | 2/2 | Complete   | 2026-04-14 |
 | 14. CLI Binary Target | M4 | — | Not started | — |
-| 15. Web Service Target | M4 | — | Not started | — |
+| 15. Web Service Target | M4 | 2/2 | Complete   | 2026-04-16 |
 | 16. ONNX/WASM Target | M4 | — | Not started | — |
 | 17. Performance Report | M4 | — | Not started | — |
 | 18. `doml-iterate-deployment` | M4 | — | Not started | — |
