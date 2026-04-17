@@ -449,7 +449,11 @@ Plans:
 6. Report shows projected throughput (requests/sec)
 7. `reports/deployment_report.html` is generated with code hidden and a Claude narrative summarising results
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — deployment_report.ipynb notebook template (all benchmark cells for cli/web/wasm targets, onnxruntime added to requirements.in)
+- [ ] 17-02-PLAN.md — deploy-model.md Step 12 (template copy, notebook execution, Claude narrative injection, HTML report generation)
 
 ---
 
@@ -493,5 +497,5 @@ Plans:
 | 14. CLI Binary Target | M4 | — | Not started | — |
 | 15. Web Service Target | M4 | 2/2 | Complete   | 2026-04-16 |
 | 16. ONNX/WASM Target | M4 | 2/2 | Complete   | 2026-04-17 |
-| 17. Performance Report | M4 | — | Not started | — |
+| 17. Performance Report | M4 | 0/2 | Planned | — |
 | 18. `doml-iterate-deployment` | M4 | — | Not started | — |
