@@ -38,3 +38,4 @@ kaggle
 
 # --- Deployment tools ---
 pyinstaller
+skl2onnx
