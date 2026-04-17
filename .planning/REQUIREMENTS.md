@@ -33,11 +33,11 @@
 - [ ] **WEB-07**: Submitting the prediction form returns the prediction result inline without a page reload
 
 ### ONNX/WASM Target (WASM)
-- [ ] **WASM-01**: User receives a self-contained `index.html` that runs inference entirely in the browser with no server
-- [ ] **WASM-02**: The page auto-generates a prediction form from the feature schema embedded in the HTML
-- [ ] **WASM-03**: Submitting the form runs ONNX inference via onnxruntime-web and displays the result inline
-- [ ] **WASM-04**: Workflow blocks WASM target for forecasting problem type and DBSCAN clustering with a clear message
-- [ ] **WASM-05**: Workflow blocks WASM target if the converted `model.onnx` exceeds 20 MB, with a message suggesting the web service target
+- [x] **WASM-01**: User receives a self-contained `index.html` that runs inference entirely in the browser with no server
+- [x] **WASM-02**: The page auto-generates a prediction form from the feature schema embedded in the HTML
+- [x] **WASM-03**: Submitting the form runs ONNX inference via onnxruntime-web and displays the result inline
+- [x] **WASM-04**: Workflow blocks WASM target for forecasting problem type and DBSCAN clustering with a clear message
+- [x] **WASM-05**: Workflow blocks WASM target if the converted `model.onnx` exceeds 20 MB, with a message suggesting the web service target
 
 ### Performance Report (PERF)
 - [ ] **PERF-01**: `notebooks/deployment_report.ipynb` is generated after every deployment

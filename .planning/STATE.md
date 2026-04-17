@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: complete
-stopped_at: Phase 15 complete
-last_updated: "2026-04-16T08:00:00.000Z"
-last_activity: 2026-04-16 -- Phase 15 complete (web-service-target)
+status: executing
+stopped_at: Completed 16-onnx-wasm-target-01-PLAN.md
+last_updated: "2026-04-17T19:46:18.331Z"
+last_activity: 2026-04-17
 progress:
   total_phases: 18
   completed_phases: 15
-  total_plans: 43
-  completed_plans: 43
-  percent: 100
+  total_plans: 45
+  completed_plans: 44
+  percent: 98
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14)
 
 **Core value:** A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
-**Current focus:** Phase 15 — web-service-target
+**Current focus:** Phase 16 — onnx-wasm-target
 
 ## Current Position
 
-Phase: 15 (web-service-target) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 15
-Last activity: 2026-04-16 -- Phase 15 execution started
+Phase: 16 (onnx-wasm-target) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-17
 
 Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 
@@ -49,6 +49,7 @@ Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 | Phase 01 P03 | 3 | 3 tasks | 4 files |
 | Phase 03-kickoff-interview P01 | 45min | 5 tasks | 5 files |
 | Phase 09-doml-get-data P02 | 5 | 1 tasks | 1 files |
+| Phase 16-onnx-wasm-target P01 | 3 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 - [Phase 03-01]: CHOWN_HOME/CHOWN_HOME_OPTS removed from docker-compose templates — crashed containers on :ro mounts
 - [Phase 09-doml-get-data]: EMPTY_DATA_DIR sentinel + exit code 2 distinguishes recoverable empty-dir from fatal errors in new-project.md Step 3
 - [Phase 09-doml-get-data]: Step 3b acquisition loop is unconditional on still-empty re-scan — interview cannot proceed without data
+- [Phase 16-onnx-wasm-target]: Conversion runs inside Docker via docker compose exec jupyter python3 — ensures sklearn/skl2onnx version match (D-02)
+- [Phase 16-onnx-wasm-target]: OHE replaced with OrdinalEncoder at export time; JS receives integer codes only — no string tensor support needed (D-03)
 
 ### Pending Todos
 
@@ -125,6 +128,6 @@ Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 
 ## Session Continuity
 
-Last session: 2026-04-16T07:36:27.949Z
-Stopped at: Phase 15 UI-SPEC approved
-Resume file: .planning/phases/15-web-service-target/15-UI-SPEC.md
+Last session: 2026-04-17T19:46:18.329Z
+Stopped at: Completed 16-onnx-wasm-target-01-PLAN.md
+Resume file: None
