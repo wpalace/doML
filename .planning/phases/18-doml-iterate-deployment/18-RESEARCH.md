@@ -542,17 +542,17 @@ No new environment dependencies introduced by Phase 18.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Leaderboard leader comparison field**
    - What we know: `leaderboard.csv` has a `model` column (used in deploy-model.md Step 3 for display only); `model_metadata.json` has `model_name` (from class name); `deployment_metadata.json` has both `model_name` and `model_file`.
    - What's unclear: Whether the leaderboard `model` column value is normalized consistently enough to compare against `model_name`. Not directly verified — deploy-model.md Step 3 reads `model_file` from `model_metadata.json`, not from the leaderboard.
-   - Recommendation: Compare `model_file` paths (from `model_metadata.json` vs. `deployment_metadata.json`) rather than display names. This is unambiguous and already normalized.
+   - RESOLVED: Compare `model_file` paths (from `model_metadata.json` vs. `deployment_metadata.json`) rather than display names. This is unambiguous and already normalized. The plan implements this in Step 3 of iterate-deployment.md.
 
 2. **How iterate-deployment invokes target skills**
    - What we know: `deploy-model.md` ends at Step 11 (confirm) without explicitly invoking a target skill — the user runs `/doml-deploy-cli` etc. as a separate command.
    - What's unclear: D-05 says iterate-deployment "delegates to the same existing target skills exactly as deploy-model.md does" — but deploy-model.md actually just creates the scaffold and leaves target invocation to the user. "Delegates" in D-05 likely means the iterate workflow should invoke the target workflow directly (via `@.claude/doml/workflows/deploy-cli.md` reference or by running the equivalent steps inline).
-   - Recommendation: The planner should treat "delegate" as: after creating `vN+1/deployment_metadata.json`, invoke `@.claude/doml/workflows/deploy-cli.md` (or web/wasm) passing `--deploy-dir src/${MODEL_SLUG}/v${VERSION}`. This matches the Phase 17 D-03 pattern where `deploy-model.md` calls into target skills before running Step 12.
+   - RESOLVED: Treat "delegate" as: after creating `vN+1/deployment_metadata.json`, invoke `@.claude/doml/workflows/deploy-cli.md` (or web/wasm) passing `--deploy-dir src/${MODEL_SLUG}/v${VERSION}`. The plan implements this in Step 11 of iterate-deployment.md.
 
 ---
 

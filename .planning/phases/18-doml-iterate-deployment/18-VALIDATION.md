@@ -1,9 +1,9 @@
 ---
 phase: 18
 slug: doml-iterate-deployment
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: ready
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-17
 ---
 
@@ -38,14 +38,14 @@ created: 2026-04-17
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 18-01-01 | 01 | 1 | ITER-01 | — | N/A | file-exists | `ls .claude/skills/doml-iterate-deployment/SKILL.md` | ❌ W0 | ⬜ pending |
-| 18-01-02 | 01 | 1 | ITER-01 | — | N/A | file-exists | `ls .claude/doml/workflows/iterate-deployment.md` | ❌ W0 | ⬜ pending |
-| 18-01-03 | 01 | 1 | ITER-01 | — | N/A | content | `grep -q 'doml-iterate-deployment' .claude/skills/doml-iterate-deployment/SKILL.md` | ❌ W0 | ⬜ pending |
-| 18-02-01 | 01 | 2 | ITER-02 | — | N/A | content | `grep -q 'v\${VERSION' .claude/doml/workflows/iterate-deployment.md` | ❌ W0 | ⬜ pending |
-| 18-02-02 | 01 | 2 | ITER-03 | — | N/A | content | `grep -q 'newmodelname\|new_model\|v1/' .claude/doml/workflows/iterate-deployment.md` | ❌ W0 | ⬜ pending |
-| 18-03-01 | 01 | 2 | ITER-04 | — | N/A | content | `grep -q '\-\-guidance' .claude/doml/workflows/iterate-deployment.md` | ❌ W0 | ⬜ pending |
-| 18-04-01 | 01 | 3 | ITER-05 | — | N/A | content | `grep -q '\-\-target' .claude/doml/workflows/iterate-deployment.md` | ❌ W0 | ⬜ pending |
-| 18-05-01 | 01 | 3 | ITER-01 | — | N/A | content | `grep -q 'deployment_report' .claude/doml/workflows/iterate-deployment.md` | ❌ W0 | ⬜ pending |
+| 18-01-01 | 01 | 1 | ITER-01 | — | N/A | file-exists | `ls .claude/skills/doml-iterate-deployment/SKILL.md` | ⬜ | ⬜ pending |
+| 18-01-02 | 01 | 1 | ITER-01 | — | N/A | file-exists | `ls .claude/doml/workflows/iterate-deployment.md` | ⬜ | ⬜ pending |
+| 18-01-03 | 01 | 1 | ITER-01 | — | N/A | content | `grep -q 'doml-iterate-deployment' .claude/skills/doml-iterate-deployment/SKILL.md` | ⬜ | ⬜ pending |
+| 18-02-01 | 01 | 2 | ITER-02 | — | N/A | content | `grep -q 'v\${VERSION' .claude/doml/workflows/iterate-deployment.md` | ⬜ | ⬜ pending |
+| 18-02-02 | 01 | 2 | ITER-03 | — | N/A | content | `grep -q 'newmodelname\|new_model\|v1/' .claude/doml/workflows/iterate-deployment.md` | ⬜ | ⬜ pending |
+| 18-03-01 | 01 | 2 | ITER-04 | — | N/A | content | `grep -q '\-\-guidance' .claude/doml/workflows/iterate-deployment.md` | ⬜ | ⬜ pending |
+| 18-04-01 | 01 | 3 | ITER-05 | — | N/A | content | `grep -q '\-\-target' .claude/doml/workflows/iterate-deployment.md` | ⬜ | ⬜ pending |
+| 18-05-01 | 01 | 3 | ITER-01 | — | N/A | content | `grep -q 'deployment_report' .claude/doml/workflows/iterate-deployment.md` | ⬜ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
