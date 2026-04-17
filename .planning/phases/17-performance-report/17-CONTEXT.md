@@ -43,17 +43,17 @@ This phase adds a final step to `deploy-model.md` (the orchestrator) so the repo
 
 ### Claude Narrative
 
-- **D-04: Claude API call (same pattern as BU/EDA/forecasting)**
-  - The notebook calls the Claude API with benchmark results (latency stats, memory delta, throughput projection, parity test outcome) as structured context
-  - Claude writes a narrative paragraph summarising the results in plain language
-  - nbconvert strips code cells; HTML report shows only the narrative + rendered tables/charts
-  - Pattern: same `anthropic` SDK call used in other DoML report phases — read existing report notebooks for the established prompt and API call shape
+- **D-04: Claude Code workflow injection (matches established DoML pattern)**
+  - Claude writes the narrative in the `deploy-model.md` Step 12 workflow step, then injects it via an nbformat Python script — identical to the pattern used in all existing DoML workflows (BU, EDA, forecasting, anomaly detection)
+  - No `anthropic` SDK call inside the notebook; no `anthropic` package required
+  - Note: the original CONTEXT.md described "same anthropic SDK call used in other report phases" — this was inaccurate. The established pattern is workflow injection, not in-notebook SDK calls
 
 ### Target-Specific Routing
 
 - **D-05: Notebook detects target from deployment_metadata.json**
   - At runtime, the notebook reads `deployment_metadata.json` to determine `target` (`cli`, `web`, or `wasm`)
-  - Benchmark cells are conditional: CLI cells run subprocess against the binary; web cells start/stop Docker and call HTTP; WASM cells use Python onnxruntime
+  - Benchmark cells are conditional Python if/elif blocks: CLI cells run subprocess against the binary; web cells call HTTP to a pre-started service; WASM cells use Python onnxruntime
+  - Web service container is started/stopped by the workflow (deploy-model.md Step 12), NOT inside the notebook — the notebook receives the endpoint URL and assumes it's running
   - A single `deployment_report.ipynb` template handles all three targets — no separate notebooks per target
 
 ### Data Source for Parity Test
