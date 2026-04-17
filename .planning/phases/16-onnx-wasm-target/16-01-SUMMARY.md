@@ -76,7 +76,7 @@ Each task was committed atomically:
 1. **Task 1: Create .claude/skills/doml-deploy-wasm/SKILL.md** - `4694549` (feat)
 2. **Task 2: Create .claude/doml/workflows/deploy-wasm.md** - `d1b1db2` (feat)
 
-**Plan metadata:** (docs commit — see below)
+**Plan metadata:** `213e4ad` (docs: complete plan)
 
 ## Files Created/Modified
 - `.claude/skills/doml-deploy-wasm/SKILL.md` — skill entry point for /doml-deploy-wasm; 10-item objective covering all WASM requirements
@@ -102,6 +102,15 @@ None - no external service configuration required.
 - Phase 16 Plan 01 complete — doml-deploy-wasm skill and workflow fully implemented
 - All WASM-01 through WASM-05 requirements addressed
 - Ready for Phase 16 Plan 02 if planned, or for end-to-end testing of the WASM generation pipeline
+
+## Self-Check: PASSED
+
+- FOUND: `.claude/skills/doml-deploy-wasm/SKILL.md`
+- FOUND: `.claude/doml/workflows/deploy-wasm.md`
+- FOUND: `.planning/phases/16-onnx-wasm-target/16-01-SUMMARY.md`
+- FOUND commit: `4694549` (feat: SKILL.md)
+- FOUND commit: `d1b1db2` (feat: deploy-wasm.md)
+- FOUND commit: `213e4ad` (docs: metadata)
 
 ---
 *Phase: 16-onnx-wasm-target*
