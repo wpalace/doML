@@ -428,7 +428,7 @@ Plans:
 
 Plans:
 - [x] 16-01-PLAN.md — SKILL.md entry point + deploy-wasm.md workflow (11 steps: ONNX conversion, ORT download, 20 MB size gate, self-contained index.html generation)
-- [ ] 16-02-PLAN.md — Add skl2onnx to requirements.in template; verify /doml-deploy-wasm surfaces in progress.md routing
+- [x] 16-02-PLAN.md — Add skl2onnx to requirements.in template; verify /doml-deploy-wasm surfaces in progress.md routing
 
 ---
 
@@ -492,6 +492,6 @@ Plans:
 | 13. Deployment Workflow Skeleton | M4 | 2/2 | Complete   | 2026-04-14 |
 | 14. CLI Binary Target | M4 | — | Not started | — |
 | 15. Web Service Target | M4 | 2/2 | Complete   | 2026-04-16 |
-| 16. ONNX/WASM Target | M4 | 1/2 | In Progress|  |
+| 16. ONNX/WASM Target | M4 | 2/2 | Complete   | 2026-04-17 |
 | 17. Performance Report | M4 | — | Not started | — |
 | 18. `doml-iterate-deployment` | M4 | — | Not started | — |
