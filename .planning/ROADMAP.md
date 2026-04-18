@@ -476,7 +476,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 18-01-PLAN.md — SKILL.md entry point + iterate-deployment.md workflow (13 steps: leaderboard guard, version scan, --target/--guidance flag parsing, target delegation, verbatim Step 12 performance report)
+- [x] 18-01-PLAN.md — SKILL.md entry point + iterate-deployment.md workflow (13 steps: leaderboard guard, version scan, --target/--guidance flag parsing, target delegation, verbatim Step 12 performance report)
 
 ---
 
@@ -501,4 +501,4 @@ Plans:
 | 15. Web Service Target | M4 | 2/2 | Complete   | 2026-04-16 |
 | 16. ONNX/WASM Target | M4 | 2/2 | Complete   | 2026-04-17 |
 | 17. Performance Report | M4 | 0/2 | Planned | — |
-| 18. `doml-iterate-deployment` | M4 | 0/1 | Planned | — |
+| 18. `doml-iterate-deployment` | M4 | 1/1 | Complete   | 2026-04-17 |
