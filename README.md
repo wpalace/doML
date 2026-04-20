@@ -1,18 +1,20 @@
 # DoML — Do Machine Learning
 
-A meta-prompting framework — a collection of skills and workflows — that guides AI coding assistants through reproducible, end-to-end ML analysis, from raw data to deployed model.
+A meta-prompting framework that guides AI coding assistants through reproducible, end-to-end ML analysis, from raw data to deployed model.
 
 ---
 
 ## What is DoML?
 
-DoML is a collection of Claude Code slash commands and workflow templates that guide data scientists through the full ML lifecycle: business framing, exploratory data analysis, modelling, optional forecasting, and deployment. Each phase produces reproducible Jupyter notebooks and stakeholder-ready HTML reports, so the full decision trail is always visible.
+DoML is a collection of skills and workflow templates that guide data scientists through the full ML lifecycle: business framing, exploratory data analysis, modelling, optional forecasting, and deployment. Each phase produces reproducible Jupyter notebooks and stakeholder-ready HTML reports, so the full decision trail is always visible.
 
 All notebook code runs inside a Docker container — no local Python environment to configure, no dependency conflicts, and no "works on my machine" surprises. The same container runs on any OS, making analyses fully portable and trivially reproducible by anyone with Docker installed.
 
 It enforces reproducibility rules automatically: random seeds at the top of every notebook, all paths resolved via a `PROJECT_ROOT` environment variable, `data/raw/` mounted read-only so source data is never overwritten, and a fully pinned `requirements.txt` generated from `requirements.in` via `pip-compile`.
 
 Every command is context-aware: it reads `config.json` (problem type, language preference, time factor) so you never answer the same question twice. Start with `/doml-new-project`, answer a short interview, and every subsequent command knows your dataset and goals.
+
+Each modelling phase produces a leaderboard ranking models by their evaluation metric, so the best-performing configurations are always visible across runs. Use `/doml-iterate` to try new hyperparameters, feature sets, or algorithms — results are appended to the leaderboard and the top model is always available for deployment.
 
 ---
 
@@ -48,8 +50,8 @@ After install, open the project folder in Claude Code and run:
 
 ```mermaid
 flowchart TD
-    A[Start: project folder] --> B{"Existing data\nin /data/?"}
-    B -- No --> C["/doml-get-data\nKaggle or direct URL"]
+    A[Start: doml-new-project] --> B{"Existing data?"}
+    B -- No --> C["/doml-get-data"]
     C --> D["/doml-business-understanding"]
     B -- Yes --> D
     D --> E["/doml-data-understanding"]
@@ -60,8 +62,10 @@ flowchart TD
     H -- Classification --> I
     H -- Clustering --> I
     H -- Dimensionality Reduction --> I
+    I --> R["/doml-iterate"]
+    R -- iterate --> R
     G --> J["Optional: /doml-anomaly-detection"]
-    I --> J
+    R --> J
     J --> K{Deploy?}
     K -- No --> L[Done]
     K -- Yes --> M{Target?}
@@ -72,6 +76,11 @@ flowchart TD
     O --> Q
     P --> Q
     Q -- new version --> Q
+
+    classDef command fill:#4A90D9,stroke:#2971B0,color:#fff
+    classDef decision fill:#F5A623,stroke:#C47D10,color:#fff
+    class A,C,D,E,G,I,R,J,N,O,P,Q command
+    class B,F,H,K,M decision
 ```
 
 ---
