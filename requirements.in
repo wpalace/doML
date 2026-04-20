@@ -27,6 +27,7 @@ xgboost
 lightgbm
 statsmodels
 prophet
+onnxruntime  # ONNX runtime for WASM target benchmarking (Phase 17 — PERF-01)
 
 # --- Time series forecasting ---
 pmdarima

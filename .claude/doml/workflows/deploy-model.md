@@ -298,5 +298,200 @@ Next step: run the target-specific deployment phase.
 - NEVER shell-interpolate MODEL_OVERRIDE in shell commands — only pass to Python os.path.exists()
 - NEVER hardcode version numbers — always glob src/MODEL_SLUG/v* and increment max (D-02)
 - NEVER run Docker — this workflow is pure file I/O; no docker compose exec calls
+  **Exception: Step 12 is the only step permitted to run Docker commands** — it must execute the
+  notebook inside the jupyter container and generate HTML. All other steps remain pure file I/O.
 - NEVER create predict.py, Dockerfile, app.py, or any stub files — those are Phase 14/15/16 (D-05)
 - NEVER overwrite existing fields in model_metadata.json — only add model_name if the key is absent
+
+---
+
+### Step 12 — Generate performance report (PERF-01, PERF-07)
+
+> Note: This step runs AFTER the target-specific deployment skill (deploy-cli / deploy-web /
+> deploy-wasm) has completed. It is the only step in this workflow that executes Docker commands.
+
+#### 12a — Copy notebook template
+
+```bash
+cp .claude/doml/templates/notebooks/deployment_report.ipynb notebooks/deployment_report.ipynb
+echo "Notebook template copied to notebooks/deployment_report.ipynb"
+```
+
+#### 12b — Web service only: start container and set URL
+
+If `TARGET_KEY == 'web_service'`:
+
+```bash
+# Start the FastAPI container
+docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" up -d
+
+# Poll GET /health with 30s timeout (1s intervals) until 200
+python3 -c "
+import time, sys, requests
+url = 'http://localhost:8080/health'
+deadline = time.time() + 30
+while time.time() < deadline:
+    try:
+        r = requests.get(url, timeout=2)
+        if r.status_code == 200:
+            print(f'Web service healthy: {r.json()}')
+            sys.exit(0)
+    except Exception:
+        pass
+    time.sleep(1)
+print('ERROR: web service did not become healthy within 30 seconds.')
+sys.exit(1)
+"
+if [ $? -ne 0 ]; then
+  echo "Web service startup failed — aborting report generation."
+  exit 1
+fi
+
+DOML_WEB_SERVICE_URL="http://localhost:8080"
+echo "Web service URL: $DOML_WEB_SERVICE_URL"
+```
+
+For CLI and ONNX targets, set:
+```bash
+DOML_WEB_SERVICE_URL=""
+```
+
+#### 12c — Execute notebook inside Docker
+
+```bash
+docker compose exec \
+  -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" \
+  jupyter \
+  jupyter nbconvert \
+    --to notebook \
+    --execute \
+    --inplace \
+    --timeout=900 \
+    notebooks/deployment_report.ipynb
+```
+
+If this command exits non-zero, the parity test or another cell raised an error. Display:
+```
+Notebook execution FAILED. Check notebooks/deployment_report.ipynb for the error cell.
+Parity test may have failed — review the AssertionError message in the notebook output.
+```
+Then stop (do not generate HTML from a failed execution).
+
+#### 12d — Web service only: stop container
+
+If `TARGET_KEY == 'web_service'`:
+
+```bash
+docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" down
+echo "Web service container stopped."
+```
+
+#### 12e — Read benchmark results from executed notebook
+
+```python
+import json, nbformat
+from pathlib import Path
+
+nb_path = Path('notebooks/deployment_report.ipynb')
+nb = nbformat.read(str(nb_path), as_version=4)
+
+# Extract plain-text outputs from all code cells
+benchmark_outputs = []
+for i, cell in enumerate(nb.cells):
+    if cell.cell_type == 'code':
+        for output in cell.get('outputs', []):
+            if output.get('output_type') == 'stream':
+                benchmark_outputs.append(f"[Cell {i}] " + ''.join(output.get('text', [])))
+            elif output.get('output_type') in ('execute_result', 'display_data'):
+                data = output.get('data', {})
+                if 'text/plain' in data:
+                    benchmark_outputs.append(f"[Cell {i}] " + ''.join(data['text/plain']))
+
+benchmark_summary = '\n'.join(benchmark_outputs)
+print(benchmark_summary[:3000])  # show first 3000 chars for context
+```
+
+#### 12f — Write Claude narrative and inject into Cell 12
+
+Claude Code reads `benchmark_summary` from 12e and writes a 2-3 paragraph narrative
+summarising the key findings: latency (mean ± std, p95), batch throughput at each batch size,
+memory footprint (model load + per-prediction), projected throughput (req/s), and parity outcome.
+
+The narrative must mention the target type and note that ONNX results are an approximation
+(if target is onnx_wasm).
+
+Inject the narrative into the notebook by replacing Cell 12 (the placeholder markdown cell):
+
+```python
+import nbformat
+from pathlib import Path
+
+nb_path = Path('notebooks/deployment_report.ipynb')
+nb = nbformat.read(str(nb_path), as_version=4)
+
+# Locate Cell 12 (index 12 — the placeholder markdown)
+placeholder = nb.cells[12]
+assert placeholder['cell_type'] == 'markdown', \
+    f"Expected Cell 12 to be markdown placeholder, got {placeholder['cell_type']}"
+
+narrative_text = """## Performance Summary
+
+{NARRATIVE_WRITTEN_BY_CLAUDE}
+"""
+
+placeholder['source'] = narrative_text
+nbformat.write(nb, str(nb_path))
+print("Narrative injected into Cell 12 of notebooks/deployment_report.ipynb")
+```
+
+Replace `{NARRATIVE_WRITTEN_BY_CLAUDE}` with the actual 2-3 paragraph narrative text
+before running the script.
+
+#### 12g — Generate HTML report
+
+```bash
+docker compose exec jupyter \
+  jupyter nbconvert \
+    --to html \
+    --no-input \
+    --output deployment_report \
+    notebooks/deployment_report.ipynb
+```
+
+#### 12h — Move HTML to reports/
+
+```bash
+mkdir -p reports
+cp notebooks/deployment_report.html reports/deployment_report.html
+echo "HTML report copied to reports/deployment_report.html"
+```
+
+#### 12i — Verify: no visible code in HTML
+
+```bash
+INPUT_COUNT=$(grep -c 'class="input"' reports/deployment_report.html 2>/dev/null || echo "0")
+if [ "$INPUT_COUNT" -gt 0 ]; then
+  echo "WARNING: HTML may contain visible code cells (found $INPUT_COUNT 'class=\"input\"' occurrences)."
+  echo "Verify reports/deployment_report.html manually."
+else
+  echo "HTML verification passed: no visible code cells (class=\"input\" count = 0)."
+fi
+```
+
+#### 12j — Confirm
+
+Display:
+```
+Performance report generated.
+
+  Notebook:  notebooks/deployment_report.ipynb
+  Report:    reports/deployment_report.html
+
+Open reports/deployment_report.html to review benchmark results and narrative.
+```
+
+---
+
+**Anti-Pattern addendum (Step 12 only):**
+Step 12 is the sole exception to the "NEVER run Docker" rule — it must execute the notebook and
+generate HTML inside the jupyter container. All other steps remain pure file I/O.
