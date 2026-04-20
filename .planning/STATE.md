@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: complete
-stopped_at: Completed 18-doml-iterate-deployment-01-PLAN.md
-last_updated: "2026-04-17T21:30:00.000Z"
-last_activity: 2026-04-17 -- Phase 18 complete — doml-iterate-deployment command created
+milestone: v1.5
+milestone_name: Public Release + Install Scripts
+status: in_progress
+stopped_at: —
+last_updated: "2026-04-20T00:00:00.000Z"
+last_activity: 2026-04-20 — Milestone v1.5 started
 progress:
-  total_phases: 18
-  completed_phases: 18
-  total_plans: 48
-  completed_plans: 48
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 
 ## Current Position
 
-Phase: 18 (doml-iterate-deployment) — COMPLETE
-Plan: 1 of 1
-Status: All 18 phases complete — milestone v1.0 done
-Last activity: 2026-04-17 -- Phase 18 complete — doml-iterate-deployment command created
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements for milestone v1.5
+Last activity: 2026-04-20 — Milestone v1.5 started
 
 Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 

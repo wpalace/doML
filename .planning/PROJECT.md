@@ -8,17 +8,16 @@ DoML is a meta-prompting framework (inspired by GSD) that guides a data science 
 
 A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
 
-## Current Milestone: v1.4 Deployment
+## Current Milestone: v1.5 Public Release + Install Scripts
 
-**Goal:** Add `doml-deploy-model` and `doml-iterate-deployment` to package the best leaderboard model into production-ready artifacts with performance benchmarking and versioned iteration.
+**Goal:** Make DoML publicly consumable — Bash and PowerShell install scripts that bootstrap the framework from GitHub (no repo clone required), a polished README with Quick Start one-liners and Mermaid process diagram, MIT license, donation info, and Copilot CLI support so the framework works with both Claude Code and GitHub Copilot.
 
 **Target features:**
-- `doml-deploy-model` with three deployment targets: PyInstaller CLI binary, FastAPI Docker web service (with auto-generated prediction form), ONNX/WebAssembly self-contained HTML page
-- Model selection: defaults to #1 leaderboard model, override supported
-- Performance report: Jupyter notebook + HTML (latency benchmarks + parity test against test data)
-- Output layout: `src/<modelname>/v1/` with versioned iterations
-- `doml-iterate-deployment`: re-deploy with same model (version bump) or new model (new folder); `--guidance` supported; runnable without a new model
-- Problem type support: Regression, Classification, Clustering, Forecasting
+- Bash + PowerShell install scripts: download DoML framework artifacts from the public GitHub repo and scaffold `.claude/`, `CLAUDE.md`, and `data/` in the user's project folder
+- README.md: Quick Start section (Linux + Windows one-liners), Mermaid new-project flow diagram (major decisions and phase steps), project description, donation section
+- MIT LICENSE file (Copyright (c) 2026 William W Palace, III)
+- Donation section (PayPal + Venmo) with an honest note about token investment
+- GitHub Copilot CLI support: extend install scripts and adapt framework file/directory structure so `/doml-new-project` equivalent runs under Copilot
 
 ## Requirements
 
