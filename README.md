@@ -1,12 +1,14 @@
 # DoML — Do Machine Learning
 
-A Claude Code framework for reproducible, end-to-end ML analysis — from raw data to deployed model.
+A meta-prompting framework — a collection of skills and workflows — that guides AI coding assistants through reproducible, end-to-end ML analysis, from raw data to deployed model.
 
 ---
 
 ## What is DoML?
 
 DoML is a collection of Claude Code slash commands and workflow templates that guide data scientists through the full ML lifecycle: business framing, exploratory data analysis, modelling, optional forecasting, and deployment. Each phase produces reproducible Jupyter notebooks and stakeholder-ready HTML reports, so the full decision trail is always visible.
+
+All notebook code runs inside a Docker container — no local Python environment to configure, no dependency conflicts, and no "works on my machine" surprises. The same container runs on any OS, making analyses fully portable and trivially reproducible by anyone with Docker installed.
 
 It enforces reproducibility rules automatically: random seeds at the top of every notebook, all paths resolved via a `PROJECT_ROOT` environment variable, `data/raw/` mounted read-only so source data is never overwritten, and a fully pinned `requirements.txt` generated from `requirements.in` via `pip-compile`.
 
@@ -46,27 +48,27 @@ After install, open the project folder in Claude Code and run:
 
 ```mermaid
 flowchart TD
-    A[Start: project folder] --> B{Existing data\nin /data/?}
-    B -- No --> C[/doml-get-data\nKaggle or direct URL]
-    C --> D[/doml-business-understanding]
+    A[Start: project folder] --> B{"Existing data\nin /data/?"}
+    B -- No --> C["/doml-get-data\nKaggle or direct URL"]
+    C --> D["/doml-business-understanding"]
     B -- Yes --> D
-    D --> E[/doml-data-understanding]
+    D --> E["/doml-data-understanding"]
     E --> F{Time series?}
-    F -- Yes --> G[/doml-forecasting]
+    F -- Yes --> G["/doml-forecasting"]
     F -- No --> H{Problem type?}
-    H -- Regression --> I[/doml-modelling]
+    H -- Regression --> I["/doml-modelling"]
     H -- Classification --> I
     H -- Clustering --> I
-    H -- Dimensionality\nReduction --> I
-    G --> J[Optional:\n/doml-anomaly-detection]
+    H -- Dimensionality Reduction --> I
+    G --> J["Optional: /doml-anomaly-detection"]
     I --> J
     J --> K{Deploy?}
     K -- No --> L[Done]
     K -- Yes --> M{Target?}
-    M -- CLI binary --> N[/doml-deploy-model\nCLI target]
-    M -- Web service --> O[/doml-deploy-model\nWeb target]
-    M -- ONNX/WASM --> P[/doml-deploy-model\nWASM target]
-    N --> Q[/doml-iterate-deployment]
+    M -- CLI binary --> N["/doml-deploy-model CLI"]
+    M -- Web service --> O["/doml-deploy-model Web"]
+    M -- "ONNX/WASM" --> P["/doml-deploy-model WASM"]
+    N --> Q["/doml-iterate-deployment"]
     O --> Q
     P --> Q
     Q -- new version --> Q
