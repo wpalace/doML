@@ -63,9 +63,9 @@ flowchart TD
     H -- Clustering --> I
     H -- Dimensionality Reduction --> I
     I --> R["/doml-iterate"]
+    G --> R
     R -- iterate --> R
-    G --> J["Optional: /doml-anomaly-detection"]
-    R --> J
+    R --> J["Optional: /doml-anomaly-detection"]
     J --> K{Deploy?}
     K -- No --> L[Done]
     K -- Yes --> M{Target?}
@@ -121,7 +121,4 @@ See [`CLAUDE.md`](CLAUDE.md) for the full set of conventions Claude Code follows
 
 ## Support the Project
 
-Building DoML consumed a meaningful amount of AI compute — and yes, the top-tier Claude Max plan was purchased specifically to build this. If DoML saves you time on a project, a small donation is appreciated.
-
-- PayPal: [paypal.me/WilliamPalace442](https://paypal.me/WilliamPalace442)
-- Venmo: [@William-Palace](https://venmo.com/William-Palace)
+Building DoML consumed a meaningful amount of AI compute — and yes, the top-tier Claude Max plan was purchased specifically to build this. If it saves you time, contributions are appreciated via the **Sponsor** button at the top of this page.
