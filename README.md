@@ -122,3 +122,12 @@ See [`CLAUDE.md`](CLAUDE.md) for the full set of conventions Claude Code follows
 ## Support the Project
 
 Building DoML consumed a meaningful amount of AI compute — and yes, the top-tier Claude Max plan was purchased specifically to build this. If it saves you time, contributions are appreciated via the **Sponsor** button at the top of this page.
+
+## Future Milestones Planned
+This project is very green and quite rough around the edges, so don't expect perfection. Here are some future plans I would like to work on as time permits:
+
+- Make the container more efficient - it is bulky and slow to build on a cold cache
+- Add more skills to improve the cababilities of different problem types (particularly time sereis)
+- Add a high throughput, qualitative QA qutomation process scored by LLM judges - run the framework against a matrix of datasets using various LLMs with OpenClaw orchestrating the process
+- Extend framewowrk with deep learning capabilities
+
