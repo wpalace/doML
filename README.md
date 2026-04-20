@@ -121,7 +121,10 @@ See [`CLAUDE.md`](CLAUDE.md) for the full set of conventions Claude Code follows
 
 ## Support the Project
 
-Building DoML consumed a meaningful amount of AI compute — and yes, the top-tier Claude Max plan was purchased specifically to build this. If it saves you time, contributions are appreciated via the **Sponsor** button at the top of this page.
+Building DoML consumed a meaningful amount of AI compute — and yes, the top-tier Claude Max plan was purchased specifically to build this. If it saves you time, a small donation is appreciated.
+
+- PayPal: [paypal.me/WilliamPalace442](https://paypal.me/WilliamPalace442)
+- Venmo: [@William-Palace](https://venmo.com/William-Palace)
 
 ## Future Milestones Planned
 This project is very green and quite rough around the edges, so don't expect perfection. Here are some future plans I would like to work on as time permits:
