@@ -457,6 +457,84 @@ Plans:
 
 ---
 
+---
+
+## 🚧 Milestone 5 — Public Release + Install Scripts (In Progress)
+
+**Milestone Goal:** Make DoML publicly consumable — Bash and PowerShell install scripts that bootstrap the framework from GitHub (no repo clone required), a polished README with Quick Start one-liners and Mermaid process diagram, MIT license, donation info, and GitHub Copilot support so the framework works with both Claude Code and GitHub Copilot.
+
+---
+
+### Phase 19: Public Release Docs
+
+**Goal**: Create the public-facing documentation for the DoML repo — `README.md` with Quick Start one-liners, a Mermaid new-project flow diagram, command list, and requirements — plus the `LICENSE` file and a donation section.
+
+**Depends on**: Phase 18
+
+**Requirements**: DOC-01, DOC-02, DOC-03, DOC-04, DOC-05
+
+**Success Criteria**:
+1. `README.md` exists at repo root and accurately describes DoML's purpose, commands, and requirements
+2. Quick Start section contains working bash and PowerShell one-liners pointing to `install.sh` / `install.ps1`
+3. Mermaid diagram renders correctly on GitHub (fenced `\`\`\`mermaid` block) and shows the full new-project decision flow
+4. `LICENSE` file contains MIT license text with Copyright (c) 2026 William W Palace, III
+5. Donation section with PayPal and Venmo links is present and includes a brief, honest AI token investment note
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — README.md (Quick Start, Mermaid diagram, commands, donation), LICENSE file
+
+---
+
+### Phase 20: Install Scripts — Claude Target
+
+**Goal**: Implement `install.sh` (Bash) and `install.ps1` (PowerShell) that download all DoML framework files from raw.githubusercontent.com and scaffold `.claude/`, `CLAUDE.md`, and `data/` in the user's project — without requiring a git clone. Include VERSION pin support and idempotent re-run behavior.
+
+**Depends on**: Phase 19
+
+**Requirements**: INST-01, INST-02, INST-03, INST-04, INST-05, INST-06
+
+**Success Criteria**:
+1. `bash <(curl -fsSL https://raw.githubusercontent.com/wpalace/doML/main/install.sh)` installs the full Claude DoML framework in a new directory
+2. The PowerShell equivalent one-liner works identically on Windows PowerShell 5.1+
+3. `VERSION=v1.5 bash install.sh` (and `-Version v1.5` in PowerShell) pins downloads to a specific tag
+4. Re-running the script on an existing project updates framework files but skips `data/` contents and existing `CLAUDE.md`
+5. If any download fails, the script exits immediately with the URL that failed
+6. After install, a user can launch Claude Code and run `/doml-new-project` successfully
+
+**Plans**: 2 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — `install.sh`: manifest-driven curl downloads, directory creation, idempotency logic, VERSION variable, fail-fast error handling
+- [ ] 20-02-PLAN.md — `install.ps1`: PowerShell equivalent with `irm`, `-Version` parameter, same idempotency and error behavior
+
+---
+
+### Phase 21: Copilot Support + `--target` Flag
+
+**Goal**: Extend install scripts with `--target claude|copilot|both` flag. When Copilot target is selected, scripts programmatically generate `AGENTS.md`, `.github/copilot-instructions.md`, and `.github/prompts/*.prompt.md` by transforming the downloaded Claude framework files — no separate Copilot source files live in the repo.
+
+**Depends on**: Phase 20
+
+**Requirements**: INST-07, INST-08, COP-01, COP-02, COP-03, COP-04
+
+**Success Criteria**:
+1. `bash install.sh --target both` installs Claude framework AND generates all Copilot files in one run
+2. `AGENTS.md` is generated at project root with DoML conventions in tool-neutral language
+3. `.github/copilot-instructions.md` is generated with DoML project instructions adapted from `CLAUDE.md`
+4. `.github/prompts/doml-*.prompt.md` files exist for each DoML command with valid `mode: agent` frontmatter
+5. Copilot prompt files are recognized and invocable via `#doml-new-project` in VS Code Copilot Chat
+6. `--target claude` installs only the Claude framework (no `.github/` files generated)
+
+**Plans**: 2 plans
+
+Plans:
+- [ ] 21-01-PLAN.md — `AGENTS.md` template + `.github/copilot-instructions.md` generation logic + `.github/prompts/*.prompt.md` transformation from SKILL.md files
+- [ ] 21-02-PLAN.md — Extend `install.sh` and `install.ps1` with `--target` / `-Target` flag; end-to-end smoke test for both targets
+
+---
+
 ### Phase 18: `doml-iterate-deployment`
 
 **Goal**: Implement the `doml-iterate-deployment` skill and `iterate-deployment.md` workflow — detecting the current deployment version, routing to same-model version bump or new-model folder, re-running the deployment step and performance report, and supporting `--guidance` for direction without requiring a new model.
@@ -502,3 +580,6 @@ Plans:
 | 16. ONNX/WASM Target | M4 | 2/2 | Complete   | 2026-04-17 |
 | 17. Performance Report | M4 | 0/2 | Planned | — |
 | 18. `doml-iterate-deployment` | M4 | 1/1 | Complete   | 2026-04-17 |
+| 19. Public Release Docs | M5 | 0/1 | Planned | — |
+| 20. Install Scripts (Claude target) | M5 | 0/2 | Planned | — |
+| 21. Copilot Support + `--target` flag | M5 | 0/2 | Planned | — |
