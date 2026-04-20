@@ -1,97 +1,62 @@
-# Stack Research — v1.4 Deployment
+# Stack Research — v1.5 Public Release + Install Scripts
 
-**Domain:** DoML model deployment (CLI binary, FastAPI web service, ONNX/WASM)
-**Researched:** 2026-04-14
+**Domain:** Install scripts, public OSS release, GitHub Copilot support
+**Researched:** 2026-04-20
 **Confidence:** HIGH
 
 ---
 
-## Existing Validated Capabilities (DO NOT re-research)
-- scikit-learn pipelines (preprocessing + model), joblib serialization → `models/best_model.pkl`
-- `model_metadata.json` stores feature names, problem type, target column, CV metrics
-- Docker environment (jupyter/datascience-notebook base) already running
-- Python 3.11/3.12, numpy 2.x, pandas, jinja2 already pinned
+## Install Script Stack (No New Dependencies)
+
+Install scripts are pure shell — no pip, npm, or node required on the target machine. All framework files are downloaded as raw files from GitHub.
+
+### Bash (Linux/macOS)
+- `curl` is the preferred download tool (`-fsSL` flags: fail-silent, follow-redirects, silent progress)
+- `wget` as fallback where curl is unavailable
+- Canonical one-liner: `bash <(curl -fsSL https://raw.githubusercontent.com/wpalace/doML/main/install.sh)`
+- Alternative: `curl -fsSL https://raw.githubusercontent.com/wpalace/doML/main/install.sh | bash`
+
+### PowerShell (Windows)
+- `Invoke-RestMethod` (`irm`) — preferred; simpler than `Invoke-WebRequest` for pipe-to-exec
+- Works on PowerShell 5.1 (Windows built-in) and PowerShell 7+
+- Canonical one-liner: `Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/wpalace/doML/main/install.ps1 | iex`
+- Execution policy bypass is scoped to the current process only (safe pattern, industry standard)
+
+### GitHub Raw URL Pattern
+```
+https://raw.githubusercontent.com/wpalace/doML/main/<path>
+```
+All framework file downloads use this URL base. The install script downloads itself then pulls remaining artifacts.
 
 ---
 
-## New Stack Additions Required
+## Copilot Instruction File Formats (as of April 2026)
 
-### CLI Binary — PyInstaller
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `pyinstaller` | `6.11.1` | Compile Python + deps into self-contained executable |
-| `pyinstaller-hooks-contrib` | `2024.11` | Community hooks for sklearn, numpy, pandas auto-collection |
+| File | Scope | Read by | Notes |
+|------|-------|---------|-------|
+| `AGENTS.md` (repo root) | Whole repo | Copilot, Claude Code, Cursor, Gemini | Universal — widest cross-tool support |
+| `.github/copilot-instructions.md` | Whole repo | GitHub Copilot only | Always-on background instructions |
+| `.github/instructions/*.instructions.md` | Path-scoped | GitHub Copilot | YAML frontmatter specifies applicableFiles |
+| `.github/prompts/*.prompt.md` | On-demand | Copilot in VS Code/JetBrains | Reusable prompt files (like DoML skills) |
+| `CLAUDE.md` | Whole repo | Claude Code | DoML already creates this |
+| `GEMINI.md` | Whole repo | Gemini CLI | Future scope |
 
-**Key build flags:**
-- `--onedir` preferred over `--onefile` for ML models — avoids slow extraction on each run; `--onefile` adds ~2s cold-start penalty unpacking to temp dir
-- `--hidden-import sklearn.utils._cython_blas` and other sklearn Cython internals must be declared explicitly
-- `--add-data models/best_model.pkl:models` to bundle the serialized model
-- `--collect-all sklearn` ensures all sklearn submodules are collected (critical — sklearn uses lazy imports extensively)
-- `--collect-all joblib` — model loading dependency
-
-**Cross-platform constraint (critical):** PyInstaller does NOT cross-compile. A Linux binary must be built inside a Linux container; macOS binary must be built on macOS. The build runs inside the existing Docker environment — no host Python needed. Output binary: `src/<modelname>/v1/dist/predict` (Linux/macOS) or `predict.exe` (Windows).
-
-**Alternative considered — Nuitka 2.5:** Compiles Python to C, ~2–3× faster startup, better IP protection. Rejected for DoML: requires C compiler on build host, ~10× slower build time, complex hook system for numpy/sklearn. PyInstaller is pragmatic for a framework that generates binaries on demand.
+**Key insight:** `AGENTS.md` is now the universal cross-tool instruction file. Both Copilot and Claude Code read it. DoML should generate both `CLAUDE.md` (existing) and `AGENTS.md` (new) with equivalent content, plus `.github/copilot-instructions.md` for Copilot-specific context.
 
 ---
 
-### Web Service — FastAPI
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `fastapi` | `0.115.6` | Async web framework, auto OpenAPI docs at `/docs` |
-| `uvicorn[standard]` | `0.32.1` | ASGI server (includes websockets, http-tools) |
-| `pydantic` | `2.10.3` | Request/response models; dynamically built from feature schema |
-| `jinja2` | `3.1.6` | Already pinned — auto-generated prediction form HTML |
-| `python-multipart` | `0.0.20` | Required for HTML form POST (multipart/form-data) |
+## Copilot Skill Equivalent
 
-**Inference Docker image:** `python:3.11-slim` base (~150MB). Full ML deps add ~1.4GB. Trimmed image (only inference libs, no Jupyter) ~600MB. DoML generates a dedicated `Dockerfile.serve` — separate from the analysis Docker environment.
+Claude Code has `.claude/skills/*.md` — on-demand slash commands. The closest Copilot equivalent:
+- **`.github/prompts/*.prompt.md`** — reusable prompts invocable in VS Code/JetBrains Copilot Chat
+- Prompt files use YAML frontmatter: `mode: agent`, `description:`, `tools:` list
+- Invoked via `#` in Copilot Chat (e.g., `#doml-new-project`)
 
-**Prediction form pattern:** Jinja2 template reads `model_metadata.json` → renders typed `<input>` fields per feature. Numeric dtypes → `type="number" step="any"`. Categorical (object dtype) → `<select>` populated with training set unique values (stored in metadata). Plain `fetch()` POST to `/predict` — no JS framework, no build step. Response rendered inline.
-
----
-
-### ONNX / WebAssembly
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `skl2onnx` | `1.17.0` | Convert scikit-learn Pipeline → ONNX |
-| `onnxmltools` | `1.12.2` | XGBoost/LightGBM → ONNX (extends skl2onnx) |
-| `onnxruntime` | `1.20.1` | Server-side ONNX inference (used in parity testing) |
-| `onnxruntime-web` | `1.20.1` | Browser WASM inference (CDN delivery, not pip) |
-
-**ONNX operator coverage for DoML models:**
-| Model | ONNX support |
-|-------|-------------|
-| LinearRegression, Ridge, Lasso | ✅ Full |
-| RandomForestRegressor/Classifier | ✅ Full |
-| GradientBoostingRegressor/Classifier | ✅ Full |
-| XGBRegressor/XGBClassifier | ✅ via onnxmltools |
-| LightGBMRegressor/Classifier | ✅ via onnxmltools |
-| KMeans | ✅ Full |
-| DBSCAN | ❌ No ONNX export — clustering WASM limited to KMeans |
-| Prophet / ARIMA (pmdarima) | ❌ No ONNX export — forecasting excluded from WASM target |
-
-**Self-contained HTML delivery pattern:**
-1. Convert fitted pipeline → `model.onnx` (skl2onnx)
-2. Base64-encode → embed in HTML as JS constant (`const MODEL_B64 = "..."`)
-3. Load `onnxruntime-web` from jsDelivr CDN
-4. On page load: decode base64 → `Uint8Array` → `ort.InferenceSession.create(buffer)`
-5. Form submit: build `ort.Tensor` from inputs → `session.run()` → render output
-
-**Size warning:** Large ensemble models (RF 500 trees) → 50–200MB ONNX. Threshold: warn + block if `model.onnx > 20MB`. Suggest web service target instead.
-
----
-
-### Performance Benchmarking
-- `timeit` (stdlib) — single/batch prediction latency
-- `requests` (already pinned) — HTTP endpoint benchmarking for web service target
-- `subprocess` (stdlib) — CLI binary invocation timing
-- No new packages needed
+No equivalent to Claude Code's `/skill-name` CLI syntax exists in Copilot — the prompt file approach is the closest parallel.
 
 ---
 
 ## What NOT to Add
-- Triton Inference Server — overkill for framework use case
-- TorchScript / TensorRT — no PyTorch in DoML
-- MLflow serving — DoML uses own model_metadata.json; MLflow adds registry complexity
-- BentoML / Seldon / KServe — external platforms out of scope
-- gRPC — REST/HTTP sufficient for single-model inference
+- Node.js / Python in install scripts — pure shell only
+- Separate `doml-tools` for Copilot — reuse existing framework files
+- GitHub Actions CI for Copilot — out of scope for v1.5

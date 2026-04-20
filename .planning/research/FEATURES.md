@@ -1,97 +1,78 @@
-# Feature Research — v1.4 Deployment
+# Feature Research — v1.5 Public Release + Install Scripts
 
-**Domain:** ML model deployment patterns (CLI, web service, ONNX/WASM)
-**Researched:** 2026-04-14
+**Domain:** OSS release infrastructure, install scripts, Copilot support
+**Researched:** 2026-04-20
 **Confidence:** HIGH
 
 ---
 
-## Table Stakes (must have for any deployment target)
+## Table Stakes
 
-### Model Loading & Preprocessing
-- Load `best_model.pkl` (sklearn Pipeline — includes preprocessor + estimator)
-- Read `model_metadata.json`: feature names, dtypes, problem type, target column, training metrics
-- Reconstruct feature order exactly as trained (preprocessing step must be included in loaded pipeline)
-- Support override: user specifies alternate model file instead of leaderboard #1
+### Install Scripts (Bash + PowerShell)
+- Download and install all DoML framework files into the current working directory
+- Create `.claude/` directory tree with all skills, workflows, templates, references
+- Create `CLAUDE.md` at project root
+- Create `AGENTS.md` at project root (universal cross-tool instructions)
+- Create `data/raw/`, `data/processed/`, `data/external/` directory structure
+- Create `data/raw/README.md` (immutability notice)
+- No git clone required — pulls files individually from raw.githubusercontent.com
+- Works from any empty or new project directory
+- Idempotent: safe to re-run without overwriting user data files
+- Progress feedback: print each step as it completes
+- Error handling: fail fast with clear message if download fails
 
-### Prediction Interface
-- Single prediction: one row of input features → output (value / class+proba / cluster_id / forecast)
-- Batch prediction: N rows → N outputs (vectorized, not loop)
-- Input validation: feature names, dtypes, required vs optional (nullable) columns
-- Output format consistent per problem type:
-  - Regression → `{"prediction": 42.3}`
-  - Classification → `{"prediction": "cat", "probabilities": {"cat": 0.87, "dog": 0.13}}`
-  - Clustering → `{"cluster": 2}`
-  - Forecasting → `{"forecast": [{"period": 1, "yhat": 120.5, "yhat_lower": 108.0, "yhat_upper": 133.0}]}`
+### README.md
+- Project name, tagline, one-paragraph description
+- Quick Start section with copy-paste one-liners (Linux bash + Windows PowerShell)
+- What DoML does (the ML analysis pipeline: BU → EDA → Modelling → Deployment)
+- Mermaid diagram: new project flow (major decisions + phase steps)
+- List of available commands with one-line descriptions
+- Requirements (Docker, Claude Code or GitHub Copilot)
+- Donation section (PayPal + Venmo) with authentic AI token cost note
+- MIT license badge + link to LICENSE
 
-### Performance Report (Jupyter Notebook + HTML)
-- **Latency benchmarks:** single prediction timing (mean ± std over 1000 runs), batch prediction timing (10, 100, 1000, 10000 rows)
-- **Parity test:** feed full test set through deployed endpoint → compare predictions to in-memory model output → assert max delta < tolerance (regression: RMSE match; classification: identical class labels; clustering: identical cluster IDs)
-- **Memory footprint:** model load memory, per-prediction memory delta
-- **Throughput estimate:** requests/sec projection from latency
-- Output: `notebooks/deployment_report.ipynb` + `reports/deployment_report.html`
+### LICENSE
+- MIT license text
+- Copyright (c) 2026 William W Palace, III
 
-### Versioned Output Layout
-```
-src/
-  <modelname>/          # from model_metadata.json model_name field (or sanitized leaderboard rank)
-    v1/                 # first deployment
-      deployment_metadata.json   # records model version, target, build date, feature schema
-      [target-specific files]
-    v2/                 # iteration — same model, tuned
-      ...
-  <modelname_v2>/       # iteration — different model from leaderboard
-    v1/
-      ...
-```
+### Copilot Support
+- `.github/copilot-instructions.md` — Copilot equivalent of `CLAUDE.md`
+- `.github/prompts/doml-new-project.prompt.md` — prompt file for `/doml-new-project` equivalent
+- `.github/prompts/` files for each major DoML command
+- Install script extended: `--target claude` (default) or `--target copilot` or `--target both`
+- `AGENTS.md` at repo root — universal instructions read by both Claude Code and Copilot
 
 ---
 
-## Table Stakes per Target
+## Differentiators
 
-### CLI Binary
-- Accepts input as: JSON string (`--input '{"feature1": 1.0}'`), JSON file (`--input data.json`), CSV file (`--input data.csv`)
-- Batch mode auto-detected from file input (multiple rows)
-- `--output` flag: stdout (default) or file path for batch results
-- `--help` shows feature schema (names, types, example values)
-- Exit codes: 0 success, 1 input error, 2 model error
-- `predict` (Linux/macOS) or `predict.exe` (Windows) at `src/<modelname>/v1/dist/`
+### Mermaid Diagram Content
+The process flow diagram should show:
+- Start → does `data/` have files? (yes/no branch)
+  - No → `doml-get-data` (Kaggle or URL)
+- Business Understanding phase
+- Data Understanding / EDA phase
+- Problem type decision: Regression / Classification / Clustering / Forecasting / Dimensionality Reduction
+  - Forecasting branch: time_factor=true required
+  - Unsupervised branch: no preprocessing step
+- Modelling phase (with optional anomaly detection branch after EDA)
+- Deployment decision: CLI / Web Service / ONNX-WASM
+- doml-iterate loops back to modelling or deployment
 
-### Web Service
-- `GET /` — prediction form (auto-generated from feature schema)
-- `POST /predict` — JSON body → JSON prediction response
-- `GET /health` — `{"status": "ok", "model": "<name>", "version": "v1"}`
-- `GET /schema` — feature schema (names, types, example values)
-- OpenAPI docs auto-generated by FastAPI at `/docs`
-- `Dockerfile.serve` + `docker-compose.serve.yml` in `src/<modelname>/v1/`
-- Start command: `docker compose -f docker-compose.serve.yml up`
-
-### ONNX/WASM
-- `index.html` — self-contained prediction page at `src/<modelname>/v1/`
-- Feature form auto-built from embedded feature schema (from model_metadata.json)
-- Inline inference — no server round-trip
-- Shows prediction result inline on form submit
-- Graceful degradation message if WebAssembly not supported by browser
-- `model.onnx` stored alongside for reference (but model weights embedded in HTML)
+### Donation Note Tone
+Many OSS authors are honest about AI-assisted development costs. The note should be:
+- Genuine, not apologetic
+- Brief (2-3 sentences)
+- Acknowledge that the framework was developed using Claude (Anthropic) with meaningful token investment
+- Clear that donations are optional and appreciated, not expected
+- Avoid "cheesy" framing — matter-of-fact works best
 
 ---
 
-## Differentiators (nice-to-have, assess per phase)
-
-- Confidence intervals for regression predictions (bootstrap from training residuals)
-- Prediction explanation (SHAP values) in web UI — requires server-side computation
-- Async batch processing endpoint (`POST /predict/batch` with job ID, `GET /predict/batch/{id}`)
-- Rate limiting / API key auth on web service
-- OpenAPI spec export to file (`/openapi.json`)
-- Progressive Web App manifest for ONNX HTML page (offline-capable)
-
----
-
-## Anti-features (explicitly exclude)
-
-- AutoML re-training on prediction requests
-- Streaming predictions (SSE/WebSocket) — out of scope for v1.4
-- Multi-model serving (A/B testing) — single model per deployment
-- GPU inference — all DoML models are CPU-bound sklearn/XGB
-- Model registry / experiment tracking integration (MLflow, W&B)
-- Kubernetes/cloud deployment configs — local Docker only in v1.4
+## Anti-features (out of scope for v1.5)
+- Windows/macOS binary distributions of DoML itself — it's a framework, not a compiled tool
+- npm/pip package distribution — install script is the distribution mechanism
+- GitHub Actions CI/CD setup — out of scope
+- Docker Hub image — out of scope
+- Copilot extension manifest (VSIX package) — prompt files only, no extension packaging
+- GEMINI.md — Gemini CLI support deferred

@@ -1,65 +1,47 @@
-# Research Summary — v1.4 Deployment
+# Research Summary — v1.5 Public Release + Install Scripts
 
 **Project:** DoML — Do Machine Learning
-**Milestone:** v1.4 Deployment
-**Researched:** 2026-04-14
+**Milestone:** v1.5 Public Release + Install Scripts
+**Researched:** 2026-04-20
 
 ---
 
 ## Stack Additions
 
-| Package | Version | Target |
-|---------|---------|--------|
-| `pyinstaller` | `6.11.1` | CLI binary |
-| `pyinstaller-hooks-contrib` | `2024.11` | CLI binary |
-| `fastapi` | `0.115.6` | Web service |
-| `uvicorn[standard]` | `0.32.1` | Web service |
-| `pydantic` | `2.10.3` | Web service |
-| `python-multipart` | `0.0.20` | Web service (form POST) |
-| `skl2onnx` | `1.17.0` | ONNX/WASM |
-| `onnxmltools` | `1.12.2` | ONNX/WASM (XGB/LGBM) |
-| `onnxruntime` | `1.20.1` | ONNX parity testing |
-| `onnxruntime-web` | `1.20.1` | Browser (CDN, not pip) |
+No new Python/Node packages. Install scripts are pure shell.
 
-Jinja2 and requests already pinned. No new packages for benchmarking (timeit, subprocess stdlib).
+| Tool | Purpose |
+|------|---------|
+| `curl` / `Invoke-RestMethod` | Download framework files from raw.githubusercontent.com |
+| Bash (POSIX) | Linux/macOS install script |
+| PowerShell 5.1+ | Windows install script |
 
----
-
-## Feature Table Stakes
-
-| Feature | CLI | Web Service | ONNX/WASM |
-|---------|-----|-------------|-----------|
-| Single prediction | ✅ JSON arg | ✅ POST /predict | ✅ Form submit |
-| Batch prediction | ✅ CSV/JSON file | ✅ POST /predict (array) | ❌ Single only |
-| Feature schema | ✅ --help output | ✅ GET /schema + auto-form | ✅ Embedded in HTML |
-| Health check | ❌ N/A | ✅ GET /health | ❌ N/A |
-| OpenAPI docs | ❌ N/A | ✅ /docs (FastAPI auto) | ❌ N/A |
-| Regression support | ✅ | ✅ | ✅ |
-| Classification support | ✅ | ✅ | ✅ |
-| Clustering support | ✅ | ✅ | ✅ (KMeans only) |
-| Forecasting support | ✅ | ✅ | ❌ (no ONNX) |
+New files added to the repo (not to user projects):
+- `install.sh` — Bash install script
+- `install.ps1` — PowerShell install script
+- `README.md` — Public documentation
+- `LICENSE` — MIT
+- `AGENTS.md` — Universal cross-tool instructions (repo root)
+- `.github/copilot-instructions.md` — Copilot-specific always-on instructions
+- `.github/prompts/*.prompt.md` — Copilot equivalents of DoML skills
 
 ---
 
-## Critical Architecture Decisions
+## Key Feature Decisions
 
-**1. Export full sklearn Pipeline, not just the estimator**
-skl2onnx must receive the full Pipeline (ColumnTransformer + estimator) — exporting only the estimator produces wrong predictions on raw features. This is the #1 correctness pitfall.
+**Install script approach:** Manifest-driven individual file downloads from `raw.githubusercontent.com`. No git clone, no zip extraction, no auth required. Versioned via `VERSION` variable (defaults to `main`).
 
-**2. PyInstaller uses `--onedir` not `--onefile`**
-`--onefile` adds 2–4s cold-start penalty for ML payloads. `--onedir` is the production choice. Binaries are Linux-only (built inside Docker).
+**Target flag:** `--target claude|copilot|both` (default: `both`). Allows users to install only what they need.
 
-**3. FastAPI request model built dynamically with `pydantic.create_model()`**
-Feature schema is only known at runtime (from model_metadata.json). Standard Pydantic class syntax doesn't work — `create_model()` is the correct pattern.
+**Idempotency:** Framework files always overwrite (users shouldn't edit them). `data/raw/README.md` skipped if present. `CLAUDE.md` skipped if present on re-runs (user may have customized it).
 
-**4. ONNX model size gate: > 20MB → block WASM, suggest web service**
-Large ensemble models produce ONNX files that are impractical for browser delivery. Hard block with clear user message.
+**AGENTS.md strategy:** Source of truth for shared conventions. `CLAUDE.md` extends with Claude-specific content. `.github/copilot-instructions.md` extends with Copilot-specific context. Keep AGENTS.md under ~2000 tokens.
 
-**5. model_metadata.json needs two new fields**
-`model_name` (for src/ directory naming) and `feature_categories` (for web form dropdowns). Derive `model_name` from estimator class name if absent.
+**Copilot skills:** `.github/prompts/*.prompt.md` files with `mode: agent` frontmatter — invoked via `#doml-new-project` in Copilot Chat. Higher-level than Claude Code SKILL.md files — intent + output, not internal steps.
 
-**6. Versioning logic: scan existing vN dirs, take max+1**
-Never assume v1 exists. `doml-iterate-deployment` must discover the current max version.
+**Mermaid diagram:** GitHub-native `\`\`\`mermaid` fenced blocks. Show full new-project decision flow: data check → get-data branch → BU → EDA → problem type fork → modelling → anomaly detection branch → deployment decision.
+
+**Donation section:** Honest 2–3 sentence note. Acknowledge Claude/Anthropic token investment. Matter-of-fact, not apologetic. PayPal + Venmo links.
 
 ---
 
@@ -67,23 +49,21 @@ Never assume v1 exists. `doml-iterate-deployment` must discover the current max 
 
 | Risk | Severity | Mitigation |
 |------|----------|-----------|
-| sklearn hidden imports missing in PyInstaller binary | HIGH | `--collect-all sklearn --collect-all joblib` + explicit hidden-imports |
-| Preprocessing excluded from ONNX export | HIGH | Export full Pipeline, run parity test to catch immediately |
-| Input tensor dtype (float32 vs float64) breaking ONNX | HIGH | `dtype=np.float32` at conversion; `Float32Array` in JS |
-| Forecasting/DBSCAN silently wrong in deployed endpoint | HIGH | Problem-type gate before target selection |
-| Parity test tolerance too strict (float32 rounding) | MEDIUM | Use `atol=1e-4` for regression, exact labels for classification |
-| HTTP connection overhead distorting web service benchmarks | MEDIUM | Use `requests.Session()` for all benchmark calls |
-| Version directory collision in doml-iterate-deployment | MEDIUM | Scan for max existing vN, don't assume v1 |
+| Partial install on network failure | HIGH | Fail fast on any curl error; print failed URL |
+| Copilot prompt files missing frontmatter | HIGH | Every `.prompt.md` must have `mode: agent` + `description` |
+| AGENTS.md / CLAUDE.md / copilot-instructions.md content drift | MEDIUM | AGENTS.md is source of truth; others extend it |
+| PowerShell execution policy blocks one-liner | MEDIUM | Include `Set-ExecutionPolicy Bypass -Scope Process` in one-liner |
+| Mermaid not rendering on GitHub | MEDIUM | Use fenced `\`\`\`mermaid` blocks only |
+| Install script overwrites user `data/raw/README.md` | MEDIUM | Check file existence before writing |
+| AGENTS.md too long for effective context | MEDIUM | Keep under ~2000 tokens — pointer not manual |
 
 ---
 
-## Recommended Build Order (Phases 13–18)
+## Recommended Build Order (Phases 19–22)
 
 | Phase | Scope |
 |-------|-------|
-| 13 | `deploy-model.md` workflow skeleton + SKILL.md + `deployment_metadata.json` schema + model resolution logic + target selection |
-| 14 | CLI target: `predict.py` generation + PyInstaller build step inside Docker |
-| 15 | Web service target: `app.py` + `Dockerfile.serve` + `docker-compose.serve.yml` + auto-generated prediction form |
-| 16 | ONNX/WASM target: skl2onnx conversion + size gate + self-contained `index.html` generation |
-| 17 | Performance report: `deployment_report.ipynb` template + nbconvert + parity test cells |
-| 18 | `doml-iterate-deployment`: SKILL.md + `iterate-deployment.md` workflow + version scan logic |
+| 19 | README.md + LICENSE + donation section + Mermaid diagram |
+| 20 | `install.sh` + `install.ps1` (Claude target only — core install) |
+| 21 | `AGENTS.md` + `.github/copilot-instructions.md` + `.github/prompts/*.prompt.md` |
+| 22 | Extend install scripts with `--target` flag; end-to-end verification for both targets |

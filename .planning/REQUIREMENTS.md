@@ -1,83 +1,60 @@
 # Requirements: DoML — Do Machine Learning
 
 **Defined:** 2026-04-04
-**Updated:** 2026-04-14 — Milestone v1.4 Deployment
+**Updated:** 2026-04-20 — Milestone v1.5 Public Release + Install Scripts
 **Core Value:** A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
 
 ---
 
-## Milestone v1.4 Requirements — Deployment
+## Milestone v1.5 Requirements — Public Release + Install Scripts
 
-### Deployment Workflow (DEPLOY)
-- [ ] **DEPLOY-01**: User can run `doml-deploy-model` to deploy the #1 leaderboard model to a chosen target without specifying a model file
-- [ ] **DEPLOY-02**: User can override the default model selection with a specific model file or leaderboard rank
-- [ ] **DEPLOY-03**: User can choose a deployment target (CLI binary, web service, ONNX/WASM) at run time
-- [ ] **DEPLOY-04**: Deployed artifacts are written to `src/<modelname>/v1/` with a `deployment_metadata.json` recording model file, target, build date, and feature schema
-- [ ] **DEPLOY-05**: `model_metadata.json` is extended with a `model_name` field (derived from estimator class name if not present)
+### Install Scripts (INST)
 
-### CLI Target (CLI)
-- [ ] **CLI-01**: User can run a self-contained binary (`dist/predict`) on a Linux machine with no Python installed
-- [ ] **CLI-02**: Binary accepts a single prediction via `--input '{"feature": value}'` (JSON string) and prints result to stdout
-- [ ] **CLI-03**: Binary accepts batch predictions via `--input data.csv` or `--input data.json` (file path)
-- [ ] **CLI-04**: Binary accepts `--output <path>` to write batch results to a file instead of stdout
-- [ ] **CLI-05**: `--help` displays the feature schema (names, types, example values) from `model_metadata.json`
-- [ ] **CLI-06**: Binary exits with code 0 on success, 1 on input validation error, 2 on model error
+- [ ] **INST-01**: User can run a single bash one-liner to install the DoML Claude framework into their project without cloning the repo
+- [ ] **INST-02**: User can run a single PowerShell one-liner to install the DoML Claude framework into their project without cloning the repo
+- [ ] **INST-03**: Install scripts accept a `VERSION` variable/parameter to pin downloads to a specific release tag instead of `main`
+- [ ] **INST-04**: Install scripts create the full `.claude/` tree (skills, workflows, templates), `CLAUDE.md`, and `data/raw|processed|external/` directories
+- [ ] **INST-05**: Install scripts fail fast with a clear error message if any file download fails, rather than silently continuing with a partial install
+- [ ] **INST-06**: Install scripts are safe to re-run: framework files are always updated; `data/` contents are never deleted; `CLAUDE.md` is skipped if already present
+- [ ] **INST-07**: Install scripts accept `--target claude|copilot|both` (default: `both`)
+- [ ] **INST-08**: With `--target copilot` or `both`, the script downloads Claude framework files and then programmatically generates Copilot equivalents (`AGENTS.md`, `.github/copilot-instructions.md`, `.github/prompts/*.prompt.md`) — no separate Copilot source files live in the repo
 
-### Web Service Target (WEB)
-- [ ] **WEB-01**: User can start the inference service with `docker compose -f docker-compose.serve.yml up`
-- [ ] **WEB-02**: `POST /predict` accepts a JSON body of feature values and returns a prediction response
-- [ ] **WEB-03**: `GET /health` returns service status, model name, and version
-- [ ] **WEB-04**: `GET /schema` returns the feature schema (names, types, example values)
-- [ ] **WEB-05**: FastAPI auto-generates OpenAPI docs at `GET /docs`
-- [ ] **WEB-06**: `GET /` serves an auto-generated HTML prediction form with one input per feature, typed from the feature schema (numeric inputs, dropdowns for categoricals derived from processed dataset)
-- [ ] **WEB-07**: Submitting the prediction form returns the prediction result inline without a page reload
+### Public Release Docs (DOC)
 
-### ONNX/WASM Target (WASM)
-- [x] **WASM-01**: User receives a self-contained `index.html` that runs inference entirely in the browser with no server
-- [x] **WASM-02**: The page auto-generates a prediction form from the feature schema embedded in the HTML
-- [x] **WASM-03**: Submitting the form runs ONNX inference via onnxruntime-web and displays the result inline
-- [x] **WASM-04**: Workflow blocks WASM target for forecasting problem type and DBSCAN clustering with a clear message
-- [x] **WASM-05**: Workflow blocks WASM target if the converted `model.onnx` exceeds 20 MB, with a message suggesting the web service target
+- [ ] **DOC-01**: `README.md` exists at repo root with project description, Quick Start section, command list, and requirements (Docker + Claude Code or GitHub Copilot)
+- [ ] **DOC-02**: Quick Start section contains copy-paste bash and PowerShell one-liners that download and run the install script directly from GitHub
+- [ ] **DOC-03**: `README.md` includes a Mermaid diagram showing the DoML new-project decision flow (data check → get-data branch → Business Understanding → Data Understanding → problem type fork → Modelling → optional anomaly detection → Deployment decision)
+- [ ] **DOC-04**: `LICENSE` file contains the MIT license with Copyright (c) 2026 William W Palace, III
+- [ ] **DOC-05**: `README.md` includes a donation section with PayPal and Venmo links and a brief, honest note about the AI token investment made in building DoML
 
-### Performance Report (PERF)
-- [ ] **PERF-01**: `notebooks/deployment_report.ipynb` is generated after every deployment
-- [ ] **PERF-02**: Report benchmarks single-prediction latency (mean ± std over 1000 runs)
-- [ ] **PERF-03**: Report benchmarks batch prediction latency at 10, 100, 1000, and 10 000 rows
-- [ ] **PERF-04**: Report includes a parity test: test set fed through the deployed endpoint (or binary) is asserted to match in-memory model output within tolerance (regression: atol=1e-4; classification: exact labels; clustering: exact cluster IDs)
-- [ ] **PERF-05**: Report measures model load memory footprint and per-prediction memory delta
-- [ ] **PERF-06**: Report projects throughput (requests/sec) from latency measurements
-- [ ] **PERF-07**: `reports/deployment_report.html` is generated with code hidden and a Claude narrative summarising benchmark results
+### Copilot Support (COP)
 
-### Iteration (ITER)
-- [ ] **ITER-01**: User can run `doml-iterate-deployment` to create a new deployment version without re-running `doml-deploy-model` from scratch
-- [ ] **ITER-02**: Same model, new deployment version → artifacts written to `src/<modelname>/v<N+1>/` (version scanned from existing dirs, not assumed)
-- [ ] **ITER-03**: Different/better model → artifacts written to `src/<newmodelname>/v1/` as a new model folder in `src/`
-- [ ] **ITER-04**: `doml-iterate-deployment` accepts a `--guidance` parameter to shape the iteration direction
-- [ ] **ITER-05**: User can run `doml-iterate-deployment` even when no new model is available (to tune inference performance, change deployment target, or adjust configuration)
+- [ ] **COP-01**: `AGENTS.md` is generated in the user's project root — universal cross-tool instructions readable by GitHub Copilot, Claude Code, Cursor, and Gemini
+- [ ] **COP-02**: `.github/copilot-instructions.md` is generated — always-on Copilot project instructions derived from `CLAUDE.md` content, adapted to be tool-neutral
+- [ ] **COP-03**: `.github/prompts/doml-*.prompt.md` files are generated for each DoML command, with valid `mode: agent` frontmatter, by transforming the corresponding `SKILL.md` content
+- [ ] **COP-04**: Copilot prompt files are invocable via `#doml-new-project` (and equivalent for each command) in GitHub Copilot Chat in VS Code
 
 ---
 
-## Future Requirements (deferred from v1.4)
+## Future Requirements (deferred from v1.5)
 
-- Streaming predictions (SSE/WebSocket)
-- Multi-model A/B serving
-- Cloud deployment configs (Kubernetes, AWS ECS, GCP Cloud Run)
-- GPU inference support
-- Windows/macOS CLI binaries (Linux only in v1.4, built in Docker)
-- Progressive Web App manifest for ONNX page
-- SHAP explanation in web UI
-- Async batch endpoint (`POST /predict/batch` with job polling)
+- `GEMINI.md` at repo root for Gemini CLI support
+- `--target gemini` flag in install scripts
+- GitHub Actions workflow for automated framework file validation
+- npm/pip package distribution as an alternative to the install script
+- Signed releases / checksum verification for install script downloads
+- Windows/macOS native binary of the install script (currently PowerShell + Bash only)
+- GitHub Sponsors integration (alternative to PayPal/Venmo direct links)
 
 ---
 
 ## Out of Scope
 
-- **Dimensionality reduction deployment** — PCA/UMAP transforms not useful as standalone inference endpoints
-- **ONNX/WASM for forecasting** — Prophet/ARIMA have no ONNX export path
-- **ONNX/WASM for DBSCAN clustering** — DBSCAN has no ONNX export; KMeans only
-- **AutoML re-training on prediction requests** — deployment is inference-only
-- **Model registry integration** (MLflow, W&B) — DoML uses own model_metadata.json
-- **API key auth / rate limiting** — infrastructure concern, out of scope for v1.4
+- **Copilot extension packaging (VSIX)** — prompt files are the Copilot integration; no extension required
+- **GitHub Actions CI** — automated testing of install scripts deferred to a future milestone
+- **Cloud deployment or CDN hosting** of DoML artifacts — GitHub raw URLs are sufficient
+- **Cursor-specific config** — AGENTS.md covers Cursor; no Cursor-specific files needed
+- **Re-implementing DoML commands in Copilot** — Copilot prompt files delegate to the same workflows; no separate Copilot implementation
 
 ---
 
@@ -85,9 +62,6 @@
 
 | REQ-ID | Phase |
 |--------|-------|
-| DEPLOY-01 – DEPLOY-05 | Phase 13 |
-| CLI-01 – CLI-06 | Phase 14 |
-| WEB-01 – WEB-07 | Phase 15 |
-| WASM-01 – WASM-05 | Phase 16 |
-| PERF-01 – PERF-07 | Phase 17 |
-| ITER-01 – ITER-05 | Phase 18 |
+| DOC-01 – DOC-05 | Phase 19 |
+| INST-01 – INST-06 | Phase 20 |
+| COP-01 – COP-04, INST-07 – INST-08 | Phase 21 |
