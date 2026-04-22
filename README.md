@@ -28,6 +28,8 @@ Each modelling phase produces a leaderboard ranking models by their evaluation m
 
 ## Quick Start
 
+### Claude Code (default)
+
 **macOS / Linux**
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/wpalace/doML/main/install.sh)
@@ -39,6 +41,28 @@ irm https://raw.githubusercontent.com/wpalace/doML/main/install.ps1 | iex
 ```
 
 After install, open the project folder in Claude Code and run:
+
+```
+/doml-new-project
+```
+
+### GitHub Copilot / Cursor / other AI assistants
+
+**macOS / Linux**
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/wpalace/doML/main/install.sh) --target copilot
+```
+
+**Windows (PowerShell)**
+```powershell
+.\install.ps1 -Target copilot
+# or pipe-to-iex mode (env var, since params can't be passed inline):
+$env:DOML_TARGET = "copilot"; irm https://raw.githubusercontent.com/wpalace/doML/main/install.ps1 | iex
+```
+
+This installs DoML skills to `.github/skills/`, project instructions to `.github/copilot-instructions.md`, and an `AGENTS.md` file at the project root — the standard locations read by GitHub Copilot, Cursor, and other agent-mode tools.
+
+After install, open the project folder in your AI assistant and run:
 
 ```
 /doml-new-project
