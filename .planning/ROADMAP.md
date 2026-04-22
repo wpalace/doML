@@ -513,25 +513,25 @@ Plans:
 
 ### Phase 21: Copilot Support + `--target` Flag
 
-**Goal**: Extend install scripts with `--target claude|copilot|both` flag. When Copilot target is selected, scripts programmatically generate `AGENTS.md`, `.github/copilot-instructions.md`, and `.github/prompts/*.prompt.md` by transforming the downloaded Claude framework files — no separate Copilot source files live in the repo.
+**Goal**: Extend `install.sh` and `install.ps1` with a `--target claude|copilot` flag (default: `claude`). When `--target copilot` is selected, scripts copy SKILL.md files to `.github/skills/`, install `CLAUDE.md` as `.github/copilot-instructions.md`, and install the static `AGENTS.md` template at the project root — no separate Copilot source files live in the repo.
 
 **Depends on**: Phase 20
 
 **Requirements**: INST-07, INST-08, COP-01, COP-02, COP-03, COP-04
 
 **Success Criteria**:
-1. `bash install.sh --target both` installs Claude framework AND generates all Copilot files in one run
-2. `AGENTS.md` is generated at project root with DoML conventions in tool-neutral language
-3. `.github/copilot-instructions.md` is generated with DoML project instructions adapted from `CLAUDE.md`
-4. `.github/prompts/doml-*.prompt.md` files exist for each DoML command with valid `mode: agent` frontmatter
-5. Copilot prompt files are recognized and invocable via `#doml-new-project` in VS Code Copilot Chat
-6. `--target claude` installs only the Claude framework (no `.github/` files generated)
+1. `bash install.sh --target copilot` installs `.github/skills/doml-*/SKILL.md`, `.github/copilot-instructions.md`, `AGENTS.md`, and `data/` dirs — no `.claude/` directory created
+2. `AGENTS.md` is installed at the user's project root with tool-neutral DoML conventions
+3. `.github/copilot-instructions.md` is installed as a copy of `CLAUDE.md`
+4. `.github/skills/doml-*/SKILL.md` files are invocable via `/doml-*` in VS Code GitHub Copilot Chat
+5. `bash install.sh` (no flag) installs the Claude framework identically to Phase 20, with CLAUDE.md always overwritten
+6. `--target foo` exits 1 with `--target must be 'claude' or 'copilot'`
 
 **Plans**: 2 plans
 
 Plans:
-- [ ] 21-01-PLAN.md — `AGENTS.md` template + `.github/copilot-instructions.md` generation logic + `.github/prompts/*.prompt.md` transformation from SKILL.md files
-- [ ] 21-02-PLAN.md — Extend `install.sh` and `install.ps1` with `--target` / `-Target` flag; end-to-end smoke test for both targets
+- [ ] 21-01-PLAN.md — `AGENTS.md` static template authored at repo root (tool-neutral cross-agent instructions)
+- [ ] 21-02-PLAN.md — Extend `install.sh` and `install.ps1` with `--target`/`-Target` flag; copilot install branch; D-06 CLAUDE.md always-overwrite
 
 ---
 
