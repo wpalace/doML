@@ -530,8 +530,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 21-01-PLAN.md — `AGENTS.md` static template authored at repo root (tool-neutral cross-agent instructions)
-- [ ] 21-02-PLAN.md — Extend `install.sh` and `install.ps1` with `--target`/`-Target` flag; copilot install branch; D-06 CLAUDE.md always-overwrite
+- [x] 21-01-PLAN.md — `AGENTS.md` static template authored at repo root (tool-neutral cross-agent instructions)
+- [x] 21-02-PLAN.md — Extend `install.sh` and `install.ps1` with `--target`/`-Target` flag; copilot install branch; D-06 CLAUDE.md always-overwrite
 
 ---
 
@@ -582,4 +582,4 @@ Plans:
 | 18. `doml-iterate-deployment` | M4 | 1/1 | Complete   | 2026-04-17 |
 | 19. Public Release Docs | M5 | 0/1 | Planned | — |
 | 20. Install Scripts (Claude target) | M5 | 2/2 | Complete | 2026-04-22 |
-| 21. Copilot Support + `--target` flag | M5 | 0/2 | Planned | — |
+| 21. Copilot Support + `--target` flag | M5 | 2/2 | Complete   | 2026-04-22 |
