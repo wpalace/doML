@@ -42,7 +42,7 @@ created: 2026-04-22
 | 21-01-02 | 01 | 1 | COP-02 | — | N/A | unit | `test -f .github/copilot-instructions.md && echo OK` | ❌ W0 | ⬜ pending |
 | 21-01-03 | 01 | 1 | COP-03/04 | — | N/A | unit | `ls .github/skills/doml-*/SKILL.md 2>/dev/null | wc -l` | ❌ W0 | ⬜ pending |
 | 21-02-01 | 02 | 2 | INST-07 | — | N/A | integration | `bash install.sh --target claude --help` | ✅ | ⬜ pending |
-| 21-02-02 | 02 | 2 | INST-08 | — | N/A | integration | `bash install.sh --target both --help` | ✅ | ⬜ pending |
+| 21-02-02 | 02 | 2 | INST-08 | — | N/A | integration | `bash install.sh --target copilot --help` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
