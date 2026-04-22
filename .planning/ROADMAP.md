@@ -483,7 +483,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 19-01-PLAN.md — README.md (Quick Start, Mermaid diagram, commands, donation), LICENSE file
+- [x] 19-01-PLAN.md — README.md (Quick Start, Mermaid diagram, commands, donation), LICENSE file
 
 ---
 
@@ -506,8 +506,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 20-01-PLAN.md — `install.sh`: manifest-driven curl downloads, directory creation, idempotency logic, VERSION variable, fail-fast error handling
-- [ ] 20-02-PLAN.md — `install.ps1`: PowerShell equivalent with `irm`, `-Version` parameter, same idempotency and error behavior
+- [x] 20-01-PLAN.md — `install.sh`: archive-based download, directory creation, idempotency logic, VERSION variable, fail-fast error handling
+- [x] 20-02-PLAN.md — `install.ps1`: PowerShell equivalent with `Invoke-WebRequest`, `-Version` parameter, same idempotency and error behavior
 
 ---
 
@@ -581,5 +581,5 @@ Plans:
 | 17. Performance Report | M4 | 0/2 | Planned | — |
 | 18. `doml-iterate-deployment` | M4 | 1/1 | Complete   | 2026-04-17 |
 | 19. Public Release Docs | M5 | 0/1 | Planned | — |
-| 20. Install Scripts (Claude target) | M5 | 0/2 | Planned | — |
+| 20. Install Scripts (Claude target) | M5 | 2/2 | Complete | 2026-04-22 |
 | 21. Copilot Support + `--target` flag | M5 | 0/2 | Planned | — |
