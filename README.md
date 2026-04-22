@@ -46,7 +46,7 @@ After install, open the project folder in Claude Code and run:
 /doml-new-project
 ```
 
-### GitHub Copilot / Cursor / other AI assistants
+### GitHub Copilot
 
 **macOS / Linux**
 ```bash
