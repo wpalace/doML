@@ -100,11 +100,21 @@ if [[ "$TARGET" == "copilot" ]]; then
     done
     echo "  Skills installed to .github/skills/."
 
-    # Workflows → .github/doml/workflows/
+    # Workflows → .github/doml/workflows/ (rewrite .claude/doml/templates/ → .github/doml/templates/)
     echo "Installing DoML workflows (Copilot)..."
     mkdir -p ".github/doml/workflows"
-    cp "$SRC/.claude/doml/workflows/"*.md ".github/doml/workflows/"
+    for wf_src in "$SRC/.claude/doml/workflows/"*.md; do
+        wf_name="$(basename "$wf_src")"
+        sed 's|\.claude/doml/templates/|.github/doml/templates/|g' \
+            "$wf_src" > ".github/doml/workflows/${wf_name}"
+    done
     echo "  Workflows installed to .github/doml/workflows/."
+
+    # Templates → .github/doml/templates/
+    echo "Installing DoML templates (Copilot)..."
+    mkdir -p ".github/doml/templates"
+    cp -r "$SRC/.claude/doml/templates/." ".github/doml/templates/"
+    echo "  Templates installed to .github/doml/templates/."
 
     # CLAUDE.md → .github/copilot-instructions.md (D-04)
     echo "Installing Copilot instructions..."

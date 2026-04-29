@@ -120,15 +120,28 @@ try {
         }
         Write-Host "  Skills installed to .github\skills\."
 
-        # Workflows → .github\doml\workflows\
+        # Workflows → .github\doml\workflows\ (rewrite .claude/doml/templates/ → .github/doml/templates/)
         Write-Host "Installing DoML workflows (Copilot)..."
         $destWorkflows = Join-Path ".github" "doml" "workflows"
         if (-not (Test-Path $destWorkflows)) {
             New-Item -ItemType Directory -Path $destWorkflows -Force | Out-Null
         }
-        Copy-Item -Path (Join-Path $SrcDir ".claude" "doml" "workflows" "*.md") `
-                  -Destination $destWorkflows -Force
+        foreach ($wfSrc in (Get-ChildItem -Path (Join-Path $SrcDir ".claude" "doml" "workflows") -Filter "*.md")) {
+            $wfContent = Get-Content -Raw $wfSrc.FullName
+            $wfContent = $wfContent -replace '\.claude/doml/templates/', '.github/doml/templates/'
+            Set-Content -Path (Join-Path $destWorkflows $wfSrc.Name) -Value $wfContent -NoNewline
+        }
         Write-Host "  Workflows installed to .github\doml\workflows\."
+
+        # Templates → .github\doml\templates\
+        Write-Host "Installing DoML templates (Copilot)..."
+        $destTemplates = Join-Path ".github" "doml" "templates"
+        if (-not (Test-Path $destTemplates)) {
+            New-Item -ItemType Directory -Path $destTemplates -Force | Out-Null
+        }
+        Get-ChildItem -Path (Join-Path $SrcDir ".claude" "doml" "templates") |
+            Copy-Item -Destination $destTemplates -Recurse -Force
+        Write-Host "  Templates installed to .github\doml\templates\."
 
         # CLAUDE.md → .github\copilot-instructions.md (D-04)
         Write-Host "Installing Copilot instructions..."
