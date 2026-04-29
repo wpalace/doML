@@ -14,7 +14,7 @@
 #
 # -Target flag:
 #   claude  (default) — installs .claude\ tree, CLAUDE.md, data\ dirs
-#   copilot           — installs .github\skills\, .github\copilot-instructions.md, AGENTS.md, data\ dirs
+#   copilot           — installs .github\skills\, .github\doml\workflows\, .github\copilot-instructions.md, AGENTS.md, data\ dirs
 #
 # Installs the DoML framework into the current working directory.
 # Run from an empty project directory before opening your AI coding assistant.
@@ -102,7 +102,7 @@ try {
 
     if ($Target -eq "copilot") {
 
-        # Skills → .github\skills\ (D-03: direct copy, no transformation)
+        # Skills → .github\skills\ (rewrite @.claude/doml/workflows/ → .github/doml/workflows/)
         Write-Host "Installing DoML skills (Copilot)..."
         $githubDir = ".github"
         if (-not (Test-Path $githubDir)) {
@@ -114,10 +114,21 @@ try {
             if (-not (Test-Path $destDir)) {
                 New-Item -ItemType Directory -Path $destDir -Force | Out-Null
             }
-            Copy-Item -Path (Join-Path $skillSrcDir.FullName "SKILL.md") `
-                      -Destination (Join-Path $destDir "SKILL.md") -Force
+            $skillContent = Get-Content -Raw (Join-Path $skillSrcDir.FullName "SKILL.md")
+            $skillContent = $skillContent -replace '@\.claude/doml/workflows/', '.github/doml/workflows/'
+            Set-Content -Path (Join-Path $destDir "SKILL.md") -Value $skillContent -NoNewline
         }
         Write-Host "  Skills installed to .github\skills\."
+
+        # Workflows → .github\doml\workflows\
+        Write-Host "Installing DoML workflows (Copilot)..."
+        $destWorkflows = Join-Path ".github" "doml" "workflows"
+        if (-not (Test-Path $destWorkflows)) {
+            New-Item -ItemType Directory -Path $destWorkflows -Force | Out-Null
+        }
+        Copy-Item -Path (Join-Path $SrcDir ".claude" "doml" "workflows" "*.md") `
+                  -Destination $destWorkflows -Force
+        Write-Host "  Workflows installed to .github\doml\workflows\."
 
         # CLAUDE.md → .github\copilot-instructions.md (D-04)
         Write-Host "Installing Copilot instructions..."

@@ -8,7 +8,7 @@
 #
 # --target flag:
 #   claude  (default) — installs .claude/ tree, CLAUDE.md, data/ dirs
-#   copilot           — installs .github/skills/, .github/copilot-instructions.md, AGENTS.md, data/ dirs
+#   copilot           — installs .github/skills/, .github/doml/workflows/, .github/copilot-instructions.md, AGENTS.md, data/ dirs
 #
 # Installs the DoML framework into the current working directory.
 # Run from an empty project directory before opening your AI coding assistant.
@@ -88,16 +88,23 @@ fi
 
 if [[ "$TARGET" == "copilot" ]]; then
 
-    # Skills → .github/skills/ (D-03: direct copy, no transformation)
+    # Skills → .github/skills/ (rewrite @.claude/doml/workflows/ → .github/doml/workflows/)
     echo "Installing DoML skills (Copilot)..."
     mkdir -p ".github"
     for skill_src_dir in "$SRC/.claude/skills"/doml-*/; do
         skill_name="$(basename "$skill_src_dir")"
         dest_dir=".github/skills/${skill_name}"
         mkdir -p "$dest_dir"
-        cp "${skill_src_dir}SKILL.md" "${dest_dir}/SKILL.md"
+        sed 's|@\.claude/doml/workflows/|.github/doml/workflows/|g' \
+            "${skill_src_dir}SKILL.md" > "${dest_dir}/SKILL.md"
     done
     echo "  Skills installed to .github/skills/."
+
+    # Workflows → .github/doml/workflows/
+    echo "Installing DoML workflows (Copilot)..."
+    mkdir -p ".github/doml/workflows"
+    cp "$SRC/.claude/doml/workflows/"*.md ".github/doml/workflows/"
+    echo "  Workflows installed to .github/doml/workflows/."
 
     # CLAUDE.md → .github/copilot-instructions.md (D-04)
     echo "Installing Copilot instructions..."
