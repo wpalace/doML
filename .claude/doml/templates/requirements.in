@@ -28,7 +28,6 @@ prophet
 
 # --- Visualization / profiling ---
 plotly
-ydata-profiling
 
 # --- Data acquisition ---
 # kaggle CLI for /doml-get-data. Regenerate requirements.txt after any change here:
