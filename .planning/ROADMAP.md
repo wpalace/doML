@@ -520,7 +520,12 @@ Plans:
 4. Audit log of `quay.io/jupyter/scipy-notebook:<dated-tag>` package list vs `requirements.in` is produced; final base image dated tag is selected and recorded
 5. ydata-profiling installs cleanly under uv 3.13 (validated by a temporary throwaway container) — go/no-go decision documented in phase SUMMARY
 
-**Plans**: TBD (planned during `/gsd-plan-phase 22`)
+**Plans**: 3 plans
+
+Plans:
+- [ ] 22-01-PLAN.md — Drop ydata-profiling from template + DuckDB SUMMARIZE EDA cell (commit 1)
+- [ ] 22-02-PLAN.md — Root requirements.in cleanup + pre-flight rig (auto-fallback 3.14→3.13) + lockfile regen (commit 2, isolated)
+- [ ] 22-03-PLAN.md — scipy-notebook FROM-line bump (root + template) + 22-AUDIT.md + 22-SUMMARY.md + PROJECT.md/REQUIREMENTS.md updates (commit 3)
 
 ---
 
