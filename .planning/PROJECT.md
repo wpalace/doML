@@ -12,7 +12,25 @@ A data scientist can drop a dataset into `/data`, answer a few questions, and ge
 
 **Last shipped:** v1.5 Public Release + Install Scripts (2026-04-30) — DoML is now publicly installable via Bash and PowerShell one-liners with optional GitHub Copilot target. See `.planning/MILESTONES.md`.
 
-**Next milestone:** TBD — run `/gsd-new-milestone` to plan.
+**Current milestone:** v1.6 Container Optimization & Python Modernization — see below.
+
+## Current Milestone: v1.6 Container Optimization & Python Modernization
+
+**Goal:** Cut Docker cold-build time to under 5 minutes by switching the base image from `quay.io/jupyter/datascience-notebook` (R-laden) to `quay.io/jupyter/scipy-notebook` (Python-only) with a `uv` install overlay, modernize Python to the latest stable version that supports all current packages (attempting 3.14 first), and remove R support entirely from the framework.
+
+**Target features:**
+- New base image: `quay.io/jupyter/scipy-notebook` (drops R toolchain entirely)
+- `uv` replaces `pip-compile` + `pip install` for dependency resolution and install
+- Python upgrade — try 3.14 first, fall back to the newest stable with full wheel coverage for current deps + `skl2onnx` + `pyinstaller`
+- Clean R removal: `eda_r.ipynb` template, R code paths in `data-understanding.md` / `execute-phase.md`, IRkernel, R packages, `language: "r"` config option, R notes in `CLAUDE.md`
+- CI smoke test that runs every notebook template end-to-end against a bundled fixture dataset (passes = milestone success)
+- Build budget: `docker compose build --no-cache` on user's dev machine completes in **<5 min**
+
+**Locked decisions for v1.6:**
+- **D-01:** Base = `quay.io/jupyter/scipy-notebook` (R removed at the base, not via post-install pruning)
+- **D-02:** `uv` is the new package manager — `pip-compile` workflow retired
+- **D-03:** Python 3.14 preferred; fallback = newest stable with full wheel coverage
+- **D-04:** R is hard-removed in v1.6; no soft deprecation, no migration shim — users needing R pin `install.sh` to v1.5
 
 ## Requirements
 
@@ -39,7 +57,7 @@ A data scientist can drop a dataset into `/data`, answer a few questions, and ge
 
 ### Active
 
-(None — run `/gsd-new-milestone` to plan the next milestone)
+v1.6 requirements are tracked in `.planning/REQUIREMENTS.md` (Container Optimization & Python Modernization). Mapped to phases via `.planning/ROADMAP.md`.
 
 ### Carryover Tech Debt
 
@@ -143,4 +161,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-30 — after v1.5 Public Release + Install Scripts milestone*
+*Last updated: 2026-04-30 — milestone v1.6 Container Optimization & Python Modernization started*

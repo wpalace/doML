@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: none
-status: between_milestones
-stopped_at: v1.5 milestone shipped 2026-04-30
-last_updated: "2026-04-30T18:44:36.235Z"
-last_activity: 2026-04-30 — v1.5 Public Release + Install Scripts shipped
+milestone: v1.6
+milestone_name: Container Optimization & Python Modernization
+status: defining_requirements
+stopped_at: milestone v1.6 started 2026-04-30
+last_updated: "2026-04-30T19:00:00.000Z"
+last_activity: 2026-04-30 — Milestone v1.6 started
 progress:
   total_phases: 0
   completed_phases: 0
@@ -25,11 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-30)
 
 ## Current Position
 
-Status: BETWEEN MILESTONES
-Last shipped: v1.5 Public Release + Install Scripts (2026-04-30)
-Last activity: 2026-04-30 — milestone v1.5 archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-30 — Milestone v1.6 Container Optimization & Python Modernization started
 
-Progress: [██████████] 100% (v1.5 complete; next milestone TBD)
+Progress: [          ] 0% (v1.6 — requirements gathering)
 
 ## Performance Metrics
 
