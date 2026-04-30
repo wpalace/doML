@@ -161,4 +161,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-30 — milestone v1.6 Container Optimization & Python Modernization started*
+*Last updated: 2026-04-30 — Phase 22 (Pre-flight Wheel Validation & Lockfile Bootstrap) complete; Python 3.14 confirmed, scipy-notebook:2026-04-27 base pinned, uv lockfile committed*
