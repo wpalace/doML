@@ -29,7 +29,7 @@ A data scientist can drop a dataset into `/data`, answer a few questions, and ge
 **Locked decisions for v1.6:**
 - **D-01:** Base = `quay.io/jupyter/scipy-notebook` (R removed at the base, not via post-install pruning)
 - **D-02:** `uv` is the new package manager — `pip-compile` workflow retired
-- **D-03:** Python 3.14 preferred; fallback = newest stable with full wheel coverage
+- **D-03:** Python 3.13 (3.14 blocked by `ydata-profiling` pinning `python<3.14`, issue #1811). Revisit 3.14 in a future milestone when the cap is lifted.
 - **D-04:** R is hard-removed in v1.6; no soft deprecation, no migration shim — users needing R pin `install.sh` to v1.5
 
 ## Requirements
