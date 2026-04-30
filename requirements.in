@@ -1,6 +1,6 @@
 # DoML top-level dependencies (unpinned)
 # Regenerate requirements.txt with:
-#   docker compose run --rm jupyter pip-compile requirements.in
+#   docker compose run --rm jupyter uv pip compile requirements.in --generate-hashes -o requirements.txt
 #
 # Do NOT edit requirements.txt by hand — it is generated from this file.
 
@@ -16,10 +16,10 @@ mistune<3
 # --- Reproducibility ---
 nbstripout
 pre-commit
-pip-tools
 pytest
 
 # --- ML stack ---
+numpy<2.4
 shap
 optuna
 umap-learn
@@ -37,6 +37,6 @@ plotly
 
 # --- Data acquisition ---
 # Note: after adding kaggle here, regenerate requirements.txt with:
-#   docker compose run --rm jupyter pip-compile requirements.in
+#   docker compose run --rm jupyter uv pip compile requirements.in --generate-hashes -o requirements.txt
 # Then rebuild the image: docker compose build
 kaggle
