@@ -47,10 +47,9 @@
 
 ## Future Requirements (deferred — not v1.6 scope)
 
-### Python 3.14 (PY-FUT)
+### Python 3.14 (PY-FUT) — RESOLVED in Phase 22 (2026-04-30)
 
-- **PY-FUT-01**: Upgrade container to Python 3.14 once `ydata-profiling` lifts the `python<3.14` cap (issue #1811)
-- **PY-FUT-02**: Re-validate cp314 wheel coverage for lightgbm, prophet, pmdarima at upgrade time
+PY-FUT-01 and PY-FUT-02 retired per D-22-08: ydata-profiling dropped (D-22-09) and Python 3.14 won pre-flight first try (compile + install + import-smoke for prophet, lightgbm, pmdarima, duckdb, papermill, shap, xgboost, onnxruntime, optuna, umap all green inside `quay.io/jupyter/scipy-notebook:2026-04-27`); D-03 re-locked from 3.13 → 3.14.
 
 ### Lockfile Modernization (LOCK-FUT)
 
@@ -89,14 +88,14 @@ Which phases cover which requirements. Filled by roadmapper.
 | CONT-03 | Phase 23 | Pending |
 | CONT-04 | Phase 23 | Pending |
 | CONT-05 | Phase 23 | Pending |
-| CONT-06 | Phase 22 | Pending |
+| CONT-06 | Phase 22 | Complete |
 | CONT-07 | Phase 23 | Pending |
 | CONT-08 | Phase 23 | Pending |
-| PY-01 | Phase 22 | Pending |
-| PY-02 | Phase 22 | Pending |
-| PY-03 | Phase 22 | Pending |
-| PY-04 | Phase 22 | Pending |
-| PY-05 | Phase 22 | Pending |
+| PY-01 | Phase 22 | Complete |
+| PY-02 | Phase 22 | Complete |
+| PY-03 | Phase 22 | Complete |
+| PY-04 | Phase 22 | Complete |
+| PY-05 | Phase 22 | Complete |
 | RREM-01 | Phase 24 | Pending |
 | RREM-02 | Phase 24 | Pending |
 | RREM-03 | Phase 24 | Pending |

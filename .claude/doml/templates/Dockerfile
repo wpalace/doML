@@ -1,6 +1,6 @@
 # DoML analysis environment — Python 3.13 + R 4.x + DuckDB + ML stack
 # Base: Jupyter DataScience Notebook (quay.io — Docker Hub frozen since 2023-10-20)
-FROM quay.io/jupyter/datascience-notebook:2026-04-02
+FROM quay.io/jupyter/scipy-notebook:2026-04-27
 
 LABEL maintainer="DoML framework"
 LABEL description="Reproducible ML analysis environment with Python, R, and DuckDB"
