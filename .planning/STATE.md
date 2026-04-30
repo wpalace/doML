@@ -1,36 +1,35 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: milestone
-status: executing
-stopped_at: Completed 16-onnx-wasm-target-02-PLAN.md
-last_updated: "2026-04-22T14:27:53.250Z"
-last_activity: 2026-04-22 -- Phase 21 execution started
+milestone: none
+milestone_name: none
+status: between_milestones
+stopped_at: v1.5 milestone shipped 2026-04-30
+last_updated: "2026-04-30T18:44:36.235Z"
+last_activity: 2026-04-30 — v1.5 Public Release + Install Scripts shipped
 progress:
-  total_phases: 21
-  completed_phases: 18
-  total_plans: 53
-  completed_plans: 48
-  percent: 91
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-14)
+See: .planning/PROJECT.md (updated 2026-04-30)
 
 **Core value:** A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
-**Current focus:** Phase 21 — copilot-support-target-flag
+**Current focus:** Between milestones — run `/gsd-new-milestone` to plan the next milestone.
 
 ## Current Position
 
-Phase: 21 (copilot-support-target-flag) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 21
-Last activity: 2026-04-22 -- Phase 21 execution started
+Status: BETWEEN MILESTONES
+Last shipped: v1.5 Public Release + Install Scripts (2026-04-30)
+Last activity: 2026-04-30 — milestone v1.5 archived
 
-Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
+Progress: [██████████] 100% (v1.5 complete; next milestone TBD)
 
 ## Performance Metrics
 
@@ -125,10 +124,12 @@ Progress: [░░░░░░░░░░] 0% (Milestone 4, 6 phases)
 
 ### Blockers/Concerns
 
-- Decide: adapt `gsd-tools.cjs` or build separate `doml-tools.cjs` — resolved in Phase 2 (not needed yet)
+- v1.5 carryover: phases 19, 20 missing SUMMARY/VERIFICATION (paperwork debt — accepted, see milestones/v1.5-MILESTONE-AUDIT.md)
+- v1.5 carryover: COP-04 needs human verification in VS Code Copilot Chat
+- Phase 10 carryover: 3 unresolved `human_uat` items in 10-HUMAN-UAT.md
 
 ## Session Continuity
 
-Last session: 2026-04-17T19:48:31.205Z
-Stopped at: Completed 16-onnx-wasm-target-02-PLAN.md
+Last session: 2026-04-30 — v1.5 milestone archived
+Stopped at: between milestones; next step is /gsd-new-milestone
 Resume file: None

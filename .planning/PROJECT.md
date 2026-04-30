@@ -8,35 +8,50 @@ DoML is a meta-prompting framework (inspired by GSD) that guides a data science 
 
 A data scientist can drop a dataset into `/data`, answer a few questions, and get a fully reproducible, peer-reviewable ML analysis with stakeholder-ready summaries — without re-inventing the process each time.
 
-## Current Milestone: v1.5 Public Release + Install Scripts
+## Current State
 
-**Goal:** Make DoML publicly consumable — Bash and PowerShell install scripts that bootstrap the framework from GitHub (no repo clone required), a polished README with Quick Start one-liners and Mermaid process diagram, MIT license, donation info, and Copilot CLI support so the framework works with both Claude Code and GitHub Copilot.
+**Last shipped:** v1.5 Public Release + Install Scripts (2026-04-30) — DoML is now publicly installable via Bash and PowerShell one-liners with optional GitHub Copilot target. See `.planning/MILESTONES.md`.
 
-**Target features:**
-- Bash + PowerShell install scripts: download DoML framework artifacts from the public GitHub repo and scaffold `.claude/`, `CLAUDE.md`, and `data/` in the user's project folder
-- README.md: Quick Start section (Linux + Windows one-liners), Mermaid new-project flow diagram (major decisions and phase steps), project description, donation section
-- MIT LICENSE file (Copyright (c) 2026 William W Palace, III)
-- Donation section (PayPal + Venmo) with an honest note about token investment
-- GitHub Copilot CLI support: extend install scripts and adapt framework file/directory structure so `/doml-new-project` equivalent runs under Copilot
+**Next milestone:** TBD — run `/gsd-new-milestone` to plan.
 
 ## Requirements
 
 ### Validated
 
-(None yet — ship to validate)
+**Public Release + Install (v1.5)**
+- ✓ `install.sh` (Bash) and `install.ps1` (PowerShell) — archive-based framework installers (no `git clone`) with VERSION pinning, fail-fast error handling, and idempotent `data/` preservation — v1.5
+- ✓ `README.md` at repo root with Quick Start one-liners, Mermaid new-project flow diagram, command table, AI token investment note — v1.5
+- ✓ MIT `LICENSE` (Copyright (c) 2026 William W Palace, III) and `.github/FUNDING.yml` (PayPal + Venmo) for GitHub Sponsor button — v1.5
+- ✓ `--target claude|copilot` flag on both installers; copilot branch installs SKILL.md to `.github/skills/`, workflows + templates to `.github/doml/`, `CLAUDE.md` as `.github/copilot-instructions.md`, and `AGENTS.md` at project root — v1.5
+- ✓ Tool-neutral `AGENTS.md` template for cross-agent compatibility (Copilot, Cursor, Gemini, Claude) — v1.5
+- ✓ D-06: `CLAUDE.md` always overwritten on install so framework upgrades pull in changes — v1.5
+
+**Deployment (v1.4)**
+- ✓ `doml-deploy-model` command deploys the #1 leaderboard model (or user-specified override) to a chosen target — v1.4
+- ✓ CLI target: PyInstaller-compiled portable binary, no Python required on target machine — v1.4
+- ✓ Web service target: FastAPI app in Docker with auto-generated HTML prediction form — v1.4
+- ✓ ONNX/WASM target: self-contained HTML page using onnxruntime-web, zero server dependency — v1.4
+- ✓ Performance report: Jupyter notebook + HTML with latency benchmarks and parity test — v1.4
+- ✓ Output layout: `src/<modelname>/v1/` with version iterations — v1.4
+- ✓ `doml-iterate-deployment` re-deploys with same model (version bump) or new model (new folder) — v1.4
+- ✓ `doml-iterate-deployment` accepts `--guidance` and runs without requiring a new model — v1.4
+- ✓ Supported problem types: Regression, Classification, Clustering, Forecasting — v1.4
 
 ### Active
 
-**Deployment (v1.4)**
-- [ ] `doml-deploy-model` command deploys the #1 leaderboard model (or user-specified override) to a chosen target
-- [ ] CLI target: PyInstaller-compiled portable binary, no Python required on target machine
-- [ ] Web service target: FastAPI app in Docker with auto-generated HTML prediction form (feature schema → input fields → prediction result)
-- [ ] ONNX/WASM target: self-contained HTML page using onnxruntime-web, zero server dependency
-- [ ] Performance report: Jupyter notebook + HTML with individual/batch latency benchmarks and parity test against test data
-- [ ] Output layout: `src/<modelname>/v1/` — additional iterations at `v2`, `v3`, etc.
-- [ ] `doml-iterate-deployment` re-deploys with same model (version bump within same folder) or new model (new model folder in `src/`)
-- [ ] `doml-iterate-deployment` accepts `--guidance` parameter and runs without requiring a new model
-- [ ] Supported problem types: Regression, Classification, Clustering, Forecasting
+(None — run `/gsd-new-milestone` to plan the next milestone)
+
+### Carryover Tech Debt
+
+- v1.5 phases 19, 20 missing SUMMARY.md and VERIFICATION.md (paperwork; artifacts shipped)
+- REQUIREMENTS.md text was stale for INST-06, INST-07, INST-08, COP-03, DOC-05 at archive time (locked decisions D-01..D-06 not back-propagated to spec)
+- Phase 21 VERIFICATION.md predates fixes 2fa0413 and 4e90677 (workflows + templates installation in copilot branch)
+- VALIDATION.md missing for phases 19, 20; phase 21 VALIDATION.md is draft (`nyquist_compliant: false`)
+- COP-04 needs human verification in VS Code Copilot Chat
+- README "Future Milestones" section has spelling errors
+- Phase 10 carryover: 3 unresolved `human_uat` items in `10-HUMAN-UAT.md`
+
+### Active (continued — original v1.0+ requirements)
 
 **Framework Architecture**
 - [ ] DoML-specific skill/agent/workflow structure inspired by GSD (not a GSD plugin — standalone framework)
@@ -128,4 +143,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 — Milestone v1.4 Deployment started*
+*Last updated: 2026-04-30 — after v1.5 Public Release + Install Scripts milestone*
