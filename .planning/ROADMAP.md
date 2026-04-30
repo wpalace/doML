@@ -523,9 +523,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 22-01-PLAN.md — Drop ydata-profiling from template + DuckDB SUMMARIZE EDA cell (commit 1)
-- [ ] 22-02-PLAN.md — Root requirements.in cleanup + pre-flight rig (auto-fallback 3.14→3.13) + lockfile regen (commit 2, isolated)
-- [ ] 22-03-PLAN.md — scipy-notebook FROM-line bump (root + template) + 22-AUDIT.md + 22-SUMMARY.md + PROJECT.md/REQUIREMENTS.md updates (commit 3)
+- [x] 22-01-PLAN.md — Drop ydata-profiling from template + DuckDB SUMMARIZE EDA cell (commit 1)
+- [x] 22-02-PLAN.md — Root requirements.in cleanup + pre-flight rig (auto-fallback 3.14→3.13) + lockfile regen (commit 2, isolated)
+- [x] 22-03-PLAN.md — scipy-notebook FROM-line bump (root + template) + 22-AUDIT.md + 22-SUMMARY.md + PROJECT.md/REQUIREMENTS.md updates (commit 3)
 
 ---
 
@@ -611,7 +611,7 @@ Plans:
 | 19. Public Release Docs | v1.5 | 1/1 | Shipped | 2026-04-30 |
 | 20. Install Scripts (Claude target) | v1.5 | 2/2 | Shipped | 2026-04-30 |
 | 21. Copilot Support + `--target` flag | v1.5 | 2/2 | Shipped | 2026-04-30 |
-| 22. Pre-flight Wheel Validation & Lockfile Bootstrap | v1.6 | TBD | Not started | — |
+| 22. Pre-flight Wheel Validation & Lockfile Bootstrap | v1.6 | 4/3 | Complete    | 2026-04-30 |
 | 23. Dockerfile Rebuild + uv Migration | v1.6 | TBD | Not started | — |
 | 24. R Removal Sweep | v1.6 | TBD | Not started | — |
 | 25. CI Smoke Test + Build Budget Gate | v1.6 | TBD | Not started | — |
