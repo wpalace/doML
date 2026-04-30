@@ -84,38 +84,38 @@ Which phases cover which requirements. Filled by roadmapper.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONT-01 | TBD | Pending |
-| CONT-02 | TBD | Pending |
-| CONT-03 | TBD | Pending |
-| CONT-04 | TBD | Pending |
-| CONT-05 | TBD | Pending |
-| CONT-06 | TBD | Pending |
-| CONT-07 | TBD | Pending |
-| CONT-08 | TBD | Pending |
-| PY-01 | TBD | Pending |
-| PY-02 | TBD | Pending |
-| PY-03 | TBD | Pending |
-| PY-04 | TBD | Pending |
-| PY-05 | TBD | Pending |
-| RREM-01 | TBD | Pending |
-| RREM-02 | TBD | Pending |
-| RREM-03 | TBD | Pending |
-| RREM-04 | TBD | Pending |
-| RREM-05 | TBD | Pending |
-| RREM-06 | TBD | Pending |
-| RREM-07 | TBD | Pending |
-| CI-01 | TBD | Pending |
-| CI-02 | TBD | Pending |
-| CI-03 | TBD | Pending |
-| CI-04 | TBD | Pending |
-| CI-05 | TBD | Pending |
-| CI-06 | TBD | Pending |
-| CI-07 | TBD | Pending |
+| CONT-01 | Phase 23 | Pending |
+| CONT-02 | Phase 23 | Pending |
+| CONT-03 | Phase 23 | Pending |
+| CONT-04 | Phase 23 | Pending |
+| CONT-05 | Phase 23 | Pending |
+| CONT-06 | Phase 22 | Pending |
+| CONT-07 | Phase 23 | Pending |
+| CONT-08 | Phase 23 | Pending |
+| PY-01 | Phase 22 | Pending |
+| PY-02 | Phase 22 | Pending |
+| PY-03 | Phase 22 | Pending |
+| PY-04 | Phase 22 | Pending |
+| PY-05 | Phase 22 | Pending |
+| RREM-01 | Phase 24 | Pending |
+| RREM-02 | Phase 24 | Pending |
+| RREM-03 | Phase 24 | Pending |
+| RREM-04 | Phase 24 | Pending |
+| RREM-05 | Phase 24 | Pending |
+| RREM-06 | Phase 24 | Pending |
+| RREM-07 | Phase 24 | Pending |
+| CI-01 | Phase 25 | Pending |
+| CI-02 | Phase 25 | Pending |
+| CI-03 | Phase 25 | Pending |
+| CI-04 | Phase 25 | Pending |
+| CI-05 | Phase 25 | Pending |
+| CI-06 | Phase 25 | Pending |
+| CI-07 | Phase 25 | Pending |
 
 **Coverage:**
 - v1.6 requirements: 27 total (8 CONT + 5 PY + 7 RREM + 7 CI)
-- Mapped to phases: 0 (filled by roadmapper)
-- Unmapped: 27 ⚠️ (resolves after roadmap step)
+- Mapped to phases: 27 (Phase 22: 6 reqs, Phase 23: 7 reqs, Phase 24: 7 reqs, Phase 25: 7 reqs)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-30*

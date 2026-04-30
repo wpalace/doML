@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Container Optimization & Python Modernization
-status: defining_requirements
-stopped_at: milestone v1.6 started 2026-04-30
-last_updated: "2026-04-30T19:00:00.000Z"
-last_activity: 2026-04-30 — Milestone v1.6 started
+status: roadmap_approved
+stopped_at: roadmap approved; ready to plan Phase 22
+last_updated: "2026-04-30T19:30:00.000Z"
+last_activity: 2026-04-30 — Milestone v1.6 roadmap approved (4 phases, 27 reqs)
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -25,12 +25,14 @@ See: .planning/PROJECT.md (updated 2026-04-30)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 22 (Pre-flight Wheel Validation & Lockfile Bootstrap) — Not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-30 — Milestone v1.6 Container Optimization & Python Modernization started
+Status: Roadmap approved; ready to plan Phase 22
+Last activity: 2026-04-30 — v1.6 roadmap approved (4 phases, 27 reqs across CONT/PY/RREM/CI)
 
-Progress: [          ] 0% (v1.6 — requirements gathering)
+Progress: [          ] 0% (v1.6 — 0 of 4 phases complete)
+
+**Next step:** `/gsd-discuss-phase 22` (gather context) or `/gsd-plan-phase 22` (skip discussion, plan directly)
 
 ## Performance Metrics
 

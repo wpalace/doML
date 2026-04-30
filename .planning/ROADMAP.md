@@ -3,6 +3,7 @@
 ## Milestones
 
 - ✅ **v1.5 Public Release + Install Scripts** — Phases 19, 20, 21 (shipped 2026-04-30) — see [archive](milestones/v1.5-ROADMAP.md)
+- 🚧 **v1.6 Container Optimization & Python Modernization** — Phases 22–25 (in progress)
 - 🚧 **Milestone 1 — Foundation + EDA** — Phases 1–5 (in progress)
 - 📋 **Milestone 2 — Modelling + Forecasting** — Phases 6–9 (planned)
 
@@ -500,6 +501,86 @@ Plans:
 
 ---
 
+## 🚧 v1.6 Container Optimization & Python Modernization (In Progress)
+
+**Milestone Goal:** Cut Docker cold-build to under 5 minutes by switching to `quay.io/jupyter/scipy-notebook` + `uv`, locking Python 3.13 (3.14 deferred until ydata-profiling lifts its `<3.14` cap), and removing R support entirely.
+
+### Phase 22: Pre-flight Wheel Validation & Lockfile Bootstrap
+
+**Goal**: De-risk the v1.6 stack before any Dockerfile rewrite. Confirm Python 3.13 + uv + scipy-notebook resolve cleanly for all current deps, and produce the new `requirements.txt` lockfile with hashes — committed but not yet wired into Docker.
+
+**Depends on**: Phase 21
+
+**Requirements**: PY-01, PY-02, PY-03, PY-04, PY-05, CONT-06
+
+**Success Criteria** (what must be TRUE):
+1. `uv pip compile requirements.in --python-version 3.13 --generate-hashes -o requirements.txt` succeeds with all dependencies resolved to cp313 wheels (no source builds reported)
+2. `requirements.in` no longer contains `pip-tools`; explicitly pins `mistune<3` and `numpy<2.4`
+3. New `requirements.txt` is committed with hashes; pip-tools-format header replaced with uv format (single isolated commit)
+4. Audit log of `quay.io/jupyter/scipy-notebook:<dated-tag>` package list vs `requirements.in` is produced; final base image dated tag is selected and recorded
+5. ydata-profiling installs cleanly under uv 3.13 (validated by a temporary throwaway container) — go/no-go decision documented in phase SUMMARY
+
+**Plans**: TBD (planned during `/gsd-plan-phase 22`)
+
+---
+
+### Phase 23: Dockerfile Rebuild + uv Migration
+
+**Goal**: Rebuild the project Dockerfile (and template Dockerfile) on `quay.io/jupyter/scipy-notebook` with a uv-driven install layer, BuildKit cache mount, and an in-build import smoke. Demonstrate cold-cache build under 5 minutes on the user's dev machine.
+
+**Depends on**: Phase 22
+
+**Requirements**: CONT-01, CONT-02, CONT-03, CONT-04, CONT-05, CONT-07, CONT-08
+
+**Success Criteria** (what must be TRUE):
+1. Root `Dockerfile` uses `quay.io/jupyter/scipy-notebook:<dated-tag>`, vendors uv via `COPY --from=ghcr.io/astral-sh/uv:0.11.8`, and installs deps with `RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked uv pip install --system -r /tmp/requirements.txt`
+2. Dockerfile includes the import smoke layer (`python -c "import duckdb, papermill, shap, prophet, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, pyinstaller"`) and fails fast on missing wheels
+3. Cold-cache `docker compose build --no-cache` completes in **<5 minutes** on the user's dev machine; wall-clock time recorded in phase SUMMARY
+4. `.claude/doml/templates/Dockerfile` and `.claude/doml/templates/docker-compose.yml` mirror the new structure so `/doml-new-project` produces v1.6-equivalent containers
+5. `CLAUDE.md` rebuild instructions updated from `pip-compile` to `uv pip compile … --generate-hashes`; install scripts (`install.sh`, `install.ps1`) defensively set `DOCKER_BUILDKIT=1`
+
+**Plans**: TBD (planned during `/gsd-plan-phase 23`)
+
+---
+
+### Phase 24: R Removal Sweep
+
+**Goal**: Remove all R support from the framework: notebook templates, workflows, skill files, docs, and a runtime config-validation gate. Add a migration note for users who need R (pin to `install.sh --version v1.5`).
+
+**Depends on**: Phase 23
+
+**Requirements**: RREM-01, RREM-02, RREM-03, RREM-04, RREM-05, RREM-06, RREM-07
+
+**Success Criteria** (what must be TRUE):
+1. `data_understanding_r.ipynb` is deleted from `.claude/doml/templates/notebooks/`; the `mamba install r-*` block is gone from both Dockerfiles (now redundant with Phase 23 work but explicitly verified clean)
+2. `.claude/doml/workflows/data-understanding.md` no longer branches on `language == "r"`; `.claude/doml/workflows/new-project.md` no longer prompts for language and hardcodes `language: python` in generated `config.json`
+3. R references are removed from `CLAUDE.md`, `AGENTS.md`, `README.md`, `.claude/doml/templates/PROJECT.md`, and any SKILL.md files; `grep -rn "\bR\b\|tidyverse\|IRkernel\|language: r" .claude/ CLAUDE.md AGENTS.md README.md` returns only flowchart-node `R` matches (e.g., iterate-step letter)
+4. Migration note exists in `README.md` and/or new `MIGRATION-v1.6.md` directing R users to `install.sh --version v1.5`
+5. Runtime config-validation gate: invoking any `/doml-*` command in a project whose `config.json` contains `language` != `python` fails with a clear error message and migration guidance, exit code non-zero
+
+**Plans**: TBD (planned during `/gsd-plan-phase 24`)
+
+---
+
+### Phase 25: CI Smoke Test + Build Budget Gate
+
+**Goal**: Add a GitHub Actions workflow that on every push and PR (a) builds the image with cold cache and asserts <5 min, (b) runs all 10 production notebook templates via papermill against bundled fixture data, and (c) fails CI on any notebook execution error or build budget regression.
+
+**Depends on**: Phase 23, Phase 24
+
+**Requirements**: CI-01, CI-02, CI-03, CI-04, CI-05, CI-06, CI-07
+
+**Success Criteria** (what must be TRUE):
+1. `tests/fixtures/` contains committed fixture datasets covering supervised (regression + classification, ≤500 rows), unsupervised (clustering / dim-reduction reuses supervised fixture without target), and time-series (≤365 daily rows) cases
+2. `tests/smoke/run_all_notebooks.sh` (or `.py`) runs `papermill` against all 10 production notebook templates against fixtures; per-template pass/fail reported; non-zero exit on any failure
+3. `.github/workflows/smoke-test.yml` triggers on `push` and `pull_request`; uses `actions/cache@v4` for buildx layers; runs cold-cache build, asserts wall-clock <300s, runs the smoke runner with `--shm-size=2g`
+4. All 10 templates pass smoke test against bundled fixtures with no notebook execution errors (CI green on the v1.6 merge commit)
+5. Notebooks honor `OPTUNA_N_TRIALS` and `MAX_DATASET_ROWS` env vars (capped at 2 trials and ≤500 rows in CI); `kaggle datasets download` calls gracefully skip when `~/.kaggle/kaggle.json` is absent
+
+**Plans**: TBD (planned during `/gsd-plan-phase 25`)
+
+---
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -525,3 +606,7 @@ Plans:
 | 19. Public Release Docs | v1.5 | 1/1 | Shipped | 2026-04-30 |
 | 20. Install Scripts (Claude target) | v1.5 | 2/2 | Shipped | 2026-04-30 |
 | 21. Copilot Support + `--target` flag | v1.5 | 2/2 | Shipped | 2026-04-30 |
+| 22. Pre-flight Wheel Validation & Lockfile Bootstrap | v1.6 | TBD | Not started | — |
+| 23. Dockerfile Rebuild + uv Migration | v1.6 | TBD | Not started | — |
+| 24. R Removal Sweep | v1.6 | TBD | Not started | — |
+| 25. CI Smoke Test + Build Budget Gate | v1.6 | TBD | Not started | — |
