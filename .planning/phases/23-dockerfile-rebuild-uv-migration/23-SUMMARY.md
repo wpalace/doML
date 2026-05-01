@@ -193,3 +193,11 @@ Per CONTEXT.md `<specifics>` + D-23-C3:
 ---
 *Phase 23 status: BLOCKED — awaiting user gate on Option A / Option B / Option C resolution path.*
 *Build log: `/tmp/build-23.log` (preserved on host for forensic review)*
+
+## Self-Check: PASSED
+
+- All 6 expected files exist: `CLAUDE.md`, `AGENTS.md`, `install.sh`, `install.ps1`, `MIGRATION-v1.6.md`, `.planning/phases/23-dockerfile-rebuild-uv-migration/23-SUMMARY.md`
+- All 3 task commits present: `ed582cc` (docs+installer), `cd2b66c` (MIGRATION), `3734605` (INCIDENT SUMMARY)
+- `git diff --name-only` against post-Plan-23-03 base shows exactly the 6 expected files — no Dockerfile leak from Plan 04 into Plan 03 territory
+- BuildKit cache eviction confirmed (`docker buildx prune --all -f` exited 0; post-prune `docker buildx du` = `Reclaimable: 0B`) — wall-clock figure is meaningful
+
