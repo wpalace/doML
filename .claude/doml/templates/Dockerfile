@@ -1,36 +1,39 @@
-# DoML analysis environment — Python 3.13 + R 4.x + DuckDB + ML stack
-# Base: Jupyter DataScience Notebook (quay.io — Docker Hub frozen since 2023-10-20)
+# syntax=docker/dockerfile:1.7
+# DoML analysis environment — Python 3.14 + DuckDB + ML stack
+# Base: Jupyter SciPy Notebook (quay.io — Docker Hub frozen since 2023-10-20)
 FROM quay.io/jupyter/scipy-notebook:2026-04-27
 
 LABEL maintainer="DoML framework"
-LABEL description="Reproducible ML analysis environment with Python, R, and DuckDB"
+LABEL description="Reproducible ML analysis environment with Python and DuckDB"
 
-# --- R packages via mamba (conda-forge binaries — compatible with conda R) ---
-# arrow/prophet/forecast deferred: arrow incompatible; prophet/forecast need rstan (Milestone 2).
-USER root
-RUN mamba install --yes \
-      r-duckdb \
-      r-tidymodels \
-      r-renv \
-      r-umap \
-    && mamba clean --all -f -y \
-    && fix-permissions "${CONDA_DIR}" \
-    && fix-permissions "/home/${NB_USER}"
+# --- Vendor uv binary from the official Astral image (pinned) ---
+# Per research/STACK.md + ARCHITECTURE.md: do NOT `pip install uv` — supply chain + non-determinism.
+COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /usr/local/bin/
+
+# --- uv environment knobs (Astral "Using uv in Docker" guide) ---
+# UV_LINK_MODE=copy is mandatory — cache mount + target site-packages cross filesystems,
+# hardlink mode would error out. UV_COMPILE_BYTECODE precompiles .pyc at install for fast first launch.
+ENV \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_NO_PROGRESS=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_SYSTEM_PYTHON=1 \
+    UV_PYTHON=/opt/conda/bin/python
 
 # --- Python packages (pinned via requirements.txt) ---
-USER ${NB_UID}
-COPY --chown=${NB_UID}:${NB_GID} requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir --requirement /tmp/requirements.txt && \
-    fix-permissions "${CONDA_DIR}" && \
-    fix-permissions "/home/${NB_USER}"
-
-# --- Data acquisition (kaggle CLI) ---
-# Installed as a separate layer so it is always present even before requirements.txt is regenerated.
-# Once pip-compile adds kaggle to requirements.txt this layer becomes a no-op upgrade.
+# Use `uv pip install` (additive), NOT `uv pip sync` — sync would prune conda-shipped
+# jupyterlab/notebook/ipykernel/nbconvert/nbformat and break the kernel (PITFALLS #3).
+# In-build import smoke fails the build immediately on any broken wheel (CONT-07).
+# kaggle CLI is resolved through requirements.txt (no separate pip install layer needed).
 USER root
-RUN pip install --no-cache-dir kaggle && \
-    fix-permissions "${CONDA_DIR}" && \
-    fix-permissions "/home/${NB_USER}"
+COPY --chown=${NB_UID}:${NB_GID} requirements.txt /tmp/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    uv pip install --system -r /tmp/requirements.txt \
+ && python -c "import duckdb, papermill, shap, prophet, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, pyinstaller" \
+ && fix-permissions "${CONDA_DIR}" \
+ && fix-permissions "/home/${NB_USER}"
+
 USER ${NB_UID}
 
 # --- DoML working directory ---
