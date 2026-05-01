@@ -12,7 +12,7 @@ A data scientist can drop a dataset into `/data`, answer a few questions, and ge
 
 **Last shipped:** v1.5 Public Release + Install Scripts (2026-04-30) — DoML is now publicly installable via Bash and PowerShell one-liners with optional GitHub Copilot target. See `.planning/MILESTONES.md`.
 
-**Current milestone:** v1.6 Container Optimization & Python Modernization — see below.
+**Current milestone:** v1.6 Container Optimization & Python Modernization — Phase 22 (pre-flight) and Phase 23 (Dockerfile rebuild + uv migration) complete. Cold-cache `docker compose build --no-cache` runs in **36 seconds** on dev hardware (8.33× under the 300s budget). Both Dockerfiles now run on `quay.io/jupyter/scipy-notebook:2026-04-27` with uv 0.11.8 vendored via `COPY --from=ghcr.io/astral-sh/uv:0.11.8`, BuildKit cache mount, and inline 11-import build smoke. Phases 24 (R narrative sweep) and 25 (CI smoke + automated 300s gate) remain.
 
 ## Current Milestone: v1.6 Container Optimization & Python Modernization
 
