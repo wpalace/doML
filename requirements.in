@@ -40,3 +40,10 @@ plotly
 #   docker compose run --rm jupyter uv pip compile requirements.in --generate-hashes -o requirements.txt
 # Then rebuild the image: docker compose build
 kaggle
+
+# --- Deployment tools ---
+# pyinstaller: CLI deploy target (Phase 14 — packages analysis runners as standalone binaries)
+# skl2onnx: WASM deploy target (Phase 17 — exports sklearn models to ONNX for browser inference)
+# Both are imported by the in-build smoke (CONT-07) and must stay in lockstep with the Dockerfile smoke list.
+pyinstaller
+skl2onnx
