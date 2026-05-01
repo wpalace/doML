@@ -30,7 +30,7 @@ USER root
 COPY --chown=${NB_UID}:${NB_GID} requirements.txt /tmp/requirements.txt
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv pip install --system -r /tmp/requirements.txt \
- && python -c "import duckdb, papermill, shap, prophet, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, pyinstaller" \
+ && python -c "import duckdb, papermill, shap, prophet, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, PyInstaller" \
  && fix-permissions "${CONDA_DIR}" \
  && fix-permissions "/home/${NB_USER}"
 

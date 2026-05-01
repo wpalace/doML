@@ -14,7 +14,7 @@
 - [ ] **CONT-04**: Cold-cache `docker compose build --no-cache` completes in under 5 minutes (300s) on user's dev machine
 - [ ] **CONT-05**: `uv` binary is vendored from `ghcr.io/astral-sh/uv:0.11.8` via `COPY --from` (no `pip install uv`)
 - [ ] **CONT-06**: `requirements.txt` is regenerated with `uv pip compile requirements.in -o requirements.txt --generate-hashes`
-- [ ] **CONT-07**: Dockerfile includes an in-build import smoke layer (`python -c "import duckdb, papermill, shap, prophet, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, pyinstaller"`) that fails the build immediately on broken wheels
+- [ ] **CONT-07**: Dockerfile includes an in-build import smoke layer (`python -c "import duckdb, papermill, shap, prophet, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, PyInstaller"`) that fails the build immediately on broken wheels. Note: `PyInstaller` uses PascalCase because the upstream Python module is `PyInstaller` even though the PyPI distribution name is `pyinstaller` — the smoke verifies importability, not pip-name.
 - [ ] **CONT-08**: All `.claude/doml/templates/Dockerfile` and `.claude/doml/templates/docker-compose.yml` template files mirror the new structure (so `/doml-new-project` produces v1.6 containers for new analyses)
 
 ### Python Modernization (PY)
