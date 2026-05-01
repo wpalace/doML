@@ -72,7 +72,7 @@ pre-commit install
 `requirements.txt` pins every Python package with `==`. Never edit it by hand — edit `requirements.in` (unpinned top-level deps) and regenerate:
 
 ```bash
-docker compose run --rm jupyter pip-compile requirements.in
+docker compose run --rm jupyter uv pip compile requirements.in --generate-hashes -o requirements.txt
 ```
 
 After changing `requirements.txt`, rebuild: `docker compose build`.

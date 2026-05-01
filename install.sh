@@ -15,6 +15,10 @@
 
 set -euo pipefail
 
+# ── BuildKit (v1.6 cache mount syntax requires it) ────────────────────────────
+# Defensive: scoped to this install session only. Does NOT touch ~/.bashrc.
+export DOCKER_BUILDKIT=1
+
 # ── Argument parsing ──────────────────────────────────────────────────────────
 
 TARGET="claude"   # D-02: default target

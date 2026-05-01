@@ -75,7 +75,7 @@ stripped before commit. Re-run the notebook to see outputs again.
 ### 5. Pinned dependencies
 
 `requirements.txt` pins every package with `==`. Edit `requirements.in` (unpinned) and
-regenerate: `docker compose run --rm jupyter pip-compile requirements.in`
+regenerate: `docker compose run --rm jupyter uv pip compile requirements.in --generate-hashes -o requirements.txt`
 
 ## Running the Environment
 

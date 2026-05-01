@@ -29,6 +29,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# ── BuildKit (v1.6 cache mount syntax requires it) ────────────────────────────
+# Defensive: scoped to this install session only. Does NOT touch the user profile.
+$env:DOCKER_BUILDKIT = "1"
+
 # ── VERSION resolution ────────────────────────────────────────────────────────
 # Allow env var override for pipe-to-iex usage (params cannot be passed in that mode)
 
