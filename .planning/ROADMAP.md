@@ -547,10 +547,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 23-01-PLAN.md — Mirror template requirements.in cleanup (drop pip-tools, add numpy<2.4)
-- [ ] 23-02-PLAN.md — Regenerate template requirements.txt via uv pip compile (isolated commit per PITFALLS #6)
-- [ ] 23-03-PLAN.md — Rewrite both Dockerfile install layers on uv + scipy-notebook + cache mount + inline import smoke
-- [ ] 23-04-PLAN.md — Docs sweep (CLAUDE.md/AGENTS.md regen cmd) + install scripts DOCKER_BUILDKIT=1 + MIGRATION-v1.6.md + cold-build benchmark/SUMMARY
+- [x] 23-01-PLAN.md — Mirror template requirements.in cleanup (drop pip-tools, add numpy<2.4)
+- [x] 23-02-PLAN.md — Regenerate template requirements.txt via uv pip compile (isolated commit per PITFALLS #6)
+- [x] 23-03-PLAN.md — Rewrite both Dockerfile install layers on uv + scipy-notebook + cache mount + inline import smoke
+- [x] 23-04-PLAN.md — Docs sweep (CLAUDE.md/AGENTS.md regen cmd) + install scripts DOCKER_BUILDKIT=1 + MIGRATION-v1.6.md + cold-build benchmark/SUMMARY
 
 ---
 
@@ -618,6 +618,6 @@ Plans:
 | 20. Install Scripts (Claude target) | v1.5 | 2/2 | Shipped | 2026-04-30 |
 | 21. Copilot Support + `--target` flag | v1.5 | 2/2 | Shipped | 2026-04-30 |
 | 22. Pre-flight Wheel Validation & Lockfile Bootstrap | v1.6 | 4/3 | Complete    | 2026-04-30 |
-| 23. Dockerfile Rebuild + uv Migration | v1.6 | 0/4 | Planned | — |
+| 23. Dockerfile Rebuild + uv Migration | v1.6 | 4/4 | Complete    | 2026-05-01 |
 | 24. R Removal Sweep | v1.6 | TBD | Not started | — |
 | 25. CI Smoke Test + Build Budget Gate | v1.6 | TBD | Not started | — |
