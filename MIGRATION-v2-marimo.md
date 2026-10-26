@@ -27,9 +27,8 @@ DoML v2 replaces Jupyter notebooks with marimo notebooks and removes the R workf
    docker compose down && docker compose build && docker compose up -d
    ```
 
-3. Convert notebooks you edited by hand: `uvx marimo convert notebooks/X.ipynb -o notebooks/X.py`,
-   then `marimo check --fix notebooks/X.py`. Notebooks you did not edit: re-run the DoML command
-   that makes them.
+3. Re-run the DoML commands to make new marimo notebooks. Old `.ipynb` files are not
+   converted (no Jupyter back-compatibility); delete them.
 4. Remove `language` from `.planning/config.json`. Add `target_column` if it is missing.
 5. Replace the nbstripout hook in `.pre-commit-config.yaml` with the `marimo check` hook from
    the DoML repository.

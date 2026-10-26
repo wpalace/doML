@@ -133,7 +133,7 @@ stage_grep() {
   pattern+='|papermill|jupyter|nbstripout|jovyan'
   local hits
   hits="$(cd -- "$REPO" && git grep -n -i -E "$pattern" -- . ':!.planning' ':!MIGRATION-*.md' \
-    ':!tools/' ':!tests/run_all.sh' ':(glob,exclude)**/uv.lock' ':(glob,exclude)**/requirements.txt' \
+    ':!tests/run_all.sh' ':(glob,exclude)**/uv.lock' ':(glob,exclude)**/requirements.txt' \
     | grep -v -i -E 'replaces|No Jupyter|earlier Jupyter|R or Jupyter|ipynb template|rglob\("\*\.ipynb' || true)"
   if [[ -n "$hits" ]]; then
     printf '%s\n' "$hits"
