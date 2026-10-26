@@ -24,7 +24,13 @@ def _(mo):
             return mo.md(_p.read_text(encoding="utf-8"))
         return mo.md(placeholder) if placeholder else mo.md("")
 
-    return (narrative,)
+    # Notebook identity: tags leaderboard rows so a re-run replaces its own rows.
+    import re as _re
+
+    NB_STEM = _Path(__file__).stem
+    _m = _re.search(r"_(v\d+)$", NB_STEM)
+    NB_VERSION = _m.group(1) if _m else "v1"
+    return NB_STEM, NB_VERSION, narrative
 
 
 @app.cell(hide_code=True)
@@ -328,14 +334,19 @@ def _(
 
 
 @app.cell
-def _(PROJECT_ROOT, leaderboard, mo, pd):
+def _(NB_STEM, PROJECT_ROOT, leaderboard, mo, pd):
     with mo.redirect_stdout():
         models_dir = PROJECT_ROOT / 'models'
         models_dir.mkdir(exist_ok=True)
         leaderboard_path = models_dir / 'leaderboard.csv'
 
+        # Rows are tagged with the notebook that wrote them. A re-run of the same notebook
+        # replaces its own rows instead of duplicating them (idempotent re-execution).
+        leaderboard['notebook'] = NB_STEM
         if leaderboard_path.exists():
             existing = pd.read_csv(leaderboard_path)
+            if 'notebook' in existing.columns:
+                existing = existing[existing['notebook'] != NB_STEM]
             leaderboard_all = pd.concat([existing, leaderboard], ignore_index=True)
         else:
             leaderboard_all = leaderboard.copy()
@@ -488,7 +499,7 @@ def _(PROJECT_ROOT, fitted_models, mo, np, plt, shap, shap_data_dict):
                     shap_vals = explainer.shap_values(X_shap, nsamples=100)
                     if isinstance(shap_vals, list):
                         shap_vals = shap_vals[1] if len(shap_vals) == 2 else np.array(shap_vals).mean(axis=0)
-    
+
                 plt.figure(figsize=(8, 5))
                 shap.summary_plot(shap_vals, X_shap, plot_type='bar', show=False,
                                   max_display=10, title=f'SHAP — {_name}')
@@ -556,7 +567,7 @@ def _(LogisticRegression, RandomForestClassifier, cross_validate, lgb, xgb):
             else:
                 params = {'C': trial.suggest_float('C', 0.01, 100.0, log=True)}
                 model = LogisticRegression(max_iter=1000, random_state=seed, **params)
-    
+
             scores = cross_validate(model, X_tr, y_tr, cv=skf,
                                     scoring=primary_metric)
             return scores['test_score'].mean()
@@ -665,6 +676,7 @@ def _(
 
 @app.cell
 def _(
+    NB_VERSION,
     PROJECT_ROOT,
     X,
     best_model,
@@ -685,7 +697,7 @@ def _(
         joblib.dump(best_model, model_path)
         print(f"Best model saved: {model_path.relative_to(PROJECT_ROOT)}")
 
-        notebook_version = 'v1'  # execute-phase.md sets this; update if running manually
+        notebook_version = NB_VERSION  # from the file name: ..._v3.py -> 'v3'
 
         metadata = {
             'model_name':       best_tuned_name,
@@ -710,10 +722,11 @@ def _(
 
 
 @app.cell
-def _(PROJECT_ROOT, leaderboard_2, leaderboard_path, mo, pd):
+def _(NB_STEM, PROJECT_ROOT, leaderboard_2, leaderboard_path, mo, pd):
     with mo.redirect_stdout():
         leaderboard_all_final = pd.read_csv(leaderboard_path) if leaderboard_path.exists() else pd.DataFrame()
-        leaderboard_all_final = pd.concat([leaderboard_all_final, leaderboard_2[leaderboard_2['note'].isin(['Optuna-tuned', 'TEST SET — final evaluation'])]], ignore_index=True)
+        _final_rows = leaderboard_2[leaderboard_2['note'].isin(['Optuna-tuned', 'TEST SET — final evaluation'])].assign(notebook=NB_STEM)
+        leaderboard_all_final = pd.concat([leaderboard_all_final, _final_rows], ignore_index=True)
         leaderboard_all_final.to_csv(leaderboard_path, index=False)
         print(f'Final leaderboard ({len(leaderboard_all_final)} rows) saved to {leaderboard_path.relative_to(PROJECT_ROOT)}')
     return

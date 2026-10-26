@@ -24,6 +24,12 @@ def _(mo):
             return mo.md(_p.read_text(encoding="utf-8"))
         return mo.md(placeholder) if placeholder else mo.md("")
 
+    # Notebook identity: tags leaderboard rows so a re-run replaces its own rows.
+    import re as _re
+
+    NB_STEM = _Path(__file__).stem
+    _m = _re.search(r"_(v\d+)$", NB_STEM)
+    NB_VERSION = _m.group(1) if _m else "v1"
     return (narrative,)
 
 

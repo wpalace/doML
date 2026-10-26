@@ -24,7 +24,13 @@ def _(mo):
             return mo.md(_p.read_text(encoding="utf-8"))
         return mo.md(placeholder) if placeholder else mo.md("")
 
-    return (narrative,)
+    # Notebook identity: tags leaderboard rows so a re-run replaces its own rows.
+    import re as _re
+
+    NB_STEM = _Path(__file__).stem
+    _m = _re.search(r"_(v\d+)$", NB_STEM)
+    NB_VERSION = _m.group(1) if _m else "v1"
+    return NB_VERSION, narrative
 
 
 @app.cell(hide_code=True)
@@ -563,7 +569,7 @@ def _(
 
 
 @app.cell
-def _(PROJECT_ROOT, date, metrics_rows, mo, pd):
+def _(NB_VERSION, PROJECT_ROOT, date, metrics_rows, mo, pd):
     with mo.redirect_stdout():
         # Append results to models/unsupervised_leaderboard.csv (append-only — do not overwrite)
         unsup_lb_path = PROJECT_ROOT / 'models' / 'unsupervised_leaderboard.csv'
@@ -582,14 +588,17 @@ def _(PROJECT_ROOT, date, metrics_rows, mo, pd):
                     'davies_bouldin': row['davies_bouldin'],
                     'calinski_harabasz': row['calinski_harabasz'],
                     'notes': 'initial run',
-                    'notebook_version': 'v1',
+                    'notebook_version': NB_VERSION,
                     'run_date': str(date.today()),
                 })
 
         new_df = pd.DataFrame(new_rows)
         if unsup_lb_path.exists():
             existing = pd.read_csv(unsup_lb_path)
-            next_iter = int(existing['iteration'].max()) + 1
+            # A re-run of the same notebook replaces its own rows and keeps its iteration number.
+            _mine = existing['notebook_version'] == new_df['notebook_version'].iloc[0] if 'notebook_version' in existing.columns else existing['iteration'] < 0
+            next_iter = int(existing.loc[_mine, 'iteration'].iloc[0]) if _mine.any() else (int(existing['iteration'].max()) + 1 if len(existing) else 1)
+            existing = existing[~_mine]
             new_df['iteration'] = next_iter
             combined = pd.concat([existing, new_df], ignore_index=True)
         else:

@@ -24,6 +24,12 @@ def _(mo):
             return mo.md(_p.read_text(encoding="utf-8"))
         return mo.md(placeholder) if placeholder else mo.md("")
 
+    # Notebook identity: tags leaderboard rows so a re-run replaces its own rows.
+    import re as _re
+
+    NB_STEM = _Path(__file__).stem
+    _m = _re.search(r"_(v\d+)$", NB_STEM)
+    NB_VERSION = _m.group(1) if _m else "v1"
     return (narrative,)
 
 
@@ -186,12 +192,12 @@ def _(KNNImputer, SimpleImputer, df, missing_pct, mo, numeric_missing, plt):
                 imp_median = SimpleImputer(strategy='median')
                 imp_mean = SimpleImputer(strategy='mean')
                 imp_knn = KNNImputer(n_neighbors=5)
-    
+
                 df_col = df[[_col]]
                 filled_median = imp_median.fit_transform(df_col).flatten()
                 filled_mean = imp_mean.fit_transform(df_col).flatten()
                 filled_knn = imp_knn.fit_transform(df_col).flatten()
-    
+
                 _fig, _axes = plt.subplots(1, 3, figsize=(12, 3))
                 for _ax, vals, label in zip(_axes,
                                             [filled_median, filled_mean, filled_knn],

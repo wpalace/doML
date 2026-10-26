@@ -24,7 +24,13 @@ def _(mo):
             return mo.md(_p.read_text(encoding="utf-8"))
         return mo.md(placeholder) if placeholder else mo.md("")
 
-    return (narrative,)
+    # Notebook identity: tags leaderboard rows so a re-run replaces its own rows.
+    import re as _re
+
+    NB_STEM = _Path(__file__).stem
+    _m = _re.search(r"_(v\d+)$", NB_STEM)
+    NB_VERSION = _m.group(1) if _m else "v1"
+    return NB_STEM, narrative
 
 
 @app.cell(hide_code=True)
@@ -797,7 +803,7 @@ def _(mo):
 
 
 @app.cell
-def _(PROJECT_ROOT, leaderboard_rows, mo, pd):
+def _(NB_STEM, PROJECT_ROOT, leaderboard_rows, mo, pd):
     with mo.redirect_stdout():
         leaderboard = pd.DataFrame(leaderboard_rows).sort_values('cv_mae_mean').reset_index(drop=True)
         mo.output.append(mo.md("### CV Leaderboard (ranked by MAE, lower = better)"))
@@ -808,8 +814,11 @@ def _(PROJECT_ROOT, leaderboard_rows, mo, pd):
         models_dir.mkdir(exist_ok=True)
         lb_path = models_dir / 'forecast_leaderboard.csv'
 
+        leaderboard['notebook'] = NB_STEM  # a re-run replaces this notebook's own rows
         if lb_path.exists():
             existing_lb = pd.read_csv(lb_path)
+            if 'notebook' in existing_lb.columns:
+                existing_lb = existing_lb[existing_lb['notebook'] != NB_STEM]
             leaderboard_all = pd.concat([existing_lb, leaderboard], ignore_index=True)
         else:
             leaderboard_all = leaderboard.copy()
