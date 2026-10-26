@@ -12,7 +12,7 @@ readonly PROJECT="$1" SLUG="$2"
 
 main() {
   cd -- "$PROJECT"
-  docker compose up -d --wait >/dev/null
+  docker compose up -d --build --wait >/dev/null
   local script before after
   script="$(mktemp)"
   {

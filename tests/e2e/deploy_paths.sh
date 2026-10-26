@@ -15,7 +15,7 @@ readonly WF=".claude/doml/workflows"
 project="$1"
 shift
 cd "$project"
-docker compose up -d --wait >/dev/null
+docker compose up -d --build --wait >/dev/null
 
 fail=0
 for target in "$@"; do

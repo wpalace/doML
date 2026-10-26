@@ -352,7 +352,9 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-DOML_WEB_SERVICE_URL="http://localhost:8080"
+# The report runs inside the doml container, where localhost is the container itself.
+# compose.yaml maps host.docker.internal to the host, where the serve container publishes 8080.
+DOML_WEB_SERVICE_URL="http://host.docker.internal:8080"
 echo "Web service URL: $DOML_WEB_SERVICE_URL"
 ```
 

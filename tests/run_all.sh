@@ -134,7 +134,7 @@ stage_grep() {
   local hits
   hits="$(cd -- "$REPO" && git grep -n -i -E "$pattern" -- . ':!.planning' ':!MIGRATION-*.md' \
     ':!tools/' ':!tests/run_all.sh' ':(glob,exclude)**/uv.lock' ':(glob,exclude)**/requirements.txt' \
-    | grep -v -i -E 'replaces|No Jupyter|earlier Jupyter' || true)"
+    | grep -v -i -E 'replaces|No Jupyter|earlier Jupyter|R or Jupyter|ipynb template|rglob\("\*\.ipynb' || true)"
   if [[ -n "$hits" ]]; then
     printf '%s\n' "$hits"
     die "found leftover R/Jupyter references (above)"

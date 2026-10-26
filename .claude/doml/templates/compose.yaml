@@ -6,6 +6,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Lets notebooks reach services on the host (the deploy-web serve container).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # Kaggle: KAGGLE_API_TOKEN (new-style token) or KAGGLE_USERNAME + KAGGLE_KEY (legacy kaggle.json).
       KAGGLE_API_TOKEN: ${KAGGLE_API_TOKEN:-}
