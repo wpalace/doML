@@ -46,6 +46,20 @@ ENV HOME=/home/doml \
     PYTHONUNBUFFERED=1
 
 USER 1000
+# Bake the DuckDB excel extension (read_xlsx) into the image over HTTPS, so data
+# profiling works offline and never waits on an extension download at run time.
+RUN python - <<'PY'
+import duckdb, gzip, pathlib, urllib.request
+ver = duckdb.execute("PRAGMA version").fetchone()[0]
+plat = duckdb.execute("PRAGMA platform").fetchone()[0]
+dest = pathlib.Path.home() / ".duckdb" / "extensions" / ver / plat / "excel.duckdb_extension"
+dest.parent.mkdir(parents=True, exist_ok=True)
+url = f"https://extensions.duckdb.org/{ver}/{plat}/excel.duckdb_extension.gz"
+req = urllib.request.Request(url, headers={"User-Agent": "duckdb"})
+with urllib.request.urlopen(req, timeout=120) as r:
+    dest.write_bytes(gzip.decompress(r.read()))
+duckdb.execute("LOAD excel")
+PY
 WORKDIR /project
 EXPOSE 2718
 

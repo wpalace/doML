@@ -2,11 +2,9 @@
 .gitignore
 *.pyc
 __pycache__
-.ipynb_checkpoints
 .pytest_cache
 .venv
 venv
-renv/library
 data/raw/*
 data/processed/*
 data/external/*
@@ -14,3 +12,4 @@ data/external/*
 reports/*.html
 models/*.pkl
 .DS_Store
+__marimo__/

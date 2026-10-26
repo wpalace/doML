@@ -7,6 +7,8 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
+      # Kaggle: KAGGLE_API_TOKEN (new-style token) or KAGGLE_USERNAME + KAGGLE_KEY (legacy kaggle.json).
+      KAGGLE_API_TOKEN: ${KAGGLE_API_TOKEN:-}
       KAGGLE_KEY: ${KAGGLE_KEY:-}
       KAGGLE_USERNAME: ${KAGGLE_USERNAME:-}
       MARIMO_TOKEN: ${MARIMO_TOKEN:-}
@@ -17,7 +19,7 @@ services:
     # Files written to the mounts belong to the host user (export UID/GID, default 1000).
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      # The whole project is the working tree (notebooks, reports, models, src, .claude).
+      # The whole project is the working tree (notebooks, reports, models, src, DoML files).
       - .:/project
       # INFR-05: raw + external data are read-only, so immutability is enforced by the OS.
       - ./data/raw:/project/data/raw:ro

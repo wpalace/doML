@@ -19,9 +19,8 @@ models/*.joblib
 models/*.json
 !models/.gitkeep
 
-# --- Notebook outputs (nbstripout handles on commit, but ignore checkpoints) ---
-.ipynb_checkpoints/
-*/.ipynb_checkpoints/
+# --- marimo caches ---
+__marimo__/
 
 # --- Python ---
 __pycache__/
@@ -35,14 +34,6 @@ __pycache__/
 venv/
 .env
 .env.local
-
-# --- R ---
-.Rhistory
-.RData
-.Ruserdata
-renv/library/
-renv/staging/
-renv/python/
 
 # --- Docker ---
 .docker/

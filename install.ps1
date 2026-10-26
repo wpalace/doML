@@ -70,36 +70,43 @@ New-Item -ItemType Directory -Path $TempDir | Out-Null
 
 try {
 
-    # ── Download ──────────────────────────────────────────────────────────────
+    if (-not [string]::IsNullOrEmpty($env:DOML_SOURCE_DIR)) {
+        # Install from a local checkout (tests/run_all.sh); no download.
+        $SrcDir = (Resolve-Path $env:DOML_SOURCE_DIR).Path
+        Write-Host "Installing DoML framework from local source: $SrcDir"
+    } else {
+        # ── Download ──────────────────────────────────────────────────────────────
 
-    $ArchiveFile = Join-Path $TempDir "doml.tar.gz"
-    Write-Host "Downloading DoML framework..."
-    try {
-        Invoke-WebRequest -Uri $ArchiveUrl -OutFile $ArchiveFile -UseBasicParsing
-    } catch {
-        Write-Error "ERROR: Failed to download DoML archive."
-        Write-Error "       URL: $ArchiveUrl"
-        Write-Error "       Check your internet connection and that the VERSION tag exists on GitHub."
-        Write-Error "       Details: $($_.Exception.Message)"
-        exit 1
-    }
-    Write-Host "Download complete."
+        $ArchiveFile = Join-Path $TempDir "doml.tar.gz"
+        Write-Host "Downloading DoML framework..."
+        try {
+            Invoke-WebRequest -Uri $ArchiveUrl -OutFile $ArchiveFile -UseBasicParsing
+        } catch {
+            Write-Error "ERROR: Failed to download DoML archive."
+            Write-Error "       URL: $ArchiveUrl"
+            Write-Error "       Check your internet connection and that the VERSION tag exists on GitHub."
+            Write-Error "       Details: $($_.Exception.Message)"
+            exit 1
+        }
+        Write-Host "Download complete."
 
-    # ── Extract ───────────────────────────────────────────────────────────────
+        # ── Extract ───────────────────────────────────────────────────────────────
 
-    Write-Host "Extracting archive..."
-    & tar -xzf $ArchiveFile -C $TempDir
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "ERROR: tar extraction failed (exit code $LASTEXITCODE)."
-        Write-Error "       Windows 10 1803+ is required for built-in bsdtar support."
-        exit 1
-    }
+        Write-Host "Extracting archive..."
+        & tar -xzf $ArchiveFile -C $TempDir
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "ERROR: tar extraction failed (exit code $LASTEXITCODE)."
+            Write-Error "       Windows 10 1803+ is required for built-in bsdtar support."
+            exit 1
+        }
 
-    $SrcDir = Join-Path $TempDir $ArchiveRoot
-    if (-not (Test-Path $SrcDir -PathType Container)) {
-        Write-Error "ERROR: Expected archive root '$ArchiveRoot' not found after extraction."
-        Write-Error "       Found: $(Get-ChildItem $TempDir | Select-Object -ExpandProperty Name)"
-        exit 1
+        $SrcDir = Join-Path $TempDir $ArchiveRoot
+        if (-not (Test-Path $SrcDir -PathType Container)) {
+            Write-Error "ERROR: Expected archive root '$ArchiveRoot' not found after extraction."
+            Write-Error "       Found: $(Get-ChildItem $TempDir | Select-Object -ExpandProperty Name)"
+            exit 1
+        }
+
     }
 
     # ── Install (target-specific) ─────────────────────────────────────────────
@@ -120,6 +127,7 @@ try {
             }
             $skillContent = Get-Content -Raw (Join-Path $skillSrcDir.FullName "SKILL.md")
             $skillContent = $skillContent -replace '@\.claude/doml/workflows/', '.github/doml/workflows/'
+            $skillContent = $skillContent -replace '\.claude/doml/', '.github/doml/'
             Set-Content -Path (Join-Path $destDir "SKILL.md") -Value $skillContent -NoNewline
         }
         Write-Host "  Skills installed to .github\skills\."
@@ -132,7 +140,7 @@ try {
         }
         foreach ($wfSrc in (Get-ChildItem -Path (Join-Path $SrcDir ".claude" "doml" "workflows") -Filter "*.md")) {
             $wfContent = Get-Content -Raw $wfSrc.FullName
-            $wfContent = $wfContent -replace '\.claude/doml/templates/', '.github/doml/templates/'
+            $wfContent = $wfContent -replace '\.claude/doml/', '.github/doml/'
             Set-Content -Path (Join-Path $destWorkflows $wfSrc.Name) -Value $wfContent -NoNewline
         }
         Write-Host "  Workflows installed to .github\doml\workflows\."
@@ -147,10 +155,16 @@ try {
             Copy-Item -Destination $destTemplates -Recurse -Force
         Write-Host "  Templates installed to .github\doml\templates\."
 
+        # Notebook helper (doml_nb.py) → .github\doml\bin\
+        $destBin = Join-Path ".github" "doml" "bin"
+        New-Item -ItemType Directory -Path $destBin -Force | Out-Null
+        Copy-Item -Path (Join-Path $SrcDir ".claude" "doml" "bin" "*.py") -Destination $destBin -Force
+        Write-Host "  Helper installed to .github\doml\bin\."
+
         # CLAUDE.md → .github\copilot-instructions.md (D-04)
         Write-Host "Installing Copilot instructions..."
-        Copy-Item -Path (Join-Path $SrcDir "CLAUDE.md") `
-                  -Destination (Join-Path ".github" "copilot-instructions.md") -Force
+        $instr = (Get-Content -Raw (Join-Path $SrcDir "CLAUDE.md")) -replace '\.claude/doml/', '.github/doml/'
+        Set-Content -Path (Join-Path ".github" "copilot-instructions.md") -Value $instr -NoNewline
         Write-Host "  .github\copilot-instructions.md installed."
 
         # AGENTS.md (D-05, D-08)
@@ -161,12 +175,13 @@ try {
             Write-Error "       Expected: $agentsSrc"
             exit 1
         }
-        Copy-Item -Path $agentsSrc -Destination "AGENTS.md" -Force
+        $agents = (Get-Content -Raw $agentsSrc) -replace '\.claude/doml/', '.github/doml/'
+        Set-Content -Path "AGENTS.md" -Value $agents -NoNewline
         Write-Host "  AGENTS.md installed."
 
         # Data dirs (never delete contents)
         Write-Host "Creating data directories..."
-        foreach ($dir in @("data\raw", "data\processed", "data\external")) {
+        foreach ($dir in @("data\raw", "data\processed", "data\external", "notebooks", "reports", "models", "src")) {
             if (-not (Test-Path $dir)) {
                 New-Item -ItemType Directory -Path $dir | Out-Null
             }
@@ -220,13 +235,19 @@ try {
             Copy-Item -Destination $destTemplates -Recurse -Force
         Write-Host "  Templates installed."
 
+        # Notebook helper (always overwrite)
+        $destBin = Join-Path ".claude" "doml" "bin"
+        New-Item -ItemType Directory -Path $destBin -Force | Out-Null
+        Copy-Item -Path (Join-Path $SrcDir ".claude" "doml" "bin" "*.py") -Destination $destBin -Force
+        Write-Host "  Helper installed to .claude\doml\bin\."
+
         # CLAUDE.md (D-06: always overwrite — no skip)
         Copy-Item -Path (Join-Path $SrcDir "CLAUDE.md") -Destination "CLAUDE.md" -Force
         Write-Host "  CLAUDE.md installed."
 
         # Data dirs (never delete contents)
         Write-Host "Creating data directories..."
-        foreach ($dir in @("data\raw", "data\processed", "data\external")) {
+        foreach ($dir in @("data\raw", "data\processed", "data\external", "notebooks", "reports", "models", "src")) {
             if (-not (Test-Path $dir)) {
                 New-Item -ItemType Directory -Path $dir | Out-Null
             }
