@@ -17,12 +17,12 @@
 **Requirements:** BU-01, BU-02, BU-03, BU-04, BU-05, OUT-01, OUT-02, OUT-03
 
 **Success Criteria:**
-1. `notebooks/01_business_understanding.ipynb` generated with narrative, data inventory, problem type, provenance
+1. `notebooks/01_business_understanding.py` generated with narrative, data inventory, problem type, provenance
 2. `reports/business_summary.html` generated with code hidden and executive narrative
 3. HTML report includes caveats section (correlation ≠ causation)
 
 **Output:**
-- `notebooks/01_business_understanding.ipynb`
+- `notebooks/01_business_understanding.py`
 - `reports/business_summary.html`
 
 ---
@@ -34,7 +34,7 @@
 **Requirements:** EDA-01 through EDA-10, OUT-01, OUT-02, OUT-03
 
 **Success Criteria:**
-1. `notebooks/02_data_understanding.ipynb` generated with all EDA sections
+1. `notebooks/02_data_understanding.py` generated with all EDA sections
 2. DuckDB used for initial profiling — no full pandas load for large files
 3. Distribution, correlation, and missing value analyses included
 4. Time series stationarity tests included if time_factor=true
@@ -43,7 +43,7 @@
 7. `reports/eda_report.html` generated with code hidden and Claude narrative
 
 **Output:**
-- `notebooks/02_data_understanding.ipynb`
+- `notebooks/02_data_understanding.py`
 - `data/processed/[dataset]_cleaned.[ext]`
 - `reports/eda_report.html`
 
@@ -56,7 +56,7 @@
 **Goal:** Feature engineering, encoding, scaling, and train/test split — producing a modelling-ready dataset.
 
 **Output:**
-- `notebooks/03_data_preparation.ipynb`
+- `notebooks/03_data_preparation.py`
 - `data/processed/[dataset]_features.[ext]`
 
 ---
@@ -66,7 +66,7 @@
 **Goal:** Algorithm selection, training, leaderboard, SHAP explainability, and Optuna tuning.
 
 **Output:**
-- `notebooks/04_modelling.ipynb`
+- `notebooks/04_modelling.py`
 - `models/best_model.pkl`
 - `models/leaderboard.csv`
 - `reports/model_report.html`
@@ -78,7 +78,7 @@
 **Goal:** Final model evaluation, forecast generation (if time_factor=true), stakeholder-facing report with business interpretation.
 
 **Output:**
-- `notebooks/05_evaluation.ipynb`
+- `notebooks/05_evaluation.py`
 - `reports/final_report.html`
 
 ---

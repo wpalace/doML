@@ -14,7 +14,7 @@ executive narrative insertion, HTML report, leaderboard verification, and STATE.
 Before executing any notebook task, verify:
 1. Random seed `SEED = 42` is set at the top of every Python notebook (REPR-01)
 2. All paths use `PROJECT_ROOT` env var — no hardcoded absolute paths (REPR-02)
-3. `nbstripout` pre-commit hook is active — outputs stripped before git commit (REPR-03)
+3. Notebooks are plain-Python marimo files: outputs are never stored in git, only in `reports/*.html` (REPR-03)
 
 If any constraint is violated, stop and alert the user before proceeding.
 
@@ -114,10 +114,10 @@ test -f "$INPUT_FILE" || { echo "Error: Input file not found: $INPUT_FILE"; exit
 
 ### Step 5 — Check for existing notebook
 
-If `notebooks/forecasting.ipynb` already exists, ask via AskUserQuestion:
+If `notebooks/forecasting.py` already exists, ask via AskUserQuestion:
 
 ```
-notebooks/forecasting.ipynb already exists. Overwrite? (yes / no)
+notebooks/forecasting.py already exists. Overwrite? (yes / no)
 ```
 
 If the user says no, stop without overwriting.
@@ -126,53 +126,41 @@ If the user says no, stop without overwriting.
 
 ```bash
 mkdir -p notebooks
-cp .claude/doml/templates/notebooks/forecasting.ipynb notebooks/forecasting.ipynb
+cp .claude/doml/templates/notebooks/forecasting.py notebooks/forecasting.py
 ```
 
 If the template does not exist:
 
 ```
-Notebook template not found: .claude/doml/templates/notebooks/forecasting.ipynb
-Run plan 12-02 to generate the forecasting.ipynb template first.
+Notebook template not found: .claude/doml/templates/notebooks/forecasting.py
+Run plan 12-02 to generate the forecasting.py template first.
 ```
 
 Stop.
 
 Inject runtime parameters by writing a temporary Python script (never shell-interpolate
-column names or guidance strings):
+column names or guidance strings). The marimo notebook is plain Python, so injection is a
+text edit of the parameter assignments (`HORIZON = None`, ...) done by `doml_nb.py set-param`:
 
 ```python
 # /tmp/doml_inject_forecast_params.py
-import nbformat, json, sys
+import json, subprocess, sys
 
 PARAMS = {
     'HORIZON': int(sys.argv[1]),
     'TARGET_COL': sys.argv[2],
     'REGRESSORS': sys.argv[3],   # empty string if not provided
     'SEASONALITY': sys.argv[4],  # 'auto' or override value
-    'INPUT_FILE': sys.argv[5],
+    'INPUT_FILE_OVERRIDE': sys.argv[5],
 }
 
-with open('notebooks/forecasting.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-
-# Find and replace the PARAMS cell (cell containing HORIZON = None)
-for cell in nb.cells:
-    if cell.cell_type == 'code' and 'HORIZON = None' in cell.source:
-        lines = [
-            f"HORIZON = {PARAMS['HORIZON']}",
-            f"TARGET_COL = {json.dumps(PARAMS['TARGET_COL'])}",
-            f"REGRESSORS = {json.dumps(PARAMS['REGRESSORS'])}",
-            f"SEASONALITY = {json.dumps(PARAMS['SEASONALITY'])}",
-            f"INPUT_FILE_OVERRIDE = {json.dumps(PARAMS['INPUT_FILE'])}",
-        ]
-        cell.source = '\n'.join(lines)
-        break
-
-with open('notebooks/forecasting.ipynb', 'w') as f:
-    nbformat.write(nb, f)
-
-print('Parameters injected into notebooks/forecasting.ipynb')
+for name, value in PARAMS.items():
+    subprocess.run(
+        [sys.executable, '.claude/doml/bin/doml_nb.py', 'set-param',
+         'notebooks/forecasting.py', name, json.dumps(value)],
+        check=True,
+    )
+print('Parameters injected into notebooks/forecasting.py')
 ```
 
 Write that script to `/tmp/doml_inject_forecast_params.py`, then run:
@@ -184,12 +172,9 @@ python3 /tmp/doml_inject_forecast_params.py "$HORIZON" "$TARGET" "$REGRESSORS" "
 ### Step 7 — Execute notebook inside Docker
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --execute \
-  --to notebook \
-  --inplace \
-  notebooks/forecasting.ipynb \
-  --ExecutePreprocessor.timeout=900
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/forecasting.py \
+  --report reports/forecasting_report.html --timeout 900
 ```
 
 Timeout is 900 seconds (models may take significant time). If the container is not running:
@@ -202,26 +187,20 @@ Then run /doml-forecasting again.
 
 Stop.
 
-On non-zero exit code, display the nbconvert error output and stop. Do not generate HTML on
+On non-zero exit code, display the cell error output and stop. Do not generate HTML on
 a failed execution.
 
 ### Step 8 — Verify notebook output
 
 ```bash
-python3 -c "
-import nbformat
-with open('notebooks/forecasting.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
-print(f'Executed notebook: {code_cells_with_output} code cells with output')
-assert code_cells_with_output > 0, 'No cell outputs — execution may have failed'
-"
+# The run step exits non-zero on any cell error; this re-checks the exported report.
+python3 .claude/doml/bin/doml_nb.py verify-report reports/forecasting_report.html
 ```
 
 If verification fails, report the error and stop. Do not generate the HTML report on an
 unexecuted notebook.
 
-### Step 9 — Write forecasting narrative and insert as first cell
+### Step 9 — Write forecasting narrative (summary sidecar)
 
 Generate a 2–3 paragraph executive summary interpreting the forecasting results for
 non-technical stakeholders.
@@ -229,7 +208,7 @@ non-technical stakeholders.
 Read to inform the narrative:
 - `.planning/PROJECT.md` — business question, stakeholder, decision framing
 - `.planning/config.json` — problem_type, dataset.path, time_factor
-- `notebooks/forecasting.ipynb` — executed cell outputs (model metrics, leaderboard, intervals)
+- `notebooks/forecasting.py` — executed cell outputs (model metrics, leaderboard, intervals)
 - `models/forecast_leaderboard.csv` — final ranked results
 
 The narrative must:
@@ -242,34 +221,21 @@ The narrative must:
   planning; re-run after 4 weeks of new data to verify drift hasn't occurred")
 - If `GUIDANCE` is non-empty, incorporate it as additional context
 
-Write the narrative into a temporary Python script to avoid special-character quoting issues
-(same pattern as anomaly-detection.md Step 7):
-
-```python
-# /tmp/doml_insert_forecast_summary.py
-import nbformat, uuid
-
-NARRATIVE = """[WRITE YOUR 2-3 PARAGRAPH EXECUTIVE NARRATIVE HERE]"""
-
-with open('notebooks/forecasting.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-
-summary_cell = nbformat.v4.new_markdown_cell(source='## Executive Summary\n\n' + NARRATIVE)
-summary_cell['id'] = uuid.uuid4().hex[:8]
-nb.cells.insert(0, summary_cell)
-
-with open('notebooks/forecasting.ipynb', 'w') as f:
-    nbformat.write(nb, f)
-
-print('Forecasting executive narrative inserted as cell 0')
-```
-
-Write the actual narrative into `NARRATIVE` (never pass `$GUIDANCE` via shell interpolation —
-always write the guidance content as a Python string literal in the script). Then run:
+Save the narrative as the notebook's `summary` sidecar (rendered directly below the title). The quoted
+heredoc avoids special-character quoting issues:
 
 ```bash
-python3 /tmp/doml_insert_forecast_summary.py
+# Narrative sidecar: the notebook renders notebooks/narratives/<stem>/summary.md
+cat > /tmp/doml_summary.md <<'DOML_EOF'
+## Executive Summary
+
+[WRITE YOUR 2-3 PARAGRAPH EXECUTIVE NARRATIVE HERE]
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative notebooks/forecasting.py summary /tmp/doml_summary.md
 ```
+
+Write the actual narrative text into the quoted heredoc above before running it. The quoted
+`'DOML_EOF'` delimiter means no shell interpolation happens (never pass `$GUIDANCE` through the shell).
 
 ### Step 10 — Generate HTML report
 
@@ -282,12 +248,12 @@ mkdir -p reports
 **Step 10b — Convert notebook to HTML (code cells hidden)**
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --to html \
-  --no-input \
-  notebooks/forecasting.ipynb \
-  --output-dir reports \
-  --output forecasting_report
+# Re-export so the report shows the narrative cells written above.
+# marimo re-runs the notebook (seeded, so results are identical; leaderboard
+# rows are replaced, not duplicated).
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/forecasting.py \
+  --report reports/forecasting_report.html
 ```
 
 This produces `reports/forecasting_report.html`. The `--no-input` flag hides all code cells (OUT-02).
@@ -309,7 +275,7 @@ Stop.
 test -f reports/forecasting_report.html && echo "REPORT_EXISTS" || echo "REPORT_MISSING"
 
 # Check 2: Code cells are hidden (OUT-02) — expected: 0 matches
-grep -c 'class="input"' reports/forecasting_report.html && echo "CODE_VISIBLE_VIOLATION" || echo "CODE_HIDDEN_OK"
+python3 .claude/doml/bin/doml_nb.py verify-report reports/forecasting_report.html  # prints CODE_HIDDEN_OK and NO_CELL_ERRORS_OK
 
 # Check 3: Caveats section present (OUT-03) — expected: >= 1 match
 grep -ci "correlation is not causation" reports/forecasting_report.html && echo "CAVEATS_OK" || echo "CAVEATS_MISSING"
@@ -332,14 +298,14 @@ fi
 ```
 
 Update `.planning/STATE.md`: append to Decisions:
-`[Phase 12]: doml-forecasting completed — notebooks/forecasting.ipynb + reports/forecasting_report.html + models/forecast_leaderboard.csv`
+`[Phase 12]: doml-forecasting completed — notebooks/forecasting.py + reports/forecasting_report.html + models/forecast_leaderboard.csv`
 
 Display completion message:
 
 ```
 Forecasting complete.
 
-  Notebook:    notebooks/forecasting.ipynb
+  Notebook:    notebooks/forecasting.py
   Report:      reports/forecasting_report.html
   Leaderboard: models/forecast_leaderboard.csv
 
@@ -350,13 +316,5 @@ Review the report for model comparison and prediction interval analysis.
 
 ## Notes for Analysts
 
-After adding `pmdarima` to `requirements.in`, regenerate the pinned dependencies and rebuild
-the Docker image:
-
-```bash
-docker compose run --rm jupyter pip-compile requirements.in
-docker compose build
-```
-
-This must be done before running `/doml-forecasting` for the first time, as `pmdarima` provides
-the `auto_arima()` function used for automatic ARIMA/SARIMA order selection.
+`pmdarima` (for `auto_arima()` ARIMA/SARIMA order selection) and `prophet` are part of the
+locked DoML image (`pyproject.toml` / `uv.lock`). No extra install step is needed.

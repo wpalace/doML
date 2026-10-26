@@ -1,7 +1,7 @@
 # DoML Deploy CLI Workflow
 
 ## Purpose
-Generate predict.py and predict.spec, run PyInstaller inside the Jupyter Docker container, and
+Generate predict.py and predict.spec, run PyInstaller inside the doml Docker container, and
 produce src/<modelname>/vN/dist/predict/predict — a self-contained Linux binary requiring no
 Python on the target machine.
 
@@ -143,38 +143,32 @@ echo "Example values loaded."
 
 ### Step 5 — Check src/ volume mount and pyinstaller availability
 
-Check that docker-compose.yml has the src/ volume mount:
+Check that compose.yaml has the src/ volume mount:
 ```bash
-if ! grep -q "./src:/home/jovyan/work/src" docker-compose.yml 2>/dev/null; then
+if ! grep -qE "^[[:space:]]*- \.:/project$" compose.yaml 2>/dev/null; then
   echo ""
-  echo "SETUP REQUIRED: The src/ directory is not mounted in your Docker container."
-  echo ""
-  echo "Add this line to the volumes: block in docker-compose.yml (after the models mount):"
-  echo "      - ./src:/home/jovyan/work/src"
-  echo ""
-  echo "Then run: docker compose down && docker compose up -d"
-  echo ""
-  echo "Re-run /doml-deploy-cli after the container restarts."
+  echo "SETUP REQUIRED: compose.yaml does not mount the project root (- .:/project)."
+  echo "Copy .claude/doml/templates/compose.yaml over it, then run: docker compose up -d"
   exit 1
 fi
 ```
 
 Check that the container is running:
 ```bash
-if ! docker compose ps jupyter 2>/dev/null | grep -q "Up\|running"; then
-  echo "Jupyter container is not running. Start it with: docker compose up -d"
+if ! docker compose ps doml 2>/dev/null | grep -q "Up\|running"; then
+  echo "doml container is not running. Start it with: docker compose up -d"
   exit 1
 fi
 ```
 
 Check pyinstaller is available in the container:
 ```bash
-if ! docker compose exec jupyter pyinstaller --version 2>/dev/null; then
+if ! docker compose exec doml pyinstaller --version 2>/dev/null; then
   echo ""
   echo "SETUP REQUIRED: pyinstaller is not installed in the Docker container."
   echo ""
-  echo "1. Add 'pyinstaller' to requirements.in"
-  echo "2. Run: docker compose run --rm jupyter pip-compile requirements.in"
+  echo "1. Add 'pyinstaller' to the dependencies in pyproject.toml"
+  echo "2. Run: uv lock && uv export --frozen --no-emit-project --no-dev -o requirements.txt"
   echo "3. Run: docker compose build"
   echo "4. Run: docker compose up -d"
   echo ""
@@ -186,9 +180,9 @@ echo "PyInstaller available in container."
 
 ### Step 6 — Generate predict.py
 
-Derive the container path for the deployment directory (host ./src maps to /home/jovyan/work/src):
+Derive the container path for the deployment directory (host ./src maps to /project/src):
 ```bash
-DEPLOY_DIR_CONTAINER="/home/jovyan/work/$(echo "$DEPLOY_DIR" | sed 's|^\./||')"
+DEPLOY_DIR_CONTAINER="/project/$(echo "$DEPLOY_DIR" | sed 's|^\./||')"
 ```
 
 Read the enriched schema into Python for embedding:
@@ -459,11 +453,11 @@ fi
 
 ```bash
 # Derive container-side path
-DEPLOY_DIR_CONTAINER="/home/jovyan/work/$(echo "$DEPLOY_DIR" | sed 's|^\./||')"
+DEPLOY_DIR_CONTAINER="/project/$(echo "$DEPLOY_DIR" | sed 's|^\./||')"
 echo "Building inside container at: $DEPLOY_DIR_CONTAINER"
 echo "This may take 2-5 minutes..."
 
-docker compose exec jupyter bash -c "cd '$DEPLOY_DIR_CONTAINER' && pyinstaller predict.spec --noconfirm"
+docker compose exec doml bash -c "cd '$DEPLOY_DIR_CONTAINER' && pyinstaller predict.spec --noconfirm"
 BUILD_EXIT=$?
 
 if [ $BUILD_EXIT -ne 0 ]; then
@@ -472,7 +466,7 @@ if [ $BUILD_EXIT -ne 0 ]; then
   echo ""
   echo "Common causes:"
   echo "  - sklearn C-extension missing: ensure predict.spec uses collect_all('sklearn')"
-  echo "  - src/ not writable in container: check ./src:/home/jovyan/work/src mount in docker-compose.yml"
+  echo "  - src/ not writable in container: check the `.:/project` mount in compose.yaml"
   echo "  - pyinstaller version mismatch: rebuild with docker compose build"
   echo ""
   echo "Re-run /doml-deploy-cli after fixing the issue."

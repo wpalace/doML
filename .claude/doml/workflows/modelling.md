@@ -13,12 +13,10 @@ the problem type and routes to the supervised or unsupervised execution path.
 Before executing any notebook task, verify:
 1. Random seed `SEED = 42` is set at the top of every Python notebook (REPR-01)
 2. All paths use `PROJECT_ROOT` env var — no hardcoded absolute paths (REPR-02)
-3. `nbstripout` pre-commit hook is active — outputs stripped before git commit (REPR-03)
+3. Notebooks are plain-Python marimo files: outputs are never stored in git, only in `reports/*.html` (REPR-03)
 
 If any constraint is violated, stop and alert the user before proceeding.
 
-Note: This executor is Python-only. scikit-learn, SHAP, and Optuna do not have R equivalents.
-R projects that used the R EDA notebook switch to Python for modelling.
 
 ---
 
@@ -80,24 +78,21 @@ Route:
 
 ```bash
 mkdir -p notebooks
-cp .claude/doml/templates/notebooks/preprocessing.ipynb notebooks/03_preprocessing.ipynb
+cp .claude/doml/templates/notebooks/preprocessing.py notebooks/03_preprocessing.py
 ```
 
-If `notebooks/03_preprocessing.ipynb` already exists, ask before overwriting:
+If `notebooks/03_preprocessing.py` already exists, ask before overwriting:
 ```
-notebooks/03_preprocessing.ipynb already exists. Overwrite? (yes / no)
+notebooks/03_preprocessing.py already exists. Overwrite? (yes / no)
 ```
 Use AskUserQuestion. If the user says no, stop without overwriting.
 
 **Step 4b — Execute preprocessing notebook**
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --execute \
-  --to notebook \
-  --inplace \
-  notebooks/03_preprocessing.ipynb \
-  --ExecutePreprocessor.timeout=600
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/03_preprocessing.py \
+  --report reports/preprocessing_report.html --timeout 600
 ```
 
 If the container is not running:
@@ -111,14 +106,8 @@ Stop.
 **Step 4c — Verify preprocessing output**
 
 ```bash
-python3 -c "
-import nbformat
-with open('notebooks/03_preprocessing.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
-print(f'Preprocessing notebook: {code_cells_with_output} code cells with output')
-assert code_cells_with_output > 0, 'No cell outputs — execution may have failed'
-"
+# The run step exits non-zero on any cell error; this re-checks the exported report.
+python3 .claude/doml/bin/doml_nb.py verify-report reports/preprocessing_report.html
 ```
 
 After execution, verify the preprocessed dataset was written:
@@ -147,9 +136,9 @@ fi
 VERSION=$(python3 -c "
 import glob, re
 problem_type = '${PROBLEM_TYPE}'
-pattern = f'notebooks/0*_modelling_{problem_type}_v*.ipynb'
+pattern = f'notebooks/0*_modelling_{problem_type}_v*.py'
 existing = glob.glob(pattern)
-versions = [int(re.search(r'_v(\d+)\.ipynb', f).group(1)) for f in existing if re.search(r'_v(\d+)\.ipynb', f)]
+versions = [int(re.search(r'_v(\d+)\.py', f).group(1)) for f in existing if re.search(r'_v(\d+)\.py', f)]
 print(max(versions) + 1 if versions else 1)
 ")
 
@@ -157,15 +146,15 @@ echo "Version: $VERSION"
 
 # Select template
 if [ "$PROBLEM_TYPE" = "regression" ]; then
-  TEMPLATE=".claude/doml/templates/notebooks/modelling_regression.ipynb"
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_regression.py"
 elif [ "$PROBLEM_TYPE" = "classification" ]; then
-  TEMPLATE=".claude/doml/templates/notebooks/modelling_classification.ipynb"
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_classification.py"
 else
   echo "Unknown supervised problem_type: $PROBLEM_TYPE"
   exit 1
 fi
 
-MODELLING_NOTEBOOK="notebooks/0${NOTEBOOK_NUM}_modelling_${PROBLEM_TYPE}_v${VERSION}.ipynb"
+MODELLING_NOTEBOOK="notebooks/0${NOTEBOOK_NUM}_modelling_${PROBLEM_TYPE}_v${VERSION}.py"
 echo "Modelling notebook: $MODELLING_NOTEBOOK"
 echo "Template: $TEMPLATE"
 ```
@@ -183,12 +172,9 @@ uniqueness).
 **Step 5c — Execute modelling notebook**
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --execute \
-  --to notebook \
-  --inplace \
-  "$MODELLING_NOTEBOOK" \
-  --ExecutePreprocessor.timeout=1200
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
+  --report reports/model_report.html --timeout 1200
 ```
 
 Timeout is 1200s (20 min) — Optuna tuning adds execution time.
@@ -201,29 +187,13 @@ Then run /doml-modelling again.
 ```
 Stop.
 
-On failure, display the nbconvert error and stop.
+On failure, display the cell error and stop.
 
 **Step 5d — Verify modelling notebook output**
 
 ```bash
-python3 -c "
-import nbformat
-with open('$MODELLING_NOTEBOOK') as f:
-    nb = nbformat.read(f, as_version=4)
-code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
-print(f'Modelling notebook: {code_cells_with_output} code cells with output')
-assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
-"
-
-# Verify leaderboard was produced
-python3 -c "
-import os
-assert os.path.exists('models/leaderboard.csv'), 'models/leaderboard.csv not found after modelling notebook execution'
-import pandas as pd
-lb = pd.read_csv('models/leaderboard.csv')
-print(f'Leaderboard: {len(lb)} rows')
-print(lb[['model','cv_primary_mean' if 'cv_primary_mean' in lb.columns else 'cv_rmse_mean']].to_string())
-"
+# The run step exits non-zero on any cell error; this re-checks the exported report.
+python3 .claude/doml/bin/doml_nb.py verify-report reports/model_report.html
 ```
 
 ### Step 6 — Write interpretation, generate HTML report
@@ -232,7 +202,7 @@ print(lb[['model','cv_primary_mean' if 'cv_primary_mean' in lb.columns else 'cv_
 
 After execution, Claude reads `models/leaderboard.csv` and `reports/shap_*.png` (file list
 only — not the images themselves), then writes an **Interpretation & Recommendations**
-Markdown cell as the final cell of the executed notebook.
+Markdown section, saved as the notebook's `interpretation` sidecar (rendered near the end).
 
 The interpretation must include:
 1. **Top model finding** — which model won, its CV score, and how much it beat the
@@ -248,13 +218,12 @@ If `GUIDANCE` is non-empty, incorporate it to shape the recommendations section
 (e.g., if guidance says "prioritise interpretability", bias recommendations toward simpler
 models and SHAP analysis).
 
-Write the interpretation using a Python script (write to temp file to avoid quoting issues):
+Save the interpretation as the notebook's `interpretation` narrative sidecar (the quoted heredoc avoids quoting issues):
 
-```python
-# /tmp/doml_insert_modelling_interpretation.py
-import nbformat, uuid
-
-INTERPRETATION = """## Interpretation & Recommendations
+```bash
+# Narrative sidecar: the notebook renders notebooks/narratives/<stem>/interpretation.md
+cat > /tmp/doml_interpretation.md <<'DOML_EOF'
+## Interpretation & Recommendations
 
 [Claude writes this section based on leaderboard.csv and SHAP outputs]
 
@@ -268,36 +237,11 @@ INTERPRETATION = """## Interpretation & Recommendations
 [Specific action: iterate, proceed to reports, or additional feature engineering]
 
 *To iterate: `/doml-iterate-model "your direction"`*
-"""
-
-with open('[MODELLING_NOTEBOOK]') as f:
-    nb = nbformat.read(f, as_version=4)
-
-interp_cell = nbformat.v4.new_markdown_cell(source=INTERPRETATION)
-interp_cell['id'] = uuid.uuid4().hex[:8]
-
-# Replace the template placeholder if present; otherwise append
-placeholder_idx = next(
-    (i for i, c in enumerate(nb.cells)
-     if c.cell_type == 'markdown' and c.source.startswith('## Interpretation & Recommendations')),
-    None
-)
-if placeholder_idx is not None:
-    nb.cells[placeholder_idx] = interp_cell
-else:
-    nb.cells.append(interp_cell)
-
-with open('[MODELLING_NOTEBOOK]', 'w') as f:
-    nbformat.write(nb, f)
-
-print('Interpretation cell written')
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative "$MODELLING_NOTEBOOK" interpretation /tmp/doml_interpretation.md
 ```
 
-Write the actual interpretation into `INTERPRETATION`, replace `[MODELLING_NOTEBOOK]` with
-the actual path, then run:
-```bash
-python3 /tmp/doml_insert_modelling_interpretation.py
-```
+Write the actual text into the heredoc before running it.
 
 **Step 6b — Write model report narrative**
 
@@ -319,32 +263,19 @@ The model report narrative must:
 
 If `GUIDANCE` is non-empty, shape the narrative accordingly.
 
-Insert the narrative as cell 0 of the modelling notebook:
+Save the narrative as the notebook's `summary` sidecar (rendered directly below the title):
 
-```python
-# /tmp/doml_insert_model_narrative.py
-import nbformat, uuid
-
-NARRATIVE = """[WRITE THE 2-3 PARAGRAPH EXECUTIVE SUMMARY HERE]"""
-
-with open('[MODELLING_NOTEBOOK]') as f:
-    nb = nbformat.read(f, as_version=4)
-
-summary_cell = nbformat.v4.new_markdown_cell(source='## Executive Summary\n\n' + NARRATIVE)
-summary_cell['id'] = uuid.uuid4().hex[:8]
-nb.cells.insert(0, summary_cell)
-
-with open('[MODELLING_NOTEBOOK]', 'w') as f:
-    nbformat.write(nb, f)
-
-print('Executive narrative inserted as cell 0')
-```
-
-Write the actual narrative into `NARRATIVE`, replace `[MODELLING_NOTEBOOK]` with the actual
-path, then run:
 ```bash
-python3 /tmp/doml_insert_model_narrative.py
+# Narrative sidecar: the notebook renders notebooks/narratives/<stem>/summary.md
+cat > /tmp/doml_summary.md <<'DOML_EOF'
+## Executive Summary
+
+[WRITE THE 2-3 PARAGRAPH EXECUTIVE SUMMARY HERE]
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative "$MODELLING_NOTEBOOK" summary /tmp/doml_summary.md
 ```
+
+Write the actual text into the heredoc before running it.
 
 **Step 6c — Create reports/ directory**
 
@@ -355,12 +286,12 @@ mkdir -p reports
 **Step 6d — Convert modelling notebook to HTML**
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --to html \
-  --no-input \
-  "$MODELLING_NOTEBOOK" \
-  --output-dir reports \
-  --output model_report
+# Re-export so the report shows the narrative cells written above.
+# marimo re-runs the notebook (seeded, so results are identical; leaderboard
+# rows are replaced, not duplicated).
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
+  --report reports/model_report.html
 ```
 
 If the container is not running:
@@ -375,7 +306,7 @@ Stop.
 
 ```bash
 test -f reports/model_report.html && echo "REPORT_EXISTS" || echo "REPORT_MISSING"
-grep -c 'class="input"' reports/model_report.html && echo "CODE_VISIBLE_VIOLATION" || echo "CODE_HIDDEN_OK"
+python3 .claude/doml/bin/doml_nb.py verify-report reports/model_report.html  # prints CODE_HIDDEN_OK and NO_CELL_ERRORS_OK
 grep -ci "correlation is not causation" reports/model_report.html && echo "CAVEATS_OK" || echo "CAVEATS_MISSING"
 grep -ci "leaderboard\|best model\|model" reports/model_report.html | head -1 && echo "MODEL_CONTENT_OK" || echo "MODEL_CONTENT_MISSING"
 ```
@@ -392,9 +323,9 @@ Check that the appropriate template exists:
 
 ```bash
 if [ "$PROBLEM_TYPE" = "clustering" ]; then
-  TEMPLATE=".claude/doml/templates/notebooks/modelling_clustering.ipynb"
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_clustering.py"
 elif [ "$PROBLEM_TYPE" = "dimensionality_reduction" ]; then
-  TEMPLATE=".claude/doml/templates/notebooks/modelling_dimreduction.ipynb"
+  TEMPLATE=".claude/doml/templates/notebooks/modelling_dimreduction.py"
 fi
 
 test -f "$TEMPLATE" && echo "Template found: $TEMPLATE" || {
@@ -412,7 +343,7 @@ test -f "$TEMPLATE" && echo "Template found: $TEMPLATE" || {
 # Auto-detect next available notebook number (do not hardcode)
 NOTEBOOK_NUM=$(python3 -c "
 import glob, re
-existing = glob.glob('notebooks/0*_modelling_*.ipynb')
+existing = glob.glob('notebooks/0*_modelling_*.py')
 if existing:
     nums = [int(re.search(r'notebooks/0*(\d+)_', f).group(1)) for f in existing if re.search(r'notebooks/0*(\d+)_', f)]
     print(max(nums) + 1 if nums else 5)
@@ -424,15 +355,15 @@ else:
 VERSION=$(python3 -c "
 import glob, re
 problem_type = '${PROBLEM_TYPE}'
-pattern = f'notebooks/0*_modelling_{problem_type}_v*.ipynb'
+pattern = f'notebooks/0*_modelling_{problem_type}_v*.py'
 existing = glob.glob(pattern)
-versions = [int(re.search(r'_v(\d+)\.ipynb', f).group(1)) for f in existing if re.search(r'_v(\d+)\.ipynb', f)]
+versions = [int(re.search(r'_v(\d+)\.py', f).group(1)) for f in existing if re.search(r'_v(\d+)\.py', f)]
 print(max(versions) + 1 if versions else 1)
 ")
 
 echo "Notebook number: $NOTEBOOK_NUM, Version: $VERSION"
 
-MODELLING_NOTEBOOK="notebooks/0${NOTEBOOK_NUM}_modelling_${PROBLEM_TYPE}_v${VERSION}.ipynb"
+MODELLING_NOTEBOOK="notebooks/0${NOTEBOOK_NUM}_modelling_${PROBLEM_TYPE}_v${VERSION}.py"
 echo "Modelling notebook: $MODELLING_NOTEBOOK"
 echo "Template: $TEMPLATE"
 ```
@@ -450,12 +381,10 @@ Version number always increments — no overwrite check needed.
 **Step 8c — Execute unsupervised notebook inside Docker**
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --execute \
-  --to notebook \
-  --inplace \
-  "$MODELLING_NOTEBOOK" \
-  --ExecutePreprocessor.timeout=900
+if [ "$PROBLEM_TYPE" = "clustering" ]; then REPORT_NAME="clustering_report_v${VERSION}"; else REPORT_NAME="dimreduction_report_v${VERSION}"; fi
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
+  --report "reports/${REPORT_NAME}.html" --timeout 900
 ```
 
 Timeout is 900s (15 min) — no Optuna hyperparameter tuning in unsupervised.
@@ -468,19 +397,13 @@ Then run /doml-modelling again.
 ```
 Stop.
 
-On execution failure (non-zero exit code), display the nbconvert error output and stop.
+On execution failure (non-zero exit code), display the cell error output and stop.
 
 **Step 8d — Verify notebook output**
 
 ```bash
-python3 -c "
-import nbformat
-with open('$MODELLING_NOTEBOOK') as f:
-    nb = nbformat.read(f, as_version=4)
-code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
-print(f'Unsupervised notebook: {code_cells_with_output} code cells with output')
-assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
-"
+# The run step exits non-zero on any cell error; this re-checks the exported report.
+python3 .claude/doml/bin/doml_nb.py verify-report "reports/${REPORT_NAME}.html"
 ```
 
 After execution, verify the unsupervised leaderboard was produced:
@@ -532,7 +455,7 @@ fi
 **Step 8f — Write Claude interpretation cell**
 
 After execution, Claude reads `models/unsupervised_leaderboard.csv` and writes an
-**Interpretation & Recommendations** Markdown cell as the final cell of the executed
+**Interpretation & Recommendations** Markdown section (the `interpretation` sidecar) for the executed
 notebook.
 
 For clustering notebooks, the interpretation must include:
@@ -553,13 +476,12 @@ For dimensionality reduction notebooks, the interpretation must include:
 
 If `GUIDANCE` is non-empty, incorporate it to shape the interpretation section accordingly.
 
-Write the interpretation cell using a Python script:
+Save the interpretation as the notebook's `interpretation` sidecar:
 
-```python
-# /tmp/doml_insert_unsupervised_interpretation.py
-import nbformat
-
-INTERPRETATION = """## Interpretation & Recommendations
+```bash
+# Narrative sidecar: the notebook renders notebooks/narratives/<stem>/interpretation.md
+cat > /tmp/doml_interpretation.md <<'DOML_EOF'
+## Interpretation & Recommendations
 
 [Claude writes this section based on unsupervised_leaderboard.csv and notebook outputs]
 
@@ -574,21 +496,21 @@ INTERPRETATION = """## Interpretation & Recommendations
 ### Recommended Next Steps
 
 [Specific /doml-iterate-unsupervised direction or note that a report will be generated separately]
-"""
-
-with open('NOTEBOOK_PATH') as f:
-    nb = nbformat.read(f, as_version=4)
-
-interp_cell = nbformat.v4.new_markdown_cell(source=INTERPRETATION)
-nb.cells.append(interp_cell)
-
-with open('NOTEBOOK_PATH', 'w') as f:
-    nbformat.write(nb, f)
-
-print("Interpretation cell appended.")
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative "$MODELLING_NOTEBOOK" interpretation /tmp/doml_interpretation.md
 ```
 
-Replace `NOTEBOOK_PATH` with the actual `$MODELLING_NOTEBOOK` path before running.
+
+---
+
+**Step 8g — Re-export the report with the interpretation**
+
+```bash
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
+  --report "reports/${REPORT_NAME}.html" --timeout 900
+python3 .claude/doml/bin/doml_nb.py verify-report "reports/${REPORT_NAME}.html" --require "not causation"
+```
 
 ---
 
@@ -608,7 +530,7 @@ For supervised:
 ```
 Modelling complete ({problem_type}).
 
-  Preprocessing:  notebooks/03_preprocessing.ipynb
+  Preprocessing:  notebooks/03_preprocessing.py
   Modelling:      {MODELLING_NOTEBOOK}
   Report:         reports/model_report.html
   Leaderboard:    models/leaderboard.csv
@@ -621,6 +543,7 @@ For unsupervised:
 Modelling complete ({problem_type}).
 
   Notebook:    {MODELLING_NOTEBOOK}
+  Report:      reports/{REPORT_NAME}.html
   Leaderboard: models/unsupervised_leaderboard.csv
 
 To iterate: /doml-iterate-unsupervised "your direction"

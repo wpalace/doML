@@ -13,7 +13,7 @@ execute in Docker, write executive narrative, generate HTML report.
 Before executing any notebook task, verify:
 1. Random seed `SEED = 42` is set at the top of every Python notebook (REPR-01)
 2. All paths use `PROJECT_ROOT` env var — no hardcoded absolute paths (REPR-02)
-3. `nbstripout` pre-commit hook is active — outputs stripped before git commit (REPR-03)
+3. Notebooks are plain-Python marimo files: outputs are never stored in git, only in `reports/*.html` (REPR-03)
 
 If any constraint is violated, stop and alert the user before proceeding.
 
@@ -50,13 +50,13 @@ for use in Step 6. If `$ARGUMENTS` is empty or does not contain `--guidance`, se
 Copy the BU notebook template into the project's notebooks directory:
 ```bash
 mkdir -p notebooks
-cp .claude/doml/templates/notebooks/business_understanding.ipynb \
-   notebooks/01_business_understanding.ipynb
+cp .claude/doml/templates/notebooks/business_understanding.py \
+   notebooks/01_business_understanding.py
 ```
 
-If `notebooks/01_business_understanding.ipynb` already exists, ask before overwriting:
+If `notebooks/01_business_understanding.py` already exists, ask before overwriting:
 ```
-notebooks/01_business_understanding.ipynb already exists. Overwrite? (yes / no)
+notebooks/01_business_understanding.py already exists. Overwrite? (yes / no)
 ```
 Use AskUserQuestion for this. If the user says no, stop without overwriting.
 
@@ -116,12 +116,9 @@ python3 /tmp/doml_set_column_names.py
 ### Step 4 — Execute the notebook inside Docker
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --execute \
-  --to notebook \
-  --inplace \
-  notebooks/01_business_understanding.ipynb \
-  --ExecutePreprocessor.timeout=600
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/01_business_understanding.py \
+  --report reports/business_summary.html --timeout 600
 ```
 
 If the container is not running, display:
@@ -132,20 +129,14 @@ Then run /doml-business-understanding again.
 ```
 and stop.
 
-On execution failure (non-zero exit code), display the nbconvert error output and stop.
+On execution failure (non-zero exit code), display the cell error output and stop.
 Do not proceed to HTML generation.
 
 ### Step 5 — Verify notebook output
 
 ```bash
-python3 -c "
-import nbformat
-with open('notebooks/01_business_understanding.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
-print(f'Executed notebook: {code_cells_with_output} code cells with output')
-assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
-"
+# The run step exits non-zero on any cell error; this re-checks the exported report.
+python3 .claude/doml/bin/doml_nb.py verify-report reports/business_summary.html
 ```
 
 If verification fails, report the error and stop. Do not generate the HTML report on an
@@ -157,11 +148,11 @@ Generate a 2–3 paragraph executive summary suitable for non-technical stakehol
 
 Read the following to inform the narrative:
 - `.planning/PROJECT.md` — business question, stakeholder, expected outcome, decision framing sentence
-- `.planning/config.json` — problem type, time factor, language
-- The executed notebook's cell outputs (`notebooks/01_business_understanding.ipynb`) for dataset counts
+- `.planning/config.json` — problem type, time factor
+- The executed notebook's cell outputs (`notebooks/01_business_understanding.py`) for dataset counts
 
 Write the narrative as plain Markdown. It must:
-- Avoid technical jargon (no mentions of "DuckDB", "nbformat", "config.json")
+- Avoid technical jargon (no mentions of "DuckDB", "marimo", "config.json")
 - Address the stakeholder's business question in plain language
 - Summarize what data was found (number of files, approximate row/column counts)
 - State the confirmed ML problem type in plain terms (e.g., "This is a prediction problem"
@@ -172,33 +163,21 @@ If `GUIDANCE` is non-empty, incorporate it as additional context shaping the fra
 narrative (e.g., if guidance says "focus on churn drivers", ensure the narrative emphasises
 the churn framing).
 
-Insert the narrative as the FIRST cell in the notebook using this Python script (write to a
-temp file to avoid quoting issues):
+Save the narrative as the notebook's `summary` sidecar (rendered directly below the title). The quoted
+heredoc avoids quoting issues:
 
-```python
-# /tmp/doml_insert_summary.py
-import nbformat
-
-NARRATIVE = """[WRITE THE 2-3 PARAGRAPH EXECUTIVE SUMMARY HERE]"""
-
-with open('notebooks/01_business_understanding.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-
-import uuid
-summary_cell = nbformat.v4.new_markdown_cell(source='## Executive Summary\n\n' + NARRATIVE)
-summary_cell['id'] = uuid.uuid4().hex[:8]
-nb.cells.insert(0, summary_cell)
-
-with open('notebooks/01_business_understanding.ipynb', 'w') as f:
-    nbformat.write(nb, f)
-
-print('Executive narrative inserted as cell 0')
-```
-
-Write the actual narrative into the script, then run:
 ```bash
-python3 /tmp/doml_insert_summary.py
+# Narrative sidecar: the notebook renders notebooks/narratives/<stem>/summary.md
+cat > /tmp/doml_summary.md <<'DOML_EOF'
+## Executive Summary
+
+[WRITE THE 2-3 PARAGRAPH EXECUTIVE SUMMARY HERE]
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative notebooks/01_business_understanding.py summary /tmp/doml_summary.md
 ```
+
+Write the actual narrative text into the quoted heredoc above before running it. The quoted
+`'DOML_EOF'` delimiter means no shell interpolation happens (never pass `$GUIDANCE` through the shell).
 
 ### Step 7 — Generate HTML report
 
@@ -211,12 +190,12 @@ mkdir -p reports
 **Step 7b — Convert notebook to HTML (code cells hidden)**
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --to html \
-  --no-input \
-  notebooks/01_business_understanding.ipynb \
-  --output-dir reports \
-  --output business_summary
+# Re-export so the report shows the narrative cells written above.
+# marimo re-runs the notebook (seeded, so results are identical; leaderboard
+# rows are replaced, not duplicated).
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/01_business_understanding.py \
+  --report reports/business_summary.html
 ```
 
 This produces `reports/business_summary.html`. The `--no-input` flag hides all code cells
@@ -237,7 +216,7 @@ and stop.
 test -f reports/business_summary.html && echo "REPORT_EXISTS" || echo "REPORT_MISSING"
 
 # Check 2: Code cells are hidden (OUT-02) — expected: 0 matches
-grep -c 'class="input"' reports/business_summary.html && echo "CODE_VISIBLE_VIOLATION" || echo "CODE_HIDDEN_OK"
+python3 .claude/doml/bin/doml_nb.py verify-report reports/business_summary.html  # prints CODE_HIDDEN_OK and NO_CELL_ERRORS_OK
 
 # Check 3: Caveats section present (OUT-03) — expected: >= 1 match
 grep -ci "correlation is not causation" reports/business_summary.html && echo "CAVEATS_OK" || echo "CAVEATS_MISSING"
@@ -253,7 +232,7 @@ If any check fails, report which check failed. Do not suppress failures.
 Write to `.planning/STATE.md`:
 - Update `current_focus` to "Data Understanding (next) — run /doml-data-understanding"
 - Append to Decisions section:
-  `[Phase 08]: doml-business-understanding completed — notebooks/01_business_understanding.ipynb + reports/business_summary.html generated`
+  `[Phase 08]: doml-business-understanding completed — notebooks/01_business_understanding.py + reports/business_summary.html generated`
 - Update `last_activity` with today's date
 
 ### Step 9 — Confirm
@@ -262,7 +241,7 @@ Display:
 ```
 Business Understanding complete.
 
-  Notebook: notebooks/01_business_understanding.ipynb
+  Notebook: notebooks/01_business_understanding.py
   Report:   reports/business_summary.html
 
 Next step: /doml-data-understanding

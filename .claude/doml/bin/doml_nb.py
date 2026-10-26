@@ -21,6 +21,11 @@ Commands:
   next-version PATTERN
       Print max(N)+1 over files matching a glob that contains `_v*`, e.g.
       'notebooks/0*_modelling_regression_v*.py'. Prints 1 when nothing matches.
+  outputs REPORT.html [--max-chars N]
+      Print the plain text of every cell output stored in an exported report
+      (replaces reading cell outputs from an executed .ipynb).
+  verify-report REPORT.html [--require TEXT]...
+      Check the report has no visible code, no cell errors, and each required phrase.
   check NOTEBOOK...
       `marimo check --strict`.
 """
@@ -134,6 +139,73 @@ def cmd_next_version(a: argparse.Namespace) -> int:
     return 0
 
 
+def _session(report: Path) -> tuple[dict, dict]:
+    html = report.read_text(encoding="utf-8")
+    dec = json.JSONDecoder()
+    found = {}
+    for key in ("notebook", "session"):
+        i = html.find(f'"{key}": {{')
+        if i < 0:
+            raise SystemExit(f"ERROR: {report} is not a marimo HTML export (no {key} block)")
+        found[key], _ = dec.raw_decode(html, i + len(key) + 4)
+    return found["notebook"], found["session"]
+
+
+def _plain(data: dict) -> str:
+    import html as _html
+
+    for mime in ("text/markdown", "text/plain", "text/html"):
+        if data.get(mime):
+            text = str(data[mime])
+            if mime in ("text/html", "text/markdown") and "<" in text:
+                text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", text, flags=re.S)
+                text = re.sub(r"<(br|/p|/div|/tr|/h\d|/li)[^>]*>", "\n", text)
+                text = _html.unescape(re.sub(r"<[^>]+>", " ", text))
+                text = re.sub(r"[ \t]+", " ", text)
+                text = re.sub(r"\n\s*\n+", "\n", text)
+            return text.strip()
+    return ""
+
+
+def cmd_outputs(a: argparse.Namespace) -> int:
+    _, session = _session(Path(a.report))
+    chunks = []
+    for i, cell in enumerate(session.get("cells", [])):
+        texts = [_plain(o.get("data", {})) for o in cell.get("outputs", []) if o.get("type") == "data"]
+        texts += [str(c.get("text", "")) for c in cell.get("console", [])]
+        body = "\n".join(t for t in texts if t)
+        if body:
+            chunks.append(f"[cell {i}]\n{body}")
+    print("\n\n".join(chunks)[: a.max_chars])
+    return 0
+
+
+def cmd_verify_report(a: argparse.Namespace) -> int:
+    report = Path(a.report)
+    if not report.exists():
+        print(f"REPORT_MISSING: {report}")
+        return 1
+    notebook, session = _session(report)
+    ok = True
+    if any(c.get("code") for c in notebook.get("cells", [])):
+        print("CODE_VISIBLE_VIOLATION: export again without --with-code")
+        ok = False
+    else:
+        print("CODE_HIDDEN_OK")
+    errors = [o for c in session.get("cells", []) for o in c.get("outputs", []) if o.get("type") == "error"]
+    if errors:
+        print(f"CELL_ERRORS: {len(errors)}")
+        ok = False
+    else:
+        print("NO_CELL_ERRORS_OK")
+    text = report.read_text(encoding="utf-8").lower()
+    for phrase in a.require or []:
+        hit = phrase.lower() in text
+        print(f"{'FOUND' if hit else 'MISSING'}: {phrase}")
+        ok &= hit
+    return 0 if ok else 1
+
+
 def cmd_check(a: argparse.Namespace) -> int:
     return subprocess.run([*_marimo(), "check", "--strict", *a.notebooks]).returncode
 
@@ -164,6 +236,12 @@ def main(argv: list[str] | None = None) -> int:
     sb.add_argument("replacement")
     nv = sub.add_parser("next-version")
     nv.add_argument("pattern")
+    o = sub.add_parser("outputs")
+    o.add_argument("report")
+    o.add_argument("--max-chars", type=int, default=20000)
+    vr = sub.add_parser("verify-report")
+    vr.add_argument("report")
+    vr.add_argument("--require", action="append")
     c = sub.add_parser("check")
     c.add_argument("notebooks", nargs="+")
     argv = list(sys.argv[1:] if argv is None else argv)
@@ -176,6 +254,7 @@ def main(argv: list[str] | None = None) -> int:
     return {
         "run": cmd_run, "narrative": cmd_narrative, "set-param": cmd_set_param,
         "append": cmd_append, "sub": cmd_sub, "next-version": cmd_next_version, "check": cmd_check,
+        "outputs": cmd_outputs, "verify-report": cmd_verify_report,
     }[a.cmd](a)
 
 

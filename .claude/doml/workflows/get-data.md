@@ -99,14 +99,14 @@ Then stop.
 ### Step 2 — Check Docker is running
 
 ```bash
-if ! docker compose ps --services --filter status=running 2>/dev/null | grep -q jupyter; then
+if ! docker compose ps --services --filter status=running 2>/dev/null | grep -q doml; then
   echo "Error: The DoML Docker container is not running."
   echo "Start it with: docker compose up -d"
   exit 1
 fi
 
 # Get container ID (first instance only — handles scaled services gracefully)
-CONTAINER_ID=$(docker compose ps -q jupyter | head -1)
+CONTAINER_ID=$(docker compose ps -q doml | head -1)
 ```
 
 If the container is not running, display:
@@ -135,7 +135,7 @@ mkdir -p ./data/raw/.stage
 #### Step 4a — Verify Kaggle credentials inside container
 
 ```bash
-docker compose exec jupyter bash -c '
+docker compose exec doml bash -c '
   if [ -z "$KAGGLE_USERNAME" ] || [ -z "$KAGGLE_KEY" ]; then
     echo "MISSING_KAGGLE_CREDS"
     exit 1
@@ -151,7 +151,7 @@ Kaggle credentials are not set. To fix this:
 
 1. Go to https://www.kaggle.com → Account → API → Create New API Token
 2. The downloaded JSON file contains "username" and "key" values
-3. Add these to docker-compose.yml under the jupyter service's environment block:
+3. Add these to compose.yaml under the doml service's environment block:
      - KAGGLE_USERNAME=your_username_here
      - KAGGLE_KEY=your_key_here
    Or create a .env file in the project root with:
@@ -168,10 +168,10 @@ Then stop.
 
 ```bash
 # Clean in-container staging dir first
-docker compose exec jupyter bash -c "rm -rf /tmp/doml-stage && mkdir -p /tmp/doml-stage"
+docker compose exec doml bash -c "rm -rf /tmp/doml-stage && mkdir -p /tmp/doml-stage"
 
 # Download and unzip (--unzip handles the outer ZIP; nested ZIPs handled below)
-docker compose exec jupyter bash -c "
+docker compose exec doml bash -c "
   kaggle datasets download -d '${SLUG}' -p /tmp/doml-stage --unzip --quiet
 "
 ```
@@ -179,7 +179,7 @@ docker compose exec jupyter bash -c "
 After extraction, check for nested ZIPs (kaggle --unzip only extracts one level):
 
 ```bash
-docker compose exec jupyter bash -c "
+docker compose exec doml bash -c "
   find /tmp/doml-stage -name '*.zip' | while read z; do
     echo \"Extracting nested ZIP: \$z\"
     unzip -q \"\$z\" -d \"\$(dirname \$z)/\"
@@ -201,7 +201,7 @@ Always use the `/.` suffix to copy contents only.
 #### Step 4d — Clean up in-container staging dir
 
 ```bash
-docker compose exec jupyter bash -c "rm -rf /tmp/doml-stage"
+docker compose exec doml bash -c "rm -rf /tmp/doml-stage"
 ```
 
 Skip to Step 6.

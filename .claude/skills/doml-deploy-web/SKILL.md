@@ -16,7 +16,7 @@ Generate all web service artifacts for the DoML deployed model:
 
 1. Validate project state and locate the deployment directory
 2. Read deployment_metadata.json for model_file, model_name, version, feature_schema, problem_type
-3. Check that src/ is mounted in docker-compose.yml; warn if not (informational only — not a blocker)
+3. Check that src/ is mounted in compose.yaml; warn if not (informational only — not a blocker)
 4. Copy the model file to the deployment directory as model.pkl
 5. Generate app.py — FastAPI app with dynamic Pydantic request model and all four endpoints
 6. Generate templates/index.html — Jinja2 prediction form with typed inputs and inline-fetch submission

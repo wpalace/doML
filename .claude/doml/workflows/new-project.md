@@ -39,26 +39,26 @@ Then stop.
 
 ### Step 2 — Docker environment setup
 
-Check whether a JupyterLab Docker environment is already configured and running. All Python analysis runs inside the container — no local Python is assumed on the host machine.
+Check whether a marimo Docker environment is already configured and running. All Python analysis runs inside the container — no local Python is assumed on the host machine.
 
 **Detection check:**
 
-Use the Bash tool to check whether `docker-compose.yml` exists in the project root AND references a `jupyter` service with the DoML volume layout:
+Use the Bash tool to check whether `compose.yaml` exists in the project root AND references the `doml` service with the DoML volume layout:
 
 ```bash
-test -f docker-compose.yml && grep -q "jupyter" docker-compose.yml && grep -q "/home/jovyan/work" docker-compose.yml
+test -f compose.yaml && grep -q "doml:" compose.yaml && grep -q "/project" compose.yaml
 ```
 
 **If the check passes (matching setup found):**
 
 Display:
 ```
-Docker environment detected — using existing docker-compose.yml
+Docker environment detected — using existing compose.yaml
 ```
 
 Verify the container is running:
 ```bash
-docker compose ps --services --filter status=running 2>/dev/null | grep -q jupyter
+docker compose ps --services --filter status=running 2>/dev/null | grep -q doml
 ```
 
 If not running, start it:
@@ -71,15 +71,17 @@ Wait up to 15 seconds for the container to be ready, then proceed to Step 3.
 **If the check fails (no matching setup):**
 
 Ask using AskUserQuestion:
-"No Docker environment found. Set up JupyterLab with Python, R, and DuckDB? [yes/no]"
+"No Docker environment found. Set up the marimo + Python + DuckDB environment? [yes/no]"
 
 If yes:
-1. Copy the three DoML Docker templates into the project root (read each source first, then write to destination). Do not overwrite files that already exist:
-   - `.claude/doml/templates/docker-compose.yml` → `./docker-compose.yml`
+1. Copy the DoML Docker templates into the project root (read each source first, then write to destination). Do not overwrite files that already exist:
+   - `.claude/doml/templates/compose.yaml` → `./compose.yaml`
    - `.claude/doml/templates/Dockerfile` → `./Dockerfile`
-   - `.claude/doml/templates/requirements.txt` → `./requirements.txt`
-   - `.claude/doml/templates/requirements.in` → `./requirements.in`
-2. Start the environment:
+   - `.claude/doml/templates/pyproject.toml` → `./pyproject.toml` (dependency source of truth)
+   - `.claude/doml/templates/uv.lock` → `./uv.lock`
+   - `.claude/doml/templates/requirements.txt` → `./requirements.txt` (hash-pinned export of `uv.lock`)
+   Also create the writable output folders: `mkdir -p notebooks reports models src data/processed .planning`
+2. Start the environment (the marimo editor is then at http://localhost:2718):
    ```bash
    docker compose up -d
    ```
@@ -88,7 +90,7 @@ If yes:
 If no:
 Display:
 ```
-Warning: Analysis phases require the Docker environment (JupyterLab with Python, R, and DuckDB).
+Warning: Analysis phases require the Docker environment (marimo, Python and DuckDB).
 Steps 3–5 will be skipped. You can set up the environment later by running:
   docker compose up -d
 ```
@@ -103,11 +105,11 @@ Run a DuckDB scan of `data/raw/` to detect file formats and display schema conte
 Use the Bash tool to run the following inline Python via `docker compose exec`:
 
 ```bash
-docker compose exec jupyter python -c "
+docker compose exec doml python -c "
 import duckdb, json, os
 from pathlib import Path
 
-data_dir = Path('/home/jovyan/work/data/raw')
+data_dir = Path('/project/data/raw')
 
 # Validate directory
 if not data_dir.exists():
@@ -331,13 +333,6 @@ If yes: Research the domain described in Q1–Q4 using your training knowledge. 
 
 If no: Set `domain_research_summary = None`.
 
-**Q7 — Language preference (INTV-05)**
-Ask using AskUserQuestion:
-"Python (default) or R for this project's notebooks? Press Enter for Python."
-
-Default to `"python"` if the user presses Enter or responds with anything other than "r" or "R".
-Set `analysis_language = "python"` or `"r"`.
-
 **Decision framing sentence (INTV-04)**
 
 Draft the framing sentence from the collected answers:
@@ -371,7 +366,6 @@ Only after the framing sentence is confirmed, fill in `.planning/PROJECT.md`. Us
 | `YYYY-MM-DD` (last_updated) | today's date (ISO 8601) |
 | `DATASET_FILE_OR_FOLDER` | filenames from `scan_results` (comma-separated if multiple) |
 | `problem_type: unknown` | `problem_type: [confirmed problem_type]` |
-| `language: python` | `language: [analysis_language]` |
 | `[What decision or action will this analysis inform?]` | `q1_business_question` |
 | `[Who will act on the findings from this analysis?]` | `q2_stakeholder` |
 | `[What does success look like? What will the stakeholder do differently after seeing results?]` | `q3_expected_outcome` |
@@ -383,8 +377,6 @@ Only after the framing sentence is confirmed, fill in `.planning/PROJECT.md`. Us
 | `[List of columns expected to be predictive, if known]` | leave as-is |
 | `[Yes / No — Is time a relevant dimension in this dataset?]` | "Yes" or "No" + `q5_time_explanation` |
 | `We are trying to [decision] using [metric/outcome column] as a proxy.` | `framing_sentence` |
-| `Python (default) / R (opt-in)` | `[analysis_language title-cased]` |
-| `[Why this preference was selected, if non-default]` | "User default" for python; user's stated reason for R |
 
 Also replace `DATASET_FILE` in the `**Source:** data/raw/DATASET_FILE` line with the primary filename from `scan_results`.
 
@@ -395,13 +387,14 @@ If `domain_research_summary` is not None, append a new subsection immediately af
 [domain_research_summary text here]
 ```
 
-**Atomic write — config.json (INTV-05, Pitfall 3):**
+**Atomic write — config.json (Pitfall 3):**
 
 After PROJECT.md is written, update `.planning/config.json` using the Edit tool. Read the full current config.json first, then modify these specific keys and write the complete updated JSON:
 
-- `"analysis_language"`: add this key (or update if present) — set to `"python"` or `"r"`
 - `"problem_type"`: set to confirmed problem type string
 - `"time_factor"`: set to `true` or `false`
+- `"dataset.path"`: project-relative path of the primary file from `scan_results` (for example `"data/raw/sales.csv"`); the notebooks read this
+- `"target_column"` and `"dataset.target_column"`: the target column inferred above, or `null` for unsupervised problems; the preprocessing and modelling notebooks read the top-level key
 - `"dataset.format"`: set `dataset.format` to primary format from `scan_results` (first file's format, lowercase: `"csv"`, `"parquet"`, or `"xlsx"`)
 - `"last_updated"`: set to today's date (ISO 8601)
 

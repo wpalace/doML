@@ -1,7 +1,7 @@
 # DoML Data Understanding Workflow
 
 ## Purpose
-Run the Data Understanding (EDA) phase end-to-end: language detection, headerless CSV check,
+Run the Data Understanding (EDA) phase end-to-end: headerless CSV check,
 notebook copy, Docker execution, executive narrative, HTML report generation.
 
 ## Invoked by: /doml-data-understanding [--guidance "..."]
@@ -13,7 +13,7 @@ notebook copy, Docker execution, executive narrative, HTML report generation.
 Before executing any notebook task, verify:
 1. Random seed `SEED = 42` is set at the top of every Python notebook (REPR-01)
 2. All paths use `PROJECT_ROOT` env var — no hardcoded absolute paths (REPR-02)
-3. `nbstripout` pre-commit hook is active — outputs stripped before git commit (REPR-03)
+3. Notebooks are plain-Python marimo files: outputs are never stored in git, only in `reports/*.html` (REPR-03)
 
 If any constraint is violated, stop and alert the user before proceeding.
 
@@ -106,47 +106,32 @@ python3 /tmp/doml_set_column_names.py
 
 If the user skips, proceed but note that column names will appear as `column0..N`.
 
-### Step 4 — Detect language and copy notebook template
+### Step 4 — Copy notebook template
 
-Read the `language` field from `.planning/config.json`:
-```bash
-LANG=$(python3 -c "import json; c = json.load(open('.planning/config.json')); print(c.get('language','python'))")
-echo "Analysis language: $LANG"
-```
-
-Copy the appropriate template:
+Data understanding is Python only (a marimo notebook):
 ```bash
 mkdir -p notebooks
-
-if [ "$LANG" = "r" ]; then
-  TEMPLATE=".claude/doml/templates/notebooks/data_understanding_r.ipynb"
-else
-  TEMPLATE=".claude/doml/templates/notebooks/data_understanding_python.ipynb"
-fi
-
+TEMPLATE=".claude/doml/templates/notebooks/data_understanding.py"
 echo "Using template: $TEMPLATE"
 ```
 
-If `notebooks/02_data_understanding.ipynb` already exists, ask before overwriting:
+If `notebooks/02_data_understanding.py` already exists, ask before overwriting:
 ```
-notebooks/02_data_understanding.ipynb already exists. Overwrite? (yes / no)
+notebooks/02_data_understanding.py already exists. Overwrite? (yes / no)
 ```
 Use AskUserQuestion for this. If the user says no, stop without overwriting.
 
 Copy the template:
 ```bash
-cp "$TEMPLATE" notebooks/02_data_understanding.ipynb
+cp "$TEMPLATE" notebooks/02_data_understanding.py
 ```
 
 ### Step 5 — Execute the notebook inside Docker
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --execute \
-  --to notebook \
-  --inplace \
-  notebooks/02_data_understanding.ipynb \
-  --ExecutePreprocessor.timeout=600
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/02_data_understanding.py \
+  --report reports/eda_report.html --timeout 600
 ```
 
 If the container is not running, display:
@@ -157,20 +142,14 @@ Then run /doml-data-understanding again.
 ```
 and stop.
 
-On execution failure (non-zero exit code), display the nbconvert error output and stop.
+On execution failure (non-zero exit code), display the cell error output and stop.
 Do not proceed to HTML generation.
 
 ### Step 6 — Verify notebook output
 
 ```bash
-python3 -c "
-import nbformat
-with open('notebooks/02_data_understanding.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-code_cells_with_output = sum(1 for c in nb.cells if c.cell_type == 'code' and c.outputs)
-print(f'Executed notebook: {code_cells_with_output} code cells with output')
-assert code_cells_with_output > 0, 'No cell outputs found — execution may have failed'
-"
+# The run step exits non-zero on any cell error; this re-checks the exported report.
+python3 .claude/doml/bin/doml_nb.py verify-report reports/eda_report.html
 ```
 
 If verification fails, report the error and stop. Do not generate the HTML report on an
@@ -184,11 +163,11 @@ stakeholders.
 Read the following to inform the narrative:
 - `.planning/PROJECT.md` — business question, stakeholder, decision framing
 - `.planning/config.json` — problem_type, time_factor
-- The executed notebook `notebooks/02_data_understanding.ipynb` — cell outputs showing
+- The executed notebook `notebooks/02_data_understanding.py` — cell outputs showing
   DuckDB profiling results, normality tests, correlation values, and tidy violations
 
 The EDA narrative must:
-- Avoid technical jargon (no "DuckDB", "Shapiro-Wilk", "nbformat", "ADF")
+- Avoid technical jargon (no "DuckDB", "Shapiro-Wilk", "marimo", "ADF")
 - State dataset size in plain language (e.g., "The dataset contains 12,000 observations
   and 15 features")
 - Highlight top correlated features in business terms
@@ -204,32 +183,21 @@ If `GUIDANCE` is non-empty, incorporate it as additional context shaping the EDA
 (e.g., if guidance says "focus on outlier impact", ensure the narrative highlights outlier
 findings prominently).
 
-Write the narrative to a temporary Python script to avoid special-character quoting issues,
-then run it:
+Save the narrative as the notebook's `summary` sidecar (rendered directly below the title). The quoted
+heredoc avoids special-character quoting issues:
 
-```python
-# /tmp/doml_insert_eda_summary.py
-import nbformat, uuid
-
-NARRATIVE = """[WRITE YOUR 2-3 PARAGRAPH EDA EXECUTIVE SUMMARY HERE]"""
-
-with open('notebooks/02_data_understanding.ipynb') as f:
-    nb = nbformat.read(f, as_version=4)
-
-summary_cell = nbformat.v4.new_markdown_cell(source='## Executive Summary\n\n' + NARRATIVE)
-summary_cell['id'] = uuid.uuid4().hex[:8]
-nb.cells.insert(0, summary_cell)
-
-with open('notebooks/02_data_understanding.ipynb', 'w') as f:
-    nbformat.write(nb, f)
-
-print('EDA executive narrative inserted as cell 0')
-```
-
-Write the actual narrative into `NARRATIVE`, then run:
 ```bash
-python3 /tmp/doml_insert_eda_summary.py
+# Narrative sidecar: the notebook renders notebooks/narratives/<stem>/summary.md
+cat > /tmp/doml_summary.md <<'DOML_EOF'
+## Executive Summary
+
+[WRITE YOUR 2-3 PARAGRAPH EDA EXECUTIVE SUMMARY HERE]
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative notebooks/02_data_understanding.py summary /tmp/doml_summary.md
 ```
+
+Write the actual narrative text into the quoted heredoc above before running it. The quoted
+`'DOML_EOF'` delimiter means no shell interpolation happens (never pass `$GUIDANCE` through the shell).
 
 ### Step 8 — Generate HTML report
 
@@ -242,12 +210,12 @@ mkdir -p reports
 **Step 8b — Convert EDA notebook to HTML (code cells hidden)**
 
 ```bash
-docker compose exec jupyter jupyter nbconvert \
-  --to html \
-  --no-input \
-  notebooks/02_data_understanding.ipynb \
-  --output-dir reports \
-  --output eda_report
+# Re-export so the report shows the narrative cells written above.
+# marimo re-runs the notebook (seeded, so results are identical; leaderboard
+# rows are replaced, not duplicated).
+docker compose exec doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/02_data_understanding.py \
+  --report reports/eda_report.html
 ```
 
 This produces `reports/eda_report.html`. The `--no-input` flag hides all code cells (OUT-02).
@@ -267,7 +235,7 @@ and stop.
 test -f reports/eda_report.html && echo "REPORT_EXISTS" || echo "REPORT_MISSING"
 
 # Check 2: Code cells are hidden (OUT-02) — expected: 0 matches
-grep -c 'class="input"' reports/eda_report.html && echo "CODE_VISIBLE_VIOLATION" || echo "CODE_HIDDEN_OK"
+python3 .claude/doml/bin/doml_nb.py verify-report reports/eda_report.html  # prints CODE_HIDDEN_OK and NO_CELL_ERRORS_OK
 
 # Check 3: Caveats section present (OUT-03) — expected: >= 1 match
 grep -ci "correlation is not causation" reports/eda_report.html && echo "CAVEATS_OK" || echo "CAVEATS_MISSING"
@@ -283,7 +251,7 @@ If any check fails, report which check failed. Do not suppress failures.
 Write to `.planning/STATE.md`:
 - Update `current_focus` to "Modelling (next) — run /doml-modelling"
 - Append to Decisions section:
-  `[Phase 08]: doml-data-understanding completed — notebooks/02_data_understanding.ipynb + reports/eda_report.html generated`
+  `[Phase 08]: doml-data-understanding completed — notebooks/02_data_understanding.py + reports/eda_report.html generated`
 - Update `last_activity` with today's date
 
 ### Step 10 — Confirm
@@ -292,7 +260,7 @@ Display:
 ```
 Data Understanding complete.
 
-  Notebook: notebooks/02_data_understanding.ipynb
+  Notebook: notebooks/02_data_understanding.py
   Report:   reports/eda_report.html
 
 Next step: /doml-modelling

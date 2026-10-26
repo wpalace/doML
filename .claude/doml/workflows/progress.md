@@ -27,7 +27,7 @@ Read `.planning/ROADMAP.md` to get the phase list and completion status.
 
 ### Step 3 — Read config (optional)
 
-Read `.planning/config.json` if it exists. Extract `language` preference (default: Python) and `problem_type` if set.
+Read `.planning/config.json` if it exists. Extract `problem_type` if set.
 
 ### Step 4 — Display progress report
 
@@ -37,7 +37,6 @@ Output a progress report in this format:
 DoML Project: [project_name from PROJECT.md or STATE.md]
 Dataset: [dataset from config.json or STATE.md, or "not yet configured"]
 Problem type: [problem_type from config.json, or "not yet determined"]
-Language: [language from config.json, default Python]
 
 Progress: [progress bar] [percent]%
 

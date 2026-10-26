@@ -105,12 +105,11 @@ echo "Problem type: $PROBLEM_TYPE"
 ### Step 4 — Check src/ volume mount (informational)
 
 ```bash
-if ! grep -q "./src:/home/jovyan/work/src" docker-compose.yml 2>/dev/null; then
+if ! grep -qE "^[[:space:]]*- \.:/project$" compose.yaml 2>/dev/null; then
   echo ""
-  echo "NOTE: src/ is not mounted in docker-compose.yml."
-  echo "This is fine for web service deployment (no Docker build needed now)."
-  echo "The web service container builds independently from Dockerfile.serve."
-  echo ""
+  echo "SETUP REQUIRED: compose.yaml does not mount the project root (- .:/project)."
+  echo "Copy .claude/doml/templates/compose.yaml over it, then run: docker compose up -d"
+  exit 1
 fi
 ```
 
@@ -582,7 +581,7 @@ To start the service:
     GET  /schema      → feature schema
     GET  /docs        → OpenAPI documentation
 
-The service is self-contained — no data directory or Jupyter container needed.
+The service is self-contained — no data directory or doml container needed.
 ```
 
 ## Anti-Patterns (do NOT do these)
