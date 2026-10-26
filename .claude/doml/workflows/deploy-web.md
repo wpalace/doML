@@ -424,26 +424,29 @@ fi
 
 ### Step 8 — Generate requirements.serve.txt
 
+The serving image must unpickle `model.pkl`, so every library the model uses is pinned to the
+exact version in the training image (read inside the doml container). A pickle from one
+scikit-learn version does not reliably load in another. The web framework pins are fixed here.
+
 ```bash
-export DEPLOY_DIR
-python3 << 'PYEOF'
+DEPLOY_DIR_CONTAINER="/project/$(echo "$DEPLOY_DIR" | sed 's|^\./||')"
+docker compose exec -T -e DEPLOY_DIR_CONTAINER="$DEPLOY_DIR_CONTAINER" doml python - << 'PYEOF'
 import os
+from importlib.metadata import PackageNotFoundError, version
 
-deploy_dir = os.environ['DEPLOY_DIR']
+# Libraries a DoML model pickle can reference (pipelines, boosters, joblib, pandas I/O).
+model_libs = ["scikit-learn", "joblib", "numpy", "pandas", "scipy", "lightgbm", "xgboost"]
+lines = ["fastapi==0.162.0", "uvicorn[standard]==0.54.0", "jinja2==3.1.6"]
+for name in model_libs:
+    try:
+        lines.append(f"{name}=={version(name)}")
+    except PackageNotFoundError:
+        pass
 
-requirements = """fastapi==0.115.12
-uvicorn[standard]==0.34.0
-scikit-learn==1.6.1
-joblib==1.4.2
-jinja2==3.1.6
-pandas==2.2.3
-numpy==2.2.4
-"""
-
-out_path = os.path.join(deploy_dir, 'requirements.serve.txt')
-with open(out_path, 'w') as f:
-    f.write(requirements)
-print(f'Generated: {out_path}')
+out_path = os.path.join(os.environ["DEPLOY_DIR_CONTAINER"], "requirements.serve.txt")
+with open(out_path, "w") as f:
+    f.write("\n".join(lines) + "\n")
+print(f"Generated: {out_path}")
 PYEOF
 if [ $? -ne 0 ]; then
   echo "Failed to generate requirements.serve.txt"
@@ -460,7 +463,10 @@ import os
 
 deploy_dir = os.environ['DEPLOY_DIR']
 
-dockerfile = """FROM python:3.14-slim
+dockerfile = """FROM python:3.14-slim-trixie
+
+# libgomp1: OpenMP runtime for LightGBM/XGBoost models.
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

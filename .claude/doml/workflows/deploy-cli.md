@@ -163,7 +163,7 @@ fi
 
 Check pyinstaller is available in the container:
 ```bash
-if ! docker compose exec doml pyinstaller --version 2>/dev/null; then
+if ! docker compose exec -T doml pyinstaller --version 2>/dev/null; then
   echo ""
   echo "SETUP REQUIRED: pyinstaller is not installed in the Docker container."
   echo ""
@@ -187,6 +187,7 @@ DEPLOY_DIR_CONTAINER="/project/$(echo "$DEPLOY_DIR" | sed 's|^\./||')"
 
 Read the enriched schema into Python for embedding:
 ```bash
+export DEPLOY_DIR MODEL_NAME PROBLEM_TYPE VERSION
 python3 << 'PYEOF'
 import json, os, sys
 
@@ -240,7 +241,7 @@ MODEL_PATH = os.path.join(_BASE, "best_model.pkl")
 def _feature_help_epilog():
     lines = ["\\nFeature schema (preprocessed-schema format):"]
     for feat in FEATURE_SCHEMA:
-        lines.append(f"  {{feat[\\'name\\']:<24}} ({{feat[\\'type\\']:<12}}  e.g. {{feat[\\'example\\']}})")
+        lines.append(f"  {{feat['name']:<24}} ({{feat['type']:<12}}  e.g. {{feat['example']}})")
     lines.append("")
     lines.append("Input must be in preprocessed format (same columns as data/processed/preprocessed_*).")
     lines.append("The model pipeline handles encoding and scaling internally.")
@@ -365,7 +366,6 @@ with open(out_path, "w") as f:
     f.write(predict_py)
 print(f"Generated: {out_path}")
 PYEOF
-export DEPLOY_DIR MODEL_NAME PROBLEM_TYPE VERSION
 if [ $? -ne 0 ]; then
   echo "Failed to generate predict.py"
   exit 1
@@ -375,6 +375,7 @@ fi
 ### Step 7 — Generate predict.spec
 
 ```bash
+export DEPLOY_DIR MODEL_FILE
 python3 << 'PYEOF'
 import json, os
 
@@ -442,7 +443,6 @@ with open(out_path, "w") as f:
     f.write(spec_content)
 print(f"Generated: {out_path}")
 PYEOF
-export DEPLOY_DIR MODEL_FILE
 if [ $? -ne 0 ]; then
   echo "Failed to generate predict.spec"
   exit 1
@@ -457,7 +457,7 @@ DEPLOY_DIR_CONTAINER="/project/$(echo "$DEPLOY_DIR" | sed 's|^\./||')"
 echo "Building inside container at: $DEPLOY_DIR_CONTAINER"
 echo "This may take 2-5 minutes..."
 
-docker compose exec doml bash -c "cd '$DEPLOY_DIR_CONTAINER' && pyinstaller predict.spec --noconfirm"
+docker compose exec -T doml bash -c "cd '$DEPLOY_DIR_CONTAINER' && pyinstaller predict.spec --noconfirm --clean"
 BUILD_EXIT=$?
 
 if [ $BUILD_EXIT -ne 0 ]; then
@@ -466,7 +466,7 @@ if [ $BUILD_EXIT -ne 0 ]; then
   echo ""
   echo "Common causes:"
   echo "  - sklearn C-extension missing: ensure predict.spec uses collect_all('sklearn')"
-  echo "  - src/ not writable in container: check the `.:/project` mount in compose.yaml"
+  echo "  - src/ not writable in container: check the .:/project mount in compose.yaml"
   echo "  - pyinstaller version mismatch: rebuild with docker compose build"
   echo ""
   echo "Re-run /doml-deploy-cli after fixing the issue."

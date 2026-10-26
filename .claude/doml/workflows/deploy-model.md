@@ -196,6 +196,11 @@ processed_files = sorted(glob.glob('data/processed/preprocessed_*'))
 if processed_files:
     import pandas as pd
     df = pd.read_csv(processed_files[0])
+    # The target is not a model input: leave it out of the serving schema.
+    cfg = json.load(open('.planning/config.json'))
+    target = cfg.get('target_column') or cfg.get('dataset', {}).get('target_column')
+    if target in df.columns:
+        df = df.drop(columns=[target])
     first_row = df.iloc[0] if len(df) > 0 else None
     schema = []
     for col in df.columns:
@@ -237,7 +242,7 @@ model_file = '${MODEL_FILE}'
 model_slug = '${MODEL_SLUG}'
 version = ${VERSION}
 target_key = '${TARGET_KEY}'
-feature_schema = ${FEATURE_SCHEMA}
+feature_schema = json.loads('''${FEATURE_SCHEMA}''')
 problem_type = '${PROBLEM_TYPE}'
 
 with open('models/model_metadata.json') as f:
@@ -297,7 +302,7 @@ Next step: run the target-specific deployment phase.
 
 - NEVER shell-interpolate MODEL_OVERRIDE in shell commands — only pass to Python os.path.exists()
 - NEVER hardcode version numbers — always glob src/MODEL_SLUG/v* and increment max (D-02)
-- NEVER run Docker — this workflow is pure file I/O; no docker compose exec calls
+- NEVER run Docker — this workflow is pure file I/O; no docker compose exec -T calls
   **Exception: Step 12 is the only step permitted to run Docker commands** — it must execute the
   notebook inside the doml container and generate HTML. All other steps remain pure file I/O.
 - NEVER create predict.py, Dockerfile, app.py, or any stub files — those are Phase 14/15/16 (D-05)
@@ -323,7 +328,7 @@ If `TARGET_KEY == 'web_service'`:
 
 ```bash
 # Start the FastAPI container
-docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" up -d
+docker compose -f "src/${MODEL_SLUG}/v${VERSION#v}/docker-compose.serve.yml" up -d
 
 # Poll GET /health with 30s timeout (1s intervals) until 200
 python3 -c "
@@ -359,7 +364,7 @@ DOML_WEB_SERVICE_URL=""
 #### 12c — Execute notebook inside Docker
 
 ```bash
-docker compose exec \
+docker compose exec -T \
   -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
   python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
   --report reports/deployment_report.html --timeout 900
@@ -410,7 +415,7 @@ Replace `{NARRATIVE_WRITTEN_BY_CLAUDE}` with the actual 2-3 paragraph narrative 
 The web service must still be running for the web target (the notebook benchmarks it again).
 
 ```bash
-docker compose exec \
+docker compose exec -T \
   -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
   python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
   --report reports/deployment_report.html --timeout 900
@@ -421,7 +426,7 @@ docker compose exec \
 If `TARGET_KEY == 'web_service'`:
 
 ```bash
-docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" down
+docker compose -f "src/${MODEL_SLUG}/v${VERSION#v}/docker-compose.serve.yml" down
 echo "Web service container stopped."
 ```
 

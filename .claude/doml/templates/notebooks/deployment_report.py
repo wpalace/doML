@@ -89,6 +89,7 @@ def _(mo):
         joblib,
         json,
         np,
+        os,
         pd,
         plt,
         psutil,
@@ -197,6 +198,7 @@ def _(
     json,
     mo,
     np,
+    os,
     subprocess,
     target,
 ):
@@ -219,7 +221,19 @@ def _(
                 return json.loads(result.stdout.strip())
 
             def run_batch(df):
-                return [run_single(r.to_dict()) for _, r in df.iterrows()]
+                # One process for the whole batch (CSV input), not one process per row:
+                # the binary's start-up time would otherwise dominate every batch figure.
+                import tempfile
+                with tempfile.NamedTemporaryFile('w', suffix='.csv', delete=False) as _fh:
+                    df.to_csv(_fh, index=False)
+                try:
+                    result = subprocess.run(
+                        [str(binary_path), '--input', _fh.name],
+                        capture_output=True, text=True, check=True
+                    )
+                finally:
+                    os.unlink(_fh.name)
+                return json.loads(result.stdout.strip())
 
         elif target == 'web_service':
             import requests
@@ -267,7 +281,9 @@ def _(
                 return np.array([encoded], dtype=np.float32)
 
             def run_single(row):
-                return _sess.run(None, {_input_name: _encode_row(row)})[0].tolist()
+                # First output is the label/value, shape (1,) or (1, 1): return the scalar so
+                # parity compares like with like (a nested list broadcasts to an n x n diff).
+                return np.asarray(_sess.run(None, {_input_name: _encode_row(row)})[0]).ravel()[0].item()
 
             def run_batch(df):
                 return [run_single(r.to_dict()) for _, r in df.iterrows()]
@@ -282,7 +298,7 @@ def _(
 
 
 @app.cell
-def _(PROJECT_ROOT, mo, np, plt, run_single, test_df, time):
+def _(PROJECT_ROOT, mo, np, os, plt, run_single, test_df, time):
     with mo.redirect_stdout():
         # Single-prediction latency benchmark (PERF-02)
         WARMUP_RUNS = 5
@@ -294,13 +310,19 @@ def _(PROJECT_ROOT, mo, np, plt, run_single, test_df, time):
         for __ in range(WARMUP_RUNS):
             run_single(sample_row)
 
-        # Timed runs
+        # Timed runs. A CLI binary starts a new process per call (about a second each), so
+        # stop at a time budget as well: at least 20 runs, then up to BENCH_SECONDS of wall time.
+        BENCH_SECONDS = float(os.environ.get('DOML_BENCH_SECONDS', '60'))
         latencies_ms = []
+        _start = time.perf_counter()
         for __ in range(TIMED_RUNS):
             _t0 = time.perf_counter()
             run_single(sample_row)
             _t1 = time.perf_counter()
             latencies_ms.append((_t1 - _t0) * 1000)
+            if len(latencies_ms) >= 20 and _t1 - _start > BENCH_SECONDS:
+                break
+        TIMED_RUNS = len(latencies_ms)
 
         mean_latency_ms = np.mean(latencies_ms)
         std_latency_ms = np.std(latencies_ms)

@@ -140,7 +140,7 @@ fi
 
 Check skl2onnx is available inside the container:
 ```bash
-if ! docker compose exec doml python3 -c "import skl2onnx" 2>/dev/null; then
+if ! docker compose exec -T doml python3 -c "import skl2onnx" 2>/dev/null; then
   echo ""
   echo "SETUP REQUIRED: skl2onnx is not installed in the Docker container."
   echo ""
@@ -217,6 +217,12 @@ def main():
         for name, cats in cat_info.items()
     }
 
+    # DoML modelling notebooks train on data/processed (already encoded and scaled), so the
+    # saved model is often a bare estimator, not a Pipeline. Convert it as it is.
+    if not (isinstance(pipeline, SKPipeline) and isinstance(pipeline.steps[0][1], ColumnTransformer)):
+        convert_and_save(pipeline, n_features, deploy_dir, category_map)
+        return
+
     # Rebuild ColumnTransformer — replace OneHotEncoder with OrdinalEncoder (D-03)
     ct = pipeline.steps[0][1]  # first step is ColumnTransformer
     new_transformers = []
@@ -288,11 +294,14 @@ def main():
     # Build replacement Pipeline
     new_steps = [(pipeline.steps[0][0], new_ct)] + list(pipeline.steps[1:])
     new_pipeline = SKPipeline(new_steps)
+    convert_and_save(new_pipeline, n_features, deploy_dir, category_map)
 
+
+def convert_and_save(model, n_features, deploy_dir, category_map):
     # Convert to ONNX
     try:
         initial_types = [('float_input', FloatTensorType([None, n_features]))]
-        onnx_model = convert_sklearn(new_pipeline, initial_types=initial_types)
+        onnx_model = convert_sklearn(model, initial_types=initial_types)
     except Exception as e:
         print(f"ONNX conversion error: {e}", file=sys.stderr)
         print(str(e))
@@ -320,7 +329,7 @@ PYEOF
 
 # Copy to container and run
 docker compose cp /tmp/doml_convert_onnx.py doml:/tmp/doml_convert_onnx.py
-docker compose exec doml python3 /tmp/doml_convert_onnx.py \
+docker compose exec -T doml python3 /tmp/doml_convert_onnx.py \
   "$MODEL_FILE_CONTAINER" "$DEPLOY_DIR_CONTAINER" > /tmp/doml_onnx_result.txt 2>&1
 CONV_EXIT=$?
 
@@ -438,6 +447,7 @@ Generate `src/<modelname>/vN/index.html` as a fully self-contained browser page.
 - Maps categorical select values to integer codes via CATEGORIES before building the tensor (D-03)
 
 ```bash
+export DEPLOY_DIR MODEL_NAME VERSION PROBLEM_TYPE ORT_JS ORT_WASM CATEGORY_MAP_JSON
 python3 << 'PYEOF'
 import base64, json, os, sys
 
@@ -618,7 +628,6 @@ with open(out_path, 'w', encoding='utf-8') as f:
     f.write(html)
 print(f"Generated: {out_path}")
 PYEOF
-export DEPLOY_DIR MODEL_NAME VERSION PROBLEM_TYPE ORT_JS ORT_WASM CATEGORY_MAP_JSON
 if [ $? -ne 0 ]; then
   echo "Failed to generate index.html"
   exit 1
