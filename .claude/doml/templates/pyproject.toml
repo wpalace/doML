@@ -24,7 +24,7 @@ dependencies = [
     "prophet",
     # ML
     "scikit-learn",
-    "xgboost",
+    "xgboost-cpu",  # CPU-only wheel (no NVIDIA NCCL); GPU is a future opt-in
     "lightgbm",
     "shap",
     "optuna",

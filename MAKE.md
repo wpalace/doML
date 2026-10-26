@@ -87,6 +87,9 @@ Narrative text goes to `notebooks/narratives/<notebook>/<section>.md`.
 3. Copy `pyproject.toml`, `uv.lock` and `requirements.txt` to the repository root.
 4. Do `tests/run_all.sh build docker-e2e`.
 
+The image is CPU-only. It uses `xgboost-cpu`, so it has no NVIDIA libraries.
+GPU support is future work. It must be an opt-in path. Do not add GPU packages to the default image.
+
 ## 6. Change a workflow or a skill
 
 1. Edit the Markdown file.

@@ -442,11 +442,7 @@ numpy==2.5.4 ; sys_platform == 'linux' \
     #   stanio
     #   statsmodels
     #   umap-learn
-    #   xgboost
-nvidia-nccl-cu13==2.32.3 ; sys_platform == 'linux' \
-    --hash=sha256:1459723080ac889d73a26edfa3e04383a7928ab31ac8f0ec43b3ea9548b04ff3 \
-    --hash=sha256:a5bee92b2f4af218c109f8d221c3c9adcc752b94ae0ffcb0ed5abf9341a7724c
-    # via xgboost
+    #   xgboost-cpu
 onnx==1.23.2 ; sys_platform == 'linux' \
     --hash=sha256:008cb0467b2bbee41448acc7da8b6f4e704624cb0d327a2d5adafc7ce19bc5b8 \
     --hash=sha256:32fd9c92244c2aea2b2c9e0e7b18fedcf6000434124ab6fc8796e22baa602d30 \
@@ -749,7 +745,7 @@ scipy==1.18.1 ; sys_platform == 'linux' \
     #   shap
     #   statsmodels
     #   umap-learn
-    #   xgboost
+    #   xgboost-cpu
 seaborn==0.13.2 ; sys_platform == 'linux' \
     --hash=sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987 \
     --hash=sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7
@@ -925,8 +921,8 @@ wrapt==2.5.1 ; sys_platform == 'linux' \
     --hash=sha256:f595bb0185aab3e9dc31950c95d914f56ea8278810c3b928f3426e12ed6d27bc \
     --hash=sha256:fcccaa1484f7dd1091602970988ab741491f9f974013c844f70e45ac1196b80d
     # via formulaic
-xgboost==3.4.1 ; sys_platform == 'linux' \
-    --hash=sha256:6968a4c71efdfa859df0dfcad0d99211c95c28c4ffd6aecff46efff77d18026a \
-    --hash=sha256:6adf2afa396da2ae8ed30295b50b99d4712eed9a6e0ce6cfe069290e4335e51f \
-    --hash=sha256:7faaf99de26719c22bfae883a02bd56b5a3c2203122616e563cc72b7191b5c96
+xgboost-cpu==3.4.1 ; sys_platform == 'linux' \
+    --hash=sha256:1f16331f5c6beb2b40fbd4bf2834333062d93c9eb38b76186a5c206841dc1809 \
+    --hash=sha256:47b81860b18056f9425b34fe2905343bc7ee0118122ae09cf2e31c305ed49877 \
+    --hash=sha256:ee0b249eaa962837cdc4e67adfec54567bfe7386337f3c3a3ce5d68909492e81
     # via doml-analysis

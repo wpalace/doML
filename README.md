@@ -119,7 +119,7 @@ docker compose exec -T doml python .claude/doml/bin/doml_nb.py run notebooks/<nb
 docker compose exec -T doml marimo check --strict notebooks/
 ```
 
-The image is `python:3.14-slim` plus the uv-locked scientific stack (about 2.1 GB, versus 5.9 GB for the earlier Jupyter image). Set `MARIMO_TOKEN` in `.env` to require a password for the editor.
+The image is `python:3.14-slim` plus the uv-locked scientific stack (about 1.7 GB, versus 5.9 GB for the earlier Jupyter image). The image is CPU-only (`xgboost-cpu`, no NVIDIA libraries); GPU support is planned as an opt-in path. Set `MARIMO_TOKEN` in `.env` to require a password for the editor.
 
 ## Commands
 
