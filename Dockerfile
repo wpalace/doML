@@ -1,40 +1,56 @@
-# syntax=docker/dockerfile:1.7
-# DoML analysis environment — Python 3.14 + DuckDB + ML stack
-# Base: Jupyter SciPy Notebook (quay.io — Docker Hub frozen since 2023-10-20)
-FROM quay.io/jupyter/scipy-notebook:2026-04-27
+# syntax=docker/dockerfile:1
+# DoML analysis environment: Python 3.14 + marimo + DuckDB + ML stack.
+# One slim image; every Python package comes from the hash-pinned requirements.txt.
+# No Jupyter server, kernel, nbconvert, papermill or conda: marimo notebooks are plain
+# Python files that run with `marimo edit` (interactive) or `marimo export html` (headless).
+FROM ghcr.io/astral-sh/uv:0.11.8@sha256:3b7b60a81d3c57ef471703e5c83fd4aaa33abcd403596fb22ab07db85ae91347 AS uv
 
-LABEL maintainer="DoML framework"
-LABEL description="Reproducible ML analysis environment with Python and DuckDB"
+FROM python:3.14-slim-trixie@sha256:35caba83af2fe6da9a5d922f9b0156f21d1246a48278c58a08bd253303ba42e8 AS runtime
 
-# --- Vendor uv binary from the official Astral image (pinned) ---
-# Per research/STACK.md + ARCHITECTURE.md: do NOT `pip install uv` — supply chain + non-determinism.
-COPY --from=ghcr.io/astral-sh/uv:0.11.8 /uv /uvx /usr/local/bin/
+LABEL org.opencontainers.image.title="doml" \
+      org.opencontainers.image.description="Reproducible ML analysis environment (marimo, DuckDB, scikit-learn)"
 
-# --- uv environment knobs (Astral "Using uv in Docker" guide) ---
-# UV_LINK_MODE=copy is mandatory — cache mount + target site-packages cross filesystems,
-# hardlink mode would error out. UV_COMPILE_BYTECODE precompiles .pyc at install for fast first launch.
-ENV \
+COPY --from=uv /uv /uvx /usr/local/bin/
+
+# libgomp1: OpenMP runtime for LightGBM/XGBoost wheels.
+# binutils: objdump, which PyInstaller needs for the CLI deploy target.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      binutils \
+      libgomp1 \
+ && rm -rf /var/lib/apt/lists/*
+
+# UV_LINK_MODE=copy: the cache mount and site-packages are on different filesystems.
+ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_COMPILE_BYTECODE=1 \
     UV_NO_PROGRESS=1 \
     UV_PYTHON_DOWNLOADS=never \
-    UV_SYSTEM_PYTHON=1 \
-    UV_PYTHON=/opt/conda/bin/python
+    UV_SYSTEM_PYTHON=1
 
-# --- Python packages (pinned via requirements.txt) ---
-# Use `uv pip install` (additive), NOT `uv pip sync` — sync would prune conda-shipped
-# jupyterlab/notebook/ipykernel/nbconvert/nbformat and break the kernel (PITFALLS #3).
-# In-build import smoke fails the build immediately on any broken wheel (CONT-07).
-USER root
-COPY --chown=${NB_UID}:${NB_GID} requirements.txt /tmp/requirements.txt
+COPY requirements.txt /tmp/requirements.txt
+# `uv pip sync` installs exactly the lock (nothing more), checking every hash.
+# The import smoke test fails the build at once on a broken wheel.
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
-    uv pip install --system -r /tmp/requirements.txt \
- && python -c "import duckdb, papermill, shap, prophet, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, PyInstaller" \
- && fix-permissions "${CONDA_DIR}" \
- && fix-permissions "/home/${NB_USER}"
+    uv pip sync --system --require-hashes /tmp/requirements.txt \
+ && python -c "import marimo, duckdb, shap, prophet, pmdarima, lightgbm, xgboost, onnxruntime, optuna, umap, skl2onnx, PyInstaller, seaborn, plotly"
 
-USER ${NB_UID}
+# Fixed non-root user. Compose can override the UID with `user:` so files written to
+# bind mounts belong to the host user; HOME is world-writable for that case.
+RUN useradd --uid 1000 --create-home doml \
+ && chmod 0777 /home/doml
 
-# --- DoML working directory ---
-ENV PROJECT_ROOT=/home/jovyan/work
-WORKDIR ${PROJECT_ROOT}
+ENV HOME=/home/doml \
+    MPLBACKEND=Agg \
+    MPLCONFIGDIR=/tmp/matplotlib \
+    PROJECT_ROOT=/project \
+    PYTHONUNBUFFERED=1
+
+USER 1000
+WORKDIR /project
+EXPOSE 2718
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:2718/health', timeout=4)" || exit 1
+
+# Interactive editor for every notebook in notebooks/. Set MARIMO_TOKEN to require a password.
+CMD ["sh", "-c", "exec marimo edit notebooks --host 0.0.0.0 --port 2718 --headless ${MARIMO_TOKEN:+--token-password \"$MARIMO_TOKEN\"} ${MARIMO_TOKEN:---no-token}"]

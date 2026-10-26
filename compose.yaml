@@ -1,0 +1,34 @@
+# DoML analysis environment. Start: `docker compose up -d`, then open http://localhost:2718
+name: ${PROJECT_NAME:-doml}
+
+services:
+  doml:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      KAGGLE_KEY: ${KAGGLE_KEY:-}
+      KAGGLE_USERNAME: ${KAGGLE_USERNAME:-}
+      MARIMO_TOKEN: ${MARIMO_TOKEN:-}
+      PROJECT_ROOT: /project
+    # Bound to localhost only: the editor runs arbitrary code.
+    ports:
+      - "127.0.0.1:${MARIMO_PORT:-2718}:2718"
+    # Files written to the mounts belong to the host user (export UID/GID, default 1000).
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      # The whole project is the working tree (notebooks, reports, models, src, .claude).
+      - .:/project
+      # INFR-05: raw + external data are read-only, so immutability is enforced by the OS.
+      - ./data/raw:/project/data/raw:ro
+      - ./data/external:/project/data/external:ro
+      # Planning artifacts are read-only inside the container; notebooks only read them.
+      - ./.planning:/project/.planning:ro
+    working_dir: /project
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2718/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

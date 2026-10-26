@@ -1,0 +1,55 @@
+# DoML analysis environment: the single source of truth for Python dependencies.
+# Lock and export (run on the host with uv, or inside the container):
+#   uv lock && uv export --frozen --no-emit-project --no-dev -o requirements.txt
+# requirements.txt is generated and hash-pinned. Do not edit it by hand.
+# Rebuild the image after a change: docker compose build
+[project]
+name = "doml-analysis"
+version = "0.1.0"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    # Notebooks (marimo replaces jupyterlab, ipykernel, nbconvert, nbformat, papermill, nbstripout)
+    "marimo",
+    # Data access / profiling
+    "duckdb",
+    "pandas",
+    "pyarrow",
+    "openpyxl",
+    # Science / stats
+    "numpy",
+    "scipy",
+    "statsmodels",
+    "pmdarima",
+    "prophet",
+    # ML
+    "scikit-learn",
+    "xgboost",
+    "lightgbm",
+    "shap",
+    "optuna",
+    "umap-learn",
+    # numba is pulled in by umap-learn/shap; >=0.63 is the first line with Python 3.14 wheels.
+    # Without the floor the universal resolver can pick an sdist that refuses to build on 3.14.
+    "numba>=0.63",
+    # Visualisation
+    "matplotlib",
+    "seaborn",
+    "plotly",
+    # Deployment targets (CLI / WASM / performance report)
+    "pyinstaller",
+    "onnx",
+    "onnxruntime",
+    "skl2onnx",
+    "psutil",
+    # Data acquisition (/doml-get-data)
+    "kaggle",
+    "requests",
+    # Tests
+    "pytest",
+]
+
+[tool.uv]
+# The image is Linux only (x86_64 and arm64), so lock only for Linux.
+# This lets the resolver choose current wheels instead of the oldest cross-platform set.
+environments = ["sys_platform == 'linux'"]
+package = false

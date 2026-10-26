@@ -1,5 +1,4 @@
 {
-  "language": "python",
   "problem_type": "unknown",
   "time_factor": false,
   "dataset": {
@@ -14,10 +13,10 @@
     "html_reports": true
   },
   "reproducibility": {
-    "seed": 42,
-    "strip_outputs_on_commit": true
+    "seed": 42
   },
   "milestone": "v1.0",
   "created": "YYYY-MM-DD",
-  "last_updated": "YYYY-MM-DD"
+  "last_updated": "YYYY-MM-DD",
+  "target_column": null
 }

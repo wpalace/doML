@@ -4,7 +4,6 @@ created: YYYY-MM-DD
 last_updated: YYYY-MM-DD
 dataset: DATASET_FILE_OR_FOLDER
 problem_type: unknown
-language: python
 ---
 
 # PROJECT_NAME
@@ -37,11 +36,6 @@ language: python
 
 **Decision framing:**
 > We are trying to [decision] using [metric/outcome column] as a proxy.
-
-## Language Preference
-
-**Analysis language:** Python (default) / R (opt-in)
-**Reason:** [Why this preference was selected, if non-default]
 
 ## Analysis Scope
 
