@@ -21,7 +21,7 @@ Generate a self-contained Linux CLI binary for the DoML deployed model:
 5. Verify pyinstaller is installed in the container; instruct how to install if not
 6. Generate predict.py from embedded template (argparse, --input JSON/file, --output, exit codes 0/1/2)
 7. Generate predict.spec from embedded template (collect_all sklearn + joblib, onedir, bundle model)
-8. Run PyInstaller build: docker compose exec doml bash -c "cd .../vN && pyinstaller predict.spec"
+8. Run PyInstaller build: docker compose exec -T doml bash -c "cd .../vN && pyinstaller predict.spec"
 9. Verify dist/predict/predict exists after build
 10. Update deployment_metadata.json with "platform": "linux-x86_64"
 </objective>

@@ -419,7 +419,7 @@ DOML_WEB_SERVICE_URL=""
 #### 12c — Execute notebook inside Docker
 
 ```bash
-docker compose exec \
+docker compose exec -T \
   -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
   python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
   --report reports/deployment_report.html --timeout 900
@@ -470,7 +470,7 @@ Replace `{NARRATIVE_WRITTEN_BY_CLAUDE}` with the actual 2-3 paragraph narrative 
 The web service must still be running for the web target (the notebook benchmarks it again).
 
 ```bash
-docker compose exec \
+docker compose exec -T \
   -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
   python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
   --report reports/deployment_report.html --timeout 900

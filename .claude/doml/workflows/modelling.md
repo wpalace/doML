@@ -90,7 +90,7 @@ Use AskUserQuestion. If the user says no, stop without overwriting.
 **Step 4b — Execute preprocessing notebook**
 
 ```bash
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run notebooks/03_preprocessing.py \
   --report reports/preprocessing_report.html --timeout 600
 ```
@@ -172,7 +172,7 @@ uniqueness).
 **Step 5c — Execute modelling notebook**
 
 ```bash
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
   --report reports/model_report.html --timeout 1200
 ```
@@ -289,7 +289,7 @@ mkdir -p reports
 # Re-export so the report shows the narrative cells written above.
 # marimo re-runs the notebook (seeded, so results are identical; leaderboard
 # rows are replaced, not duplicated).
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
   --report reports/model_report.html
 ```
@@ -382,7 +382,7 @@ Version number always increments — no overwrite check needed.
 
 ```bash
 if [ "$PROBLEM_TYPE" = "clustering" ]; then REPORT_NAME="clustering_report_v${VERSION}"; else REPORT_NAME="dimreduction_report_v${VERSION}"; fi
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
   --report "reports/${REPORT_NAME}.html" --timeout 900
 ```
@@ -506,7 +506,7 @@ python3 .claude/doml/bin/doml_nb.py narrative "$MODELLING_NOTEBOOK" interpretati
 **Step 8g — Re-export the report with the interpretation**
 
 ```bash
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run "$MODELLING_NOTEBOOK" \
   --report "reports/${REPORT_NAME}.html" --timeout 900
 python3 .claude/doml/bin/doml_nb.py verify-report "reports/${REPORT_NAME}.html" --require "not causation"

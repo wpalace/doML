@@ -105,7 +105,7 @@ Run a DuckDB scan of `data/raw/` to detect file formats and display schema conte
 Use the Bash tool to run the following inline Python via `docker compose exec`:
 
 ```bash
-docker compose exec doml python -c "
+docker compose exec -T doml python -c "
 import duckdb, json, os
 from pathlib import Path
 

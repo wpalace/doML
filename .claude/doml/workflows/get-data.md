@@ -130,7 +130,7 @@ mkdir -p ./data/raw/.stage
 #### Step 4a — Verify Kaggle credentials inside container
 
 ```bash
-docker compose exec doml bash -c '
+docker compose exec -T doml bash -c '
   if [ -n "$KAGGLE_API_TOKEN" ] || { [ -n "$KAGGLE_USERNAME" ] && [ -n "$KAGGLE_KEY" ]; } \
      || [ -f "$HOME/.kaggle/kaggle.json" ] || [ -f "$HOME/.kaggle/access_token" ]; then
     echo "CREDS_OK"
@@ -156,10 +156,10 @@ Then stop.
 
 ```bash
 # Clean in-container staging dir first
-docker compose exec doml bash -c "rm -rf /tmp/doml-stage && mkdir -p /tmp/doml-stage"
+docker compose exec -T doml bash -c "rm -rf /tmp/doml-stage && mkdir -p /tmp/doml-stage"
 
 # Download and unzip (--unzip handles the outer ZIP; nested ZIPs handled below)
-docker compose exec doml bash -c "
+docker compose exec -T doml bash -c "
   kaggle datasets download -d '${SLUG}' -p /tmp/doml-stage --unzip --quiet
 "
 ```
@@ -167,7 +167,7 @@ docker compose exec doml bash -c "
 After extraction, check for nested ZIPs (kaggle --unzip only extracts one level):
 
 ```bash
-docker compose exec doml bash -c "
+docker compose exec -T doml bash -c "
   find /tmp/doml-stage -name '*.zip' | while read z; do
     echo \"Extracting nested ZIP: \$z\"
     python -m zipfile -e \"\$z\" \"\$(dirname \$z)/\"
@@ -189,7 +189,7 @@ Always use the `/.` suffix to copy contents only.
 #### Step 4d — Clean up in-container staging dir
 
 ```bash
-docker compose exec doml bash -c "rm -rf /tmp/doml-stage"
+docker compose exec -T doml bash -c "rm -rf /tmp/doml-stage"
 ```
 
 Skip to Step 6.

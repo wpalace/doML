@@ -13,6 +13,7 @@ dependencies = [
     # Data access / profiling
     "duckdb",
     "pandas",
+    "jinja2",  # pandas DataFrame.style in reports
     "pyarrow",
     "openpyxl",
     # Science / stats

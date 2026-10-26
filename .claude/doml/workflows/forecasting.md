@@ -172,7 +172,7 @@ python3 /tmp/doml_inject_forecast_params.py "$HORIZON" "$TARGET" "$REGRESSORS" "
 ### Step 7 — Execute notebook inside Docker
 
 ```bash
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run notebooks/forecasting.py \
   --report reports/forecasting_report.html --timeout 900
 ```
@@ -251,7 +251,7 @@ mkdir -p reports
 # Re-export so the report shows the narrative cells written above.
 # marimo re-runs the notebook (seeded, so results are identical; leaderboard
 # rows are replaced, not duplicated).
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run notebooks/forecasting.py \
   --report reports/forecasting_report.html
 ```

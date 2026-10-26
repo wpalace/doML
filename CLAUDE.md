@@ -31,10 +31,10 @@ hidden state and no "run all cells from the top" ritual.
 - **Run and export headlessly** with the DoML helper (inside the container):
 
 ```bash
-docker compose exec doml python .claude/doml/bin/doml_nb.py run notebooks/02_data_understanding.py --report reports/eda_report.html
+docker compose exec -T doml python .claude/doml/bin/doml_nb.py run notebooks/02_data_understanding.py --report reports/eda_report.html
 python3 .claude/doml/bin/doml_nb.py verify-report reports/eda_report.html   # code hidden, no cell errors
 python3 .claude/doml/bin/doml_nb.py outputs reports/eda_report.html         # read the outputs as text
-docker compose exec doml marimo check --strict notebooks/                   # lint the notebooks
+docker compose exec -T doml marimo check --strict notebooks/                   # lint the notebooks
 ```
 
 - **Edit interactively** at http://localhost:2718 (`marimo edit`, started by `docker compose up`).
@@ -114,7 +114,7 @@ Every stakeholder HTML report must include a caveats section stating this explic
 docker compose up -d
 
 # Open a shell inside the container
-docker compose exec doml bash
+docker compose exec -T doml bash
 
 # Rebuild after changing pyproject.toml/requirements.txt or Dockerfile
 docker compose build

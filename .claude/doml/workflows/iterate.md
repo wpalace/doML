@@ -342,7 +342,7 @@ fi
 ```
 
 ```bash
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run "$NEW_NOTEBOOK" \
   --report reports/$REPORT_NAME.html --timeout ${TIMEOUT}
 ```
@@ -449,7 +449,7 @@ Re-export the report so it shows the direction, summary and interpretation sidec
 ```bash
 # marimo re-runs the notebook (seeded, so results are identical; leaderboard rows are
 # replaced, not duplicated).
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run "$NEW_NOTEBOOK" \
   --report "reports/${REPORT_NAME}.html" --timeout ${TIMEOUT}
 python3 .claude/doml/bin/doml_nb.py verify-report "reports/${REPORT_NAME}.html" --require "not causation"

@@ -33,9 +33,9 @@ summary, interpretation, iteration direction) are Markdown sidecars in
 `notebooks/narratives/<notebook stem>/<section>.md` that the notebook renders.
 
 ```bash
-docker compose exec doml python .claude/doml/bin/doml_nb.py run notebooks/<nb>.py --report reports/<name>.html
+docker compose exec -T doml python .claude/doml/bin/doml_nb.py run notebooks/<nb>.py --report reports/<name>.html
 python3 .claude/doml/bin/doml_nb.py verify-report reports/<name>.html
-docker compose exec doml marimo check --strict notebooks/
+docker compose exec -T doml marimo check --strict notebooks/
 ```
 
 ## Reproducibility Rules (Non-Negotiable)
@@ -81,7 +81,7 @@ installed by the image). Regenerate: `uv lock && uv export --frozen --no-emit-pr
 
 ```bash
 docker compose up -d              # Start the marimo editor at http://localhost:2718
-docker compose exec doml bash     # Shell inside container
+docker compose exec -T doml bash     # Shell inside container
 docker compose build              # Rebuild after changing pyproject.toml/requirements.txt or Dockerfile
 docker compose down               # Stop
 ```

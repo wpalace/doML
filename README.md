@@ -115,8 +115,8 @@ DoML notebooks are marimo apps. Cells re-run automatically when their inputs cha
 
 ```bash
 docker compose up -d                       # marimo editor at http://localhost:2718
-docker compose exec doml python .claude/doml/bin/doml_nb.py run notebooks/<nb>.py --report reports/<nb>.html
-docker compose exec doml marimo check --strict notebooks/
+docker compose exec -T doml python .claude/doml/bin/doml_nb.py run notebooks/<nb>.py --report reports/<nb>.html
+docker compose exec -T doml marimo check --strict notebooks/
 ```
 
 The image is `python:3.14-slim` plus the uv-locked scientific stack (about 2.1 GB, versus 5.9 GB for the earlier Jupyter image). Set `MARIMO_TOKEN` in `.env` to require a password for the editor.

@@ -85,7 +85,7 @@ Stop.
 ### Step 5 — Execute the notebook inside Docker
 
 ```bash
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run notebooks/anomaly_detection.py \
   --report reports/anomaly_report.html --timeout 600
 ```
@@ -171,7 +171,7 @@ mkdir -p reports
 # Re-export so the report shows the narrative cells written above.
 # marimo re-runs the notebook (seeded, so results are identical; leaderboard
 # rows are replaced, not duplicated).
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run notebooks/anomaly_detection.py \
   --report reports/anomaly_report.html
 ```

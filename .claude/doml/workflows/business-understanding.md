@@ -116,7 +116,7 @@ python3 /tmp/doml_set_column_names.py
 ### Step 4 — Execute the notebook inside Docker
 
 ```bash
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run notebooks/01_business_understanding.py \
   --report reports/business_summary.html --timeout 600
 ```
@@ -193,7 +193,7 @@ mkdir -p reports
 # Re-export so the report shows the narrative cells written above.
 # marimo re-runs the notebook (seeded, so results are identical; leaderboard
 # rows are replaced, not duplicated).
-docker compose exec doml \
+docker compose exec -T doml \
   python .claude/doml/bin/doml_nb.py run notebooks/01_business_understanding.py \
   --report reports/business_summary.html
 ```
