@@ -328,7 +328,7 @@ If `TARGET_KEY == 'web_service'`:
 
 ```bash
 # Start the FastAPI container
-docker compose -f "src/${MODEL_SLUG}/v${VERSION#v}/docker-compose.serve.yml" up -d
+docker compose -f "src/${MODEL_SLUG}/v${VERSION#v}/docker-compose.serve.yml" up -d --build
 
 # Poll GET /health with 30s timeout (1s intervals) until 200
 python3 -c "

@@ -501,7 +501,13 @@ import os
 
 deploy_dir = os.environ['DEPLOY_DIR']
 
-compose = """services:
+# A unique project name per model and version: with the default (the directory name, e.g.
+# "v2") two models share one image tag and the old model keeps serving.
+_parts = os.path.normpath(deploy_dir).split(os.sep)
+project = "doml-serve-" + "-".join(_parts[-2:]).lower().replace("_", "-")
+
+compose = f"""name: {project}
+services:
   web:
     build:
       context: .
