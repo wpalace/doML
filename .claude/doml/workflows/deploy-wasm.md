@@ -188,6 +188,34 @@ from sklearn.preprocessing import OrdinalEncoder
 from sklearn.pipeline import Pipeline as SKPipeline
 from sklearn.compose import ColumnTransformer
 
+
+def register_boosters():
+    """Teach skl2onnx about LightGBM and XGBoost (DoML leaderboards often pick them)."""
+    from skl2onnx import update_registered_converter
+    from skl2onnx.common.shape_calculator import (
+        calculate_linear_classifier_output_shapes,
+        calculate_linear_regressor_output_shapes,
+    )
+    from onnxmltools.convert.lightgbm.operator_converters.LightGbm import convert_lightgbm
+    from onnxmltools.convert.xgboost.operator_converters.XGBoost import convert_xgboost
+    from lightgbm import LGBMClassifier, LGBMRegressor
+    from xgboost import XGBClassifier, XGBRegressor
+
+    cls_opts = {"nocl": [True, False], "zipmap": [True, False, "columns"]}
+    update_registered_converter(LGBMRegressor, "LightGbmLGBMRegressor",
+                                calculate_linear_regressor_output_shapes, convert_lightgbm)
+    update_registered_converter(LGBMClassifier, "LightGbmLGBMClassifier",
+                                calculate_linear_classifier_output_shapes, convert_lightgbm,
+                                options=cls_opts)
+    update_registered_converter(XGBRegressor, "XGBoostXGBRegressor",
+                                calculate_linear_regressor_output_shapes, convert_xgboost)
+    update_registered_converter(XGBClassifier, "XGBoostXGBClassifier",
+                                calculate_linear_classifier_output_shapes, convert_xgboost,
+                                options=cls_opts)
+
+
+register_boosters()
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: python3 doml_convert_onnx.py <model_file> <deploy_dir>", file=sys.stderr)
@@ -301,7 +329,9 @@ def convert_and_save(model, n_features, deploy_dir, category_map):
     # Convert to ONNX
     try:
         initial_types = [('float_input', FloatTensorType([None, n_features]))]
-        onnx_model = convert_sklearn(model, initial_types=initial_types)
+        # Opsets that onnxruntime-web 1.17 (the bundled runtime) supports.
+        onnx_model = convert_sklearn(model, initial_types=initial_types,
+                                     target_opset={'': 17, 'ai.onnx.ml': 3})
     except Exception as e:
         print(f"ONNX conversion error: {e}", file=sys.stderr)
         print(str(e))

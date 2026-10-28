@@ -178,7 +178,7 @@ def _(df_full, mo, pd):
 
         # Check 2: Multi-value cells in string columns
         multi_cols = []
-        for col in df_full.select_dtypes(include='object').columns:
+        for col in df_full.select_dtypes(include=['object', 'string']).columns:
             non_null = df_full[col].dropna()
             if len(non_null) == 0:
                 continue

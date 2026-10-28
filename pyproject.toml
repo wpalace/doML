@@ -39,6 +39,7 @@ dependencies = [
     # Deployment targets (CLI / WASM / performance report)
     "pyinstaller",
     "onnx",
+    "onnxmltools",  # ONNX converters for LightGBM / XGBoost (deploy-wasm)
     "onnxruntime",
     "skl2onnx",
     "psutil",

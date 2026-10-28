@@ -261,7 +261,7 @@ def _(KFold, SEED, X_train, cross_validate, mo, models, n_folds, pd, y_train):
 
         for _name, model in models.items():
             scores = cross_validate(
-                model, X_train, y_train, cv=kf,
+                model, X_train, y_train, cv=kf, n_jobs=-1,
                 scoring={
                     'rmse':  'neg_root_mean_squared_error',
                     'mae':   'neg_mean_absolute_error',
@@ -455,7 +455,7 @@ def _(
             else:
                 model = LinearRegression()
 
-            scores = cross_validate(model, X_tr, y_tr, cv=kf,
+            scores = cross_validate(model, X_tr, y_tr, cv=kf, n_jobs=-1,
                                     scoring='neg_root_mean_squared_error')
             return -scores['test_score'].mean()
 

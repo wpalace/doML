@@ -192,16 +192,27 @@ fi
 FEATURE_SCHEMA=$(python3 -c "
 import json, glob, os
 
+import joblib
+import pandas as pd
+
+cfg = json.load(open('.planning/config.json'))
+model = joblib.load('${MODEL_FILE}')
 processed_files = sorted(glob.glob('data/processed/preprocessed_*'))
+# A Pipeline that starts with its own ColumnTransformer takes RAW columns (strings for
+# categoricals), so its schema comes from the raw dataset, in the model's column order.
+raw_input = hasattr(model, 'steps') and hasattr(model, 'feature_names_in_')
+if raw_input:
+    processed_files = [cfg['dataset']['path']]
 if processed_files:
-    import pandas as pd
     df = pd.read_csv(processed_files[0])
+    if raw_input:
+        df = df[list(model.feature_names_in_)]
     # The target is not a model input: leave it out of the serving schema.
-    cfg = json.load(open('.planning/config.json'))
     target = cfg.get('target_column') or cfg.get('dataset', {}).get('target_column')
     if target in df.columns:
         df = df.drop(columns=[target])
-    first_row = df.iloc[0] if len(df) > 0 else None
+    _complete = df.dropna()
+    first_row = (_complete if len(_complete) else df).iloc[0] if len(df) > 0 else None
     schema = []
     for col in df.columns:
         dtype_str = str(df[col].dtype)
@@ -213,7 +224,7 @@ if processed_files:
         else:
             entry['example'] = '0' if ('int' in dtype_str or 'float' in dtype_str) else 'value'
         # Categories for object (categorical) columns; null for numerics
-        if dtype_str == 'object':
+        if dtype_str in ('object', 'str', 'string'):
             cats = sorted(df[col].dropna().unique().tolist())
             entry['categories'] = [str(c) for c in cats]
         else:

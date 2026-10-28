@@ -290,7 +290,7 @@ def _(
 
         for _name, _model in models.items():
             scores = cross_validate(
-                _model, X_train, y_train, cv=skf,
+                _model, X_train, y_train, cv=skf, n_jobs=-1,
                 scoring=cv_scoring,
                 return_estimator=True,
                 return_train_score=False,
@@ -568,7 +568,7 @@ def _(LogisticRegression, RandomForestClassifier, cross_validate, lgb, xgb):
                 params = {'C': trial.suggest_float('C', 0.01, 100.0, log=True)}
                 model = LogisticRegression(max_iter=1000, random_state=seed, **params)
 
-            scores = cross_validate(model, X_tr, y_tr, cv=skf,
+            scores = cross_validate(model, X_tr, y_tr, cv=skf, n_jobs=-1,
                                     scoring=primary_metric)
             return scores['test_score'].mean()
 

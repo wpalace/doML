@@ -681,7 +681,7 @@ def _(dfs, mo, pd):
 
             # Check 2: Multiple values in one cell (>5% of non-null values contain ,;|)
             multi_cols = []
-            for _col in _df.select_dtypes(include='object').columns:
+            for _col in _df.select_dtypes(include=['object', 'string']).columns:
                 non_null = _df[_col].dropna()
                 if len(non_null) == 0:
                     continue
@@ -753,7 +753,7 @@ def _(PROJECT_ROOT, duckdb, files, get_read_fn, mo, pd):
 
             # Parse unambiguous date string columns
             date_cols_parsed = []
-            for _col in _df.select_dtypes(include='object').columns:
+            for _col in _df.select_dtypes(include=['object', 'string']).columns:
                 sample = _df[_col].dropna().head(20)
                 if len(sample) == 0:
                     continue

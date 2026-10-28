@@ -169,7 +169,7 @@ def _(df, mo, pd):
         missing_df = missing_df[missing_df['missing_count'] > 0].sort_values('missing_pct', ascending=False)
 
         numeric_cols = df.select_dtypes(include='number').columns.tolist()
-        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'string', 'category']).columns.tolist()
 
         numeric_missing = [c for c in numeric_cols if c in missing_df.index]
         categorical_missing = [c for c in categorical_cols if c in missing_df.index]
@@ -503,7 +503,7 @@ def _(
 
         final_numeric = [c for c in df_model.select_dtypes(include='number').columns
                          if c != TARGET]
-        final_categorical = df_model.select_dtypes(include=['object', 'category']).columns.tolist()
+        final_categorical = df_model.select_dtypes(include=['object', 'string', 'category']).columns.tolist()
         final_low_card = [c for c in final_categorical if df_model[c].nunique() <= 10]
         final_high_card = [c for c in final_categorical if df_model[c].nunique() > 10]
 
