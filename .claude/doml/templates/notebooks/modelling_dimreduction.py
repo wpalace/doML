@@ -31,9 +31,10 @@ def _(mo):
     _m = _re.search(r"_(v\d+)$", NB_STEM)
     NB_VERSION = _m.group(1) if _m else "v1"
     # Scrollable tables: marimo embeds only the first page (10 rows) of a table in
-    # static HTML exports. table() embeds every row (up to max_rows) in a
-    # vertically scrollable box; horizontal scrolling still works.
-    def table(obj, max_rows=1000, max_height=480):
+    # static HTML exports. table() embeds up to max_rows rows in a vertically
+    # scrollable box; horizontal scrolling still works. marimo caps page_size at
+    # 200, so at most 200 rows are embedded; a note above the table says so.
+    def table(obj, max_rows=200, max_height=480):
         try:
             import pandas as _pd
         except ImportError:
@@ -45,6 +46,7 @@ def _(mo):
         if not isinstance(obj, _pd.DataFrame):
             return obj
         _n = len(obj)
+        max_rows = max(1, min(int(max_rows), 200))  # marimo: page_size <= 200
         _shown = obj.head(max_rows)
         _t = mo.ui.table(
             _shown,
@@ -55,9 +57,9 @@ def _(mo):
         )
         if _n > max_rows:
             return mo.vstack([
-                _t,
                 mo.md(f"*Showing the first {max_rows:,} of {_n:,} rows. "
                       f"The full data is in the source file; it is not embedded in this report.*"),
+                _t,
             ])
         return _t
 

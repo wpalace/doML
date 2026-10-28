@@ -52,7 +52,7 @@ def test_dataframe_outputs_go_through_table(nb: Path) -> None:
     assert not bad, f"{nb.name}: unwrapped table outputs: {bad}"
 
 
-def _export(tmp_path: Path, nrows: int, max_rows: int = 1000) -> str:
+def _export(tmp_path: Path, nrows: int, max_rows: int = 200) -> str:
     helper = _helper_source(TEMPLATES / "data_understanding.py")
     body = "\n".join("    " + line[4:] if line.startswith("    ") else "    " + line
                      for line in helper.splitlines())
@@ -95,3 +95,20 @@ def test_export_caps_huge_tables(tmp_path: Path) -> None:
     html = _export(tmp_path, 60, max_rows=25)
     assert "ROWMARK0024" in html and "ROWMARK0025" not in html
     assert "Showing the first 25 of 60 rows" in html
+    # The note is above the table.
+    assert html.index("Showing the first 25") < html.index("ROWMARK0000")
+
+
+@pytest.mark.skipif(not (shutil.which("marimo") or Path(sys.executable).with_name("marimo").exists()),
+                    reason="marimo not installed")
+def test_export_respects_marimo_page_size_cap(tmp_path: Path) -> None:
+    # marimo rejects page_size > 200; a larger max_rows is clamped to 200.
+    html = _export(tmp_path, 250, max_rows=1000)
+    assert "ROWMARK0199" in html and "ROWMARK0200" not in html
+    assert "Showing the first 200 of 250 rows" in html
+
+
+def test_helper_default_and_cap_are_200() -> None:
+    for nb in NOTEBOOKS:
+        src = _helper_source(nb)
+        assert "max_rows=200" in src and "min(int(max_rows), 200)" in src, nb.name
