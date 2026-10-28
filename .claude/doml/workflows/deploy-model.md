@@ -65,7 +65,7 @@ If `MODEL_OVERRIDE` is empty:
 
 - Read model file from model_metadata.json (leaderboard has model names and metrics only, not file paths):
   ```bash
-  MODEL_FILE=$(python3 -c "
+  MODEL_FILE=${MODEL_OVERRIDE:-$(python3 -c "
   import json, os
   meta_path = 'models/model_metadata.json'
   if os.path.exists(meta_path):
@@ -75,7 +75,7 @@ If `MODEL_OVERRIDE` is empty:
   else:
       model_file = 'models/best_model.pkl'
   print(model_file)
-  ")
+  ")}
   ```
 
 - Validate the resolved model file exists:

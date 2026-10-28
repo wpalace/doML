@@ -360,11 +360,17 @@ def _(PROJECT_ROOT, fitted_models, mo, plt, shap, shap_data):
                 continue
 
             X_shap = shap_data[_name]
+            # SHAP cost grows with rows x trees (RandomForest on 16k rows took >20 min on one core).
+            # 2,000 seeded rows give a stable global importance ranking.
+            if len(X_shap) > 2000:
+                X_shap = X_shap.sample(2000, random_state=42)
 
             try:
                 if _name in TREE_MODELS:
                     explainer = shap.TreeExplainer(fitted_model)
-                    shap_values = explainer.shap_values(X_shap)
+                    # Exact TreeSHAP on fully grown forests takes minutes per few hundred
+                    # rows; the Saabas approximation is enough for a global ranking.
+                    shap_values = explainer.shap_values(X_shap, approximate='RandomForest' in _name)
                 elif _name in LINEAR_MODELS:
                     explainer = shap.LinearExplainer(fitted_model, X_shap)
                     shap_values = explainer.shap_values(X_shap)

@@ -214,7 +214,10 @@ def register_boosters():
                                 options=cls_opts)
 
 
-register_boosters()
+try:
+    register_boosters()
+except ImportError as exc:  # older image without onnxmltools: sklearn models still convert
+    print(f"Note: LightGBM/XGBoost ONNX converters unavailable ({exc})", file=sys.stderr)
 
 def main():
     if len(sys.argv) < 3:
@@ -273,34 +276,48 @@ def main():
                         break
 
         if has_ohe:
-            # Build OrdinalEncoder pre-fitted with the known categories
-            col_list = list(columns) if not isinstance(columns, list) else columns
-            cats_list = [np.array(cat_info[col]) for col in col_list]
+            # The page sends each categorical as a float: its index in the schema's sorted
+            # category list (category_map). Rewrite the fitted string-valued steps to work
+            # on those indices, keeping the same output columns (the model expects them).
+            col_list = list(columns)
 
-            ord_enc = OrdinalEncoder(
-                handle_unknown='use_encoded_value',
-                unknown_value=-1
-            )
-            ord_enc.categories_ = cats_list
-            ord_enc.n_features_in_ = len(col_list)
-            ord_enc.feature_names_in_ = np.array(col_list)
-            ord_enc.dtype = np.float64
+            def as_index(col, values):
+                cats = list(cat_info[col])
+                return np.array([float(cats.index(str(v))) if str(v) in cats else -1.0
+                                 for v in values])
+
+            def index_step(step):
+                step = copy.deepcopy(step)
+                if 'OneHot' in type(step).__name__:
+                    step.categories_ = [as_index(c, cs) for c, cs in zip(col_list, step.categories_)]
+                    if hasattr(step, 'feature_names_in_'):
+                        del step.feature_names_in_
+                elif type(step).__name__ == 'SimpleImputer':
+                    step.statistics_ = np.array([as_index(c, [v])[0]
+                                                 for c, v in zip(col_list, step.statistics_)])
+                    step._fit_dtype = np.dtype('float64')
+                    if hasattr(step, 'feature_names_in_'):
+                        del step.feature_names_in_
+                return step
 
             if isinstance(transformer, SKPipeline):
-                # Replace only the OHE step; keep imputer(s)
-                new_steps = []
-                for step_name, step in transformer.steps:
-                    if 'OneHot' in type(step).__name__:
-                        new_steps.append((step_name, ord_enc))
-                    else:
-                        new_steps.append((step_name, copy.deepcopy(step)))
-                new_transformer = SKPipeline(new_steps)
+                new_transformer = SKPipeline([(n, index_step(st)) for n, st in transformer.steps])
             else:
-                new_transformer = ord_enc
+                new_transformer = index_step(transformer)
 
             new_transformers.append((name, new_transformer, columns))
         else:
             new_transformers.append((name, copy.deepcopy(transformer), columns))
+
+    # One float tensor feeds the graph, so the ColumnTransformer must select by position.
+    _names = list(ct.feature_names_in_) if hasattr(ct, 'feature_names_in_') else None
+
+    def to_positions(cols):
+        if _names is None or isinstance(cols, slice) or len(cols) == 0 or not isinstance(list(cols)[0], str):
+            return cols
+        return [_names.index(c) for c in cols]
+
+    new_transformers = [(n, t, to_positions(c)) for n, t, c in new_transformers]
 
     # Rebuild ColumnTransformer with updated transformers
     new_ct = ColumnTransformer(
@@ -314,8 +331,6 @@ def main():
     # Copy fitted attributes
     new_ct.transformers_ = new_transformers
     new_ct.n_features_in_ = ct.n_features_in_
-    if hasattr(ct, 'feature_names_in_'):
-        new_ct.feature_names_in_ = ct.feature_names_in_
     new_ct._remainder = getattr(ct, '_remainder', ('remainder', 'drop', []))
     new_ct.sparse_output_ = False
 
@@ -505,6 +520,15 @@ n_features          = len(feature_schema)
 feature_schema_json = json.dumps(feature_schema)
 category_map_json   = json.dumps(category_map)
 
+# Optional probabilistic output (regression): split-conformal half-widths written by a
+# modelling notebook to models/conformal_intervals.json. Interval = prediction ± half-width,
+# looked up by group (e.g. server_type) with a global fallback.
+intervals = {}
+if problem_type == 'regression' and os.path.exists('models/conformal_intervals.json'):
+    with open('models/conformal_intervals.json') as f:
+        intervals = json.load(f)
+intervals_json = json.dumps(intervals)
+
 html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -542,6 +566,7 @@ const MODEL_B64      = "{model_b64}";
 const FEATURE_SCHEMA = {feature_schema_json};
 const CATEGORIES     = {category_map_json};
 const PROBLEM_TYPE   = "{problem_type}";
+const INTERVALS      = {intervals_json};
 
 (async () => {{
   // Point ORT at the embedded WASM (D-01)
@@ -590,6 +615,7 @@ const PROBLEM_TYPE   = "{problem_type}";
       inp.step = 'any';
       inp.required = true;
       inp.placeholder = String(feat.example ?? '0');
+      inp.value = String(feat.example ?? '');  // start from a real example row
       label.appendChild(inp);
     }}
     row.appendChild(label);
@@ -622,7 +648,19 @@ const PROBLEM_TYPE   = "{problem_type}";
 
     if (PROBLEM_TYPE === 'regression') {{
       const pred = results[outputNames[0]].data[0];
-      div.innerHTML = '<strong>Prediction:</strong> ' + pred.toFixed(4);
+      let html = '<strong>Prediction:</strong> ' + pred.toFixed(2);
+      const hw = INTERVALS.half_widths_kw || INTERVALS.half_widths;
+      if (hw) {{
+        const group = INTERVALS.group_column ? fd.get(INTERVALS.group_column) : null;
+        html += '<br><br><strong>Prediction intervals</strong> (split conformal):<br>';
+        for (const cov of Object.keys(hw).sort()) {{
+          const q = hw[cov][group] ?? hw[cov]['__global__'];
+          html += cov + '%: <strong>' + (pred - q).toFixed(2) + ' – ' + (pred + q).toFixed(2) +
+                  '</strong> (± ' + q.toFixed(2) + ')<br>';
+        }}
+      }}
+      div.innerHTML = html;
+      div.dataset.prediction = String(pred);
     }} else {{
       // Classification: label output + optional probability ZipMap output
       const labelOut = outputNames.find(n => n.includes('label')) ?? outputNames[0];

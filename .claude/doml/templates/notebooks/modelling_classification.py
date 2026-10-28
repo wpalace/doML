@@ -478,11 +478,16 @@ def _(PROJECT_ROOT, fitted_models, mo, np, plt, shap, shap_data_dict):
                 continue
 
             X_shap = shap_data_dict[_name]
+            # SHAP cost grows with rows x trees; 2,000 seeded rows give a stable ranking.
+            if len(X_shap) > 2000:
+                X_shap = X_shap.sample(2000, random_state=42)
 
             try:
                 if _name in TREE_MODELS:
                     explainer = shap.TreeExplainer(fitted_model)
-                    shap_vals = explainer.shap_values(X_shap)
+                    # Exact TreeSHAP on fully grown forests takes minutes per few hundred
+                    # rows; the Saabas approximation is enough for a global ranking.
+                    shap_vals = explainer.shap_values(X_shap, approximate='RandomForest' in _name)
                     # Binary: shap_vals is list of 2 arrays — use positive class
                     if isinstance(shap_vals, list) and len(shap_vals) == 2:
                         shap_vals = shap_vals[1]
