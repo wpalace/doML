@@ -6,13 +6,13 @@ A meta-prompting framework that guides AI coding assistants through reproducible
 
 ## What is DoML?
 
-DoML is a collection of skills and workflow templates that guide data scientists through the full ML lifecycle: business framing, exploratory data analysis, modelling, optional forecasting, and deployment. Each phase produces reproducible Jupyter notebooks and stakeholder-ready HTML reports, so the full decision trail is always visible.
+DoML is a collection of skills and workflow templates that guide data scientists through the full ML lifecycle: business framing, exploratory data analysis, modelling, optional forecasting, and deployment. Each phase produces reproducible [marimo](https://marimo.io) notebooks (plain `.py` files, no stored outputs) and stakeholder-ready HTML reports, so the full decision trail is always visible.
 
 All notebook code runs inside a Docker container — no local Python environment to configure, no dependency conflicts, and no "works on my machine" surprises. The same container runs on any OS, making analyses fully portable and trivially reproducible by anyone with Docker installed.
 
-It enforces reproducibility rules automatically: random seeds at the top of every notebook, all paths resolved via a `PROJECT_ROOT` environment variable, `data/raw/` mounted read-only so source data is never overwritten, and a fully pinned `requirements.txt` generated from `requirements.in` via `pip-compile`.
+It enforces reproducibility rules automatically: random seeds at the top of every notebook, all paths resolved via a `PROJECT_ROOT` environment variable, `data/raw/` mounted read-only so source data is never overwritten, and a hash-pinned `requirements.txt` exported from `uv.lock` (direct dependencies live in `pyproject.toml`).
 
-Every command is context-aware: it reads `config.json` (problem type, language preference, time factor) so you never answer the same question twice. Start with `/doml-new-project`, answer a short interview, and every subsequent command knows your dataset and goals.
+Every command is context-aware: it reads `config.json` (problem type, dataset, target column, time factor) so you never answer the same question twice. Start with `/doml-new-project`, answer a short interview, and every subsequent command knows your dataset and goals.
 
 Each modelling phase produces a leaderboard ranking models by their evaluation metric, so the best-performing configurations are always visible across runs. Use `/doml-iterate` to try new hyperparameters, feature sets, or algorithms — results are appended to the leaderboard and the top model is always available for deployment.
 
@@ -109,6 +109,18 @@ flowchart TD
 
 ---
 
+## Working with the notebooks
+
+DoML notebooks are marimo apps. Cells re-run automatically when their inputs change, and each file is a normal Python module, so diffs are clean and the notebooks can be linted.
+
+```bash
+docker compose up -d                       # marimo editor at http://localhost:2718
+docker compose exec -T doml python .claude/doml/bin/doml_nb.py run notebooks/<nb>.py --report reports/<nb>.html
+docker compose exec -T doml marimo check --strict notebooks/
+```
+
+The image is `python:3.14-slim` plus the uv-locked scientific stack (about 1.7 GB, versus 5.9 GB for the earlier Jupyter image). The image is CPU-only (`xgboost-cpu`, no NVIDIA libraries); GPU support is planned as an opt-in path. Set `MARIMO_TOKEN` in `.env` to require a password for the editor.
+
 ## Commands
 
 | Command | Description | Key flags |
@@ -132,12 +144,14 @@ flowchart TD
 
 ## Reproducibility
 
-DoML enforces four reproducibility rules automatically:
+DoML enforces five reproducibility rules automatically:
 
 - **Random seeds** — `SEED = 42` is set at the top of every generated notebook before any sampling, splitting, or model fitting
 - **Relative paths** — all file references resolve from the `PROJECT_ROOT` environment variable; no hardcoded absolute paths
 - **Immutable raw data** — `data/raw/` is mounted read-only in Docker; source files are never modified or overwritten
-- **Pinned dependencies** — `requirements.txt` pins every package with `==`; edit `requirements.in` and regenerate with `pip-compile`
+- **Pinned dependencies** — `requirements.txt` pins every package with `==` and a hash; edit `pyproject.toml`, then `uv lock && uv export --frozen --no-emit-project --no-dev -o requirements.txt`
+
+- **No outputs in git** — marimo notebooks store code only; results live in `reports/*.html`
 
 See [`CLAUDE.md`](CLAUDE.md) for the full set of conventions Claude Code follows in every DoML analysis project.
 
@@ -150,7 +164,6 @@ Building DoML consumed a meaningful amount of AI compute — and yes, the top-ti
 ## Future Milestones Planned
 This project is very green and quite rough around the edges, so don't expect perfection. Here are some future plans I would like to work on as time permits:
 
-- Make the container more efficient - it is bulky and slow to build on a cold cache
 - Add more skills to improve the cababilities of different problem types (particularly time sereis)
 - Add a high throughput, qualitative QA qutomation process scored by LLM judges - run the framework against a matrix of datasets using various LLMs with OpenClaw orchestrating the process
 - Extend framewowrk with deep learning capabilities

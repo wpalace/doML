@@ -65,7 +65,7 @@ If `MODEL_OVERRIDE` is empty:
 
 - Read model file from model_metadata.json (leaderboard has model names and metrics only, not file paths):
   ```bash
-  MODEL_FILE=$(python3 -c "
+  MODEL_FILE=${MODEL_OVERRIDE:-$(python3 -c "
   import json, os
   meta_path = 'models/model_metadata.json'
   if os.path.exists(meta_path):
@@ -75,7 +75,7 @@ If `MODEL_OVERRIDE` is empty:
   else:
       model_file = 'models/best_model.pkl'
   print(model_file)
-  ")
+  ")}
   ```
 
 - Validate the resolved model file exists:
@@ -192,11 +192,27 @@ fi
 FEATURE_SCHEMA=$(python3 -c "
 import json, glob, os
 
+import joblib
+import pandas as pd
+
+cfg = json.load(open('.planning/config.json'))
+model = joblib.load('${MODEL_FILE}')
 processed_files = sorted(glob.glob('data/processed/preprocessed_*'))
+# A Pipeline that starts with its own ColumnTransformer takes RAW columns (strings for
+# categoricals), so its schema comes from the raw dataset, in the model's column order.
+raw_input = hasattr(model, 'steps') and hasattr(model, 'feature_names_in_')
+if raw_input:
+    processed_files = [cfg['dataset']['path']]
 if processed_files:
-    import pandas as pd
     df = pd.read_csv(processed_files[0])
-    first_row = df.iloc[0] if len(df) > 0 else None
+    if raw_input:
+        df = df[list(model.feature_names_in_)]
+    # The target is not a model input: leave it out of the serving schema.
+    target = cfg.get('target_column') or cfg.get('dataset', {}).get('target_column')
+    if target in df.columns:
+        df = df.drop(columns=[target])
+    _complete = df.dropna()
+    first_row = (_complete if len(_complete) else df).iloc[0] if len(df) > 0 else None
     schema = []
     for col in df.columns:
         dtype_str = str(df[col].dtype)
@@ -208,7 +224,7 @@ if processed_files:
         else:
             entry['example'] = '0' if ('int' in dtype_str or 'float' in dtype_str) else 'value'
         # Categories for object (categorical) columns; null for numerics
-        if dtype_str == 'object':
+        if dtype_str in ('object', 'str', 'string'):
             cats = sorted(df[col].dropna().unique().tolist())
             entry['categories'] = [str(c) for c in cats]
         else:
@@ -237,7 +253,7 @@ model_file = '${MODEL_FILE}'
 model_slug = '${MODEL_SLUG}'
 version = ${VERSION}
 target_key = '${TARGET_KEY}'
-feature_schema = ${FEATURE_SCHEMA}
+feature_schema = json.loads('''${FEATURE_SCHEMA}''')
 problem_type = '${PROBLEM_TYPE}'
 
 with open('models/model_metadata.json') as f:
@@ -297,9 +313,9 @@ Next step: run the target-specific deployment phase.
 
 - NEVER shell-interpolate MODEL_OVERRIDE in shell commands — only pass to Python os.path.exists()
 - NEVER hardcode version numbers — always glob src/MODEL_SLUG/v* and increment max (D-02)
-- NEVER run Docker — this workflow is pure file I/O; no docker compose exec calls
+- NEVER run Docker — this workflow is pure file I/O; no docker compose exec -T calls
   **Exception: Step 12 is the only step permitted to run Docker commands** — it must execute the
-  notebook inside the jupyter container and generate HTML. All other steps remain pure file I/O.
+  notebook inside the doml container and generate HTML. All other steps remain pure file I/O.
 - NEVER create predict.py, Dockerfile, app.py, or any stub files — those are Phase 14/15/16 (D-05)
 - NEVER overwrite existing fields in model_metadata.json — only add model_name if the key is absent
 
@@ -313,8 +329,8 @@ Next step: run the target-specific deployment phase.
 #### 12a — Copy notebook template
 
 ```bash
-cp .claude/doml/templates/notebooks/deployment_report.ipynb notebooks/deployment_report.ipynb
-echo "Notebook template copied to notebooks/deployment_report.ipynb"
+cp .claude/doml/templates/notebooks/deployment_report.py notebooks/deployment_report.py
+echo "Notebook template copied to notebooks/deployment_report.py"
 ```
 
 #### 12b — Web service only: start container and set URL
@@ -323,7 +339,7 @@ If `TARGET_KEY == 'web_service'`:
 
 ```bash
 # Start the FastAPI container
-docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" up -d
+docker compose -f "src/${MODEL_SLUG}/v${VERSION#v}/docker-compose.serve.yml" up -d --build
 
 # Poll GET /health with 30s timeout (1s intervals) until 200
 python3 -c "
@@ -347,7 +363,9 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-DOML_WEB_SERVICE_URL="http://localhost:8080"
+# The report runs inside the doml container, where localhost is the container itself.
+# compose.yaml maps host.docker.internal to the host, where the serve container publishes 8080.
+DOML_WEB_SERVICE_URL="http://host.docker.internal:8080"
 echo "Web service URL: $DOML_WEB_SERVICE_URL"
 ```
 
@@ -359,132 +377,85 @@ DOML_WEB_SERVICE_URL=""
 #### 12c — Execute notebook inside Docker
 
 ```bash
-docker compose exec \
-  -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" \
-  jupyter \
-  jupyter nbconvert \
-    --to notebook \
-    --execute \
-    --inplace \
-    --timeout=900 \
-    notebooks/deployment_report.ipynb
+docker compose exec -T \
+  -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
+  --report reports/deployment_report.html --timeout 900
 ```
 
 If this command exits non-zero, the parity test or another cell raised an error. Display:
 ```
-Notebook execution FAILED. Check notebooks/deployment_report.ipynb for the error cell.
+Notebook execution FAILED. Check notebooks/deployment_report.py for the error cell.
 Parity test may have failed — review the AssertionError message in the notebook output.
 ```
-Then stop (do not generate HTML from a failed execution).
+Then stop the web service (if started) and stop.
 
-#### 12d — Web service only: stop container
+#### 12d — Read benchmark results from the exported report
 
-If `TARGET_KEY == 'web_service'`:
+marimo notebooks do not store outputs. Read them from the exported report instead:
 
 ```bash
-docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" down
-echo "Web service container stopped."
+python3 .claude/doml/bin/doml_nb.py outputs reports/deployment_report.html --max-chars 3000
 ```
 
-#### 12e — Read benchmark results from executed notebook
+Call this text `benchmark_summary`.
 
-```python
-import json, nbformat
-from pathlib import Path
+#### 12e — Write Claude narrative (Performance Summary sidecar)
 
-nb_path = Path('notebooks/deployment_report.ipynb')
-nb = nbformat.read(str(nb_path), as_version=4)
-
-# Extract plain-text outputs from all code cells
-benchmark_outputs = []
-for i, cell in enumerate(nb.cells):
-    if cell.cell_type == 'code':
-        for output in cell.get('outputs', []):
-            if output.get('output_type') == 'stream':
-                benchmark_outputs.append(f"[Cell {i}] " + ''.join(output.get('text', [])))
-            elif output.get('output_type') in ('execute_result', 'display_data'):
-                data = output.get('data', {})
-                if 'text/plain' in data:
-                    benchmark_outputs.append(f"[Cell {i}] " + ''.join(data['text/plain']))
-
-benchmark_summary = '\n'.join(benchmark_outputs)
-print(benchmark_summary[:3000])  # show first 3000 chars for context
-```
-
-#### 12f — Write Claude narrative and inject into Cell 12
-
-Claude Code reads `benchmark_summary` from 12e and writes a 2-3 paragraph narrative
+Claude Code reads `benchmark_summary` from 12d and writes a 2-3 paragraph narrative
 summarising the key findings: latency (mean ± std, p95), batch throughput at each batch size,
 memory footprint (model load + per-prediction), projected throughput (req/s), and parity outcome.
 
 The narrative must mention the target type and note that ONNX results are an approximation
 (if target is onnx_wasm).
 
-Inject the narrative into the notebook by replacing Cell 12 (the placeholder markdown cell):
+The notebook's "Performance Summary" cell renders the sidecar file
+`notebooks/narratives/deployment_report/performance.md`:
 
-```python
-import nbformat
-from pathlib import Path
-
-nb_path = Path('notebooks/deployment_report.ipynb')
-nb = nbformat.read(str(nb_path), as_version=4)
-
-# Locate Cell 12 (index 12 — the placeholder markdown)
-placeholder = nb.cells[12]
-assert placeholder['cell_type'] == 'markdown', \
-    f"Expected Cell 12 to be markdown placeholder, got {placeholder['cell_type']}"
-
-narrative_text = """## Performance Summary
+```bash
+cat > /tmp/doml_performance.md <<'DOML_EOF'
+## Performance Summary
 
 {NARRATIVE_WRITTEN_BY_CLAUDE}
-"""
-
-placeholder['source'] = narrative_text
-nbformat.write(nb, str(nb_path))
-print("Narrative injected into Cell 12 of notebooks/deployment_report.ipynb")
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative notebooks/deployment_report.py performance /tmp/doml_performance.md
 ```
 
-Replace `{NARRATIVE_WRITTEN_BY_CLAUDE}` with the actual 2-3 paragraph narrative text
-before running the script.
+Replace `{NARRATIVE_WRITTEN_BY_CLAUDE}` with the actual 2-3 paragraph narrative text first.
 
-#### 12g — Generate HTML report
+#### 12f — Re-export the HTML report with the narrative
+
+The web service must still be running for the web target (the notebook benchmarks it again).
 
 ```bash
-docker compose exec jupyter \
-  jupyter nbconvert \
-    --to html \
-    --no-input \
-    --output deployment_report \
-    notebooks/deployment_report.ipynb
+docker compose exec -T \
+  -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
+  --report reports/deployment_report.html --timeout 900
 ```
 
-#### 12h — Move HTML to reports/
+#### 12g — Web service only: stop container
+
+If `TARGET_KEY == 'web_service'`:
 
 ```bash
-mkdir -p reports
-cp notebooks/deployment_report.html reports/deployment_report.html
-echo "HTML report copied to reports/deployment_report.html"
+docker compose -f "src/${MODEL_SLUG}/v${VERSION#v}/docker-compose.serve.yml" down
+echo "Web service container stopped."
 ```
 
-#### 12i — Verify: no visible code in HTML
+#### 12h — Verify: no visible code, no cell errors
 
 ```bash
-INPUT_COUNT=$(grep -c 'class="input"' reports/deployment_report.html 2>/dev/null || echo "0")
-if [ "$INPUT_COUNT" -gt 0 ]; then
-  echo "WARNING: HTML may contain visible code cells (found $INPUT_COUNT 'class=\"input\"' occurrences)."
-  echo "Verify reports/deployment_report.html manually."
-else
-  echo "HTML verification passed: no visible code cells (class=\"input\" count = 0)."
-fi
+python3 .claude/doml/bin/doml_nb.py verify-report reports/deployment_report.html --require "Performance Summary"
 ```
 
-#### 12j — Confirm
+#### 12i — Confirm
 
 Display:
 ```
 Performance report generated.
 
-  Notebook:  notebooks/deployment_report.ipynb
+  Notebook:  notebooks/deployment_report.py
   Report:    reports/deployment_report.html
 
 Open reports/deployment_report.html to review benchmark results and narrative.
@@ -494,4 +465,4 @@ Open reports/deployment_report.html to review benchmark results and narrative.
 
 **Anti-Pattern addendum (Step 12 only):**
 Step 12 is the sole exception to the "NEVER run Docker" rule — it must execute the notebook and
-generate HTML inside the jupyter container. All other steps remain pure file I/O.
+export HTML inside the doml container. All other steps remain pure file I/O.

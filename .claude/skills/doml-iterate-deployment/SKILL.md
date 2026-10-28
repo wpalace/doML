@@ -1,6 +1,6 @@
 ---
 name: doml-iterate-deployment
-description: "Iterate an existing deployment to a new version without re-running /doml-deploy-model from scratch. Validates the leaderboard leader matches the last deployed model, scans src/<modelname>/v*/ for the current highest version, and writes to vN+1. Accepts --model path/to/model.pkl (different model → new src/<newmodelname>/v1/), --target {cli|web|wasm} (override target), and --guidance \"text\" (freeform direction applied to configuration before deployment). Regenerates deployment_report.ipynb and deployment_report.html for the new version."
+description: "Iterate an existing deployment to a new version without re-running /doml-deploy-model from scratch. Validates the leaderboard leader matches the last deployed model, scans src/<modelname>/v*/ for the current highest version, and writes to vN+1. Accepts --model path/to/model.pkl (different model → new src/<newmodelname>/v1/), --target {cli|web|wasm} (override target), and --guidance \"text\" (freeform direction applied to configuration before deployment). Regenerates deployment_report.py and deployment_report.html for the new version."
 argument-hint: "[--model path/to/model.pkl] [--target {cli|web|wasm}] [--guidance \"text\"]"
 allowed-tools:
   - Read
@@ -25,7 +25,7 @@ Iterate an existing DoML deployment to a new version end-to-end:
 9. Apply --guidance: Claude reads the guidance text and notes configuration adjustments before delegating to the target skill
 10. Create src/<modelname>/vN+1/ and write deployment_metadata.json (fields: model_file, model_name, target, problem_type, build_date, version, feature_schema; optionally guidance)
 11. Delegate to target skill: @.claude/doml/workflows/deploy-cli.md, deploy-web.md, or deploy-wasm.md passing --deploy-dir src/${MODEL_SLUG}/v${VERSION}
-12. Generate performance report: copy deployment_report.ipynb template, execute in Docker, inject Claude narrative, generate reports/deployment_report.html
+12. Generate performance report: copy deployment_report.py template, execute in Docker, inject Claude narrative, generate reports/deployment_report.html
 13. Update STATE.md and confirm to user
 </objective>
 

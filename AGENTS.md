@@ -10,7 +10,7 @@ dataset into `/data`, answers guided questions, and gets a fully reproducible, p
 ML analysis with stakeholder-ready summaries — without reinventing the process each time.
 
 This project was scaffolded by DoML. All analysis follows CRISP-DM phases implemented as
-Jupyter notebooks with Docker-based execution.
+marimo notebooks with Docker-based execution.
 
 ## Project Structure
 
@@ -19,16 +19,29 @@ Jupyter notebooks with Docker-based execution.
 | `data/raw/` | IMMUTABLE source data — never modify | Read-only mount |
 | `data/processed/` | Cleaned datasets (EDA output) | Writable |
 | `data/external/` | Reference data / lookups | Read-only mount |
-| `notebooks/` | Jupyter notebooks, one per DoML phase | Writable |
+| `notebooks/` | marimo notebooks (`.py`), one per DoML phase; `narratives/` sidecars | Writable |
 | `reports/` | Stakeholder HTML reports (code hidden) | Writable |
 | `models/` | Serialized model artifacts + metadata JSON | Writable |
 | `src/` | Deployment artifacts (CLI, web, WASM) | Writable |
+
+## marimo Notebooks
+
+Every notebook is a marimo app: a plain-Python `.py` file, one function per cell, run in
+dependency order. A variable may be defined in one cell only (edit the defining cell to change
+it; `_name` is cell-private). Outputs are never stored in the file. Narratives (executive
+summary, interpretation, iteration direction) are Markdown sidecars in
+`notebooks/narratives/<notebook stem>/<section>.md` that the notebook renders.
+
+```bash
+docker compose exec -T doml python .claude/doml/bin/doml_nb.py run notebooks/<nb>.py --report reports/<name>.html
+python3 .claude/doml/bin/doml_nb.py verify-report reports/<name>.html
+docker compose exec -T doml marimo check --strict notebooks/
+```
 
 ## Reproducibility Rules (Non-Negotiable)
 
 ### 1. Random seeds at the top of every notebook
 
-Python:
 ```python
 import os, random
 import numpy as np
@@ -37,29 +50,17 @@ random.seed(SEED)
 np.random.seed(SEED)
 ```
 
-R:
-```r
-set.seed(42)
-```
-
 Set before any sampling, train/test split, or model fit.
 
 ### 2. Relative paths via PROJECT_ROOT
 
-Never hardcode absolute paths. Resolve from the environment variable:
+Never hardcode absolute paths. Resolve from the environment variable (`/project` in the container):
 
-Python:
 ```python
 import os
 from pathlib import Path
-PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', '/home/jovyan/work'))
+PROJECT_ROOT = Path(os.environ.get('PROJECT_ROOT', str(mo.notebook_dir().parent)))
 raw_data = PROJECT_ROOT / 'data' / 'raw' / 'sales.csv'
-```
-
-R:
-```r
-PROJECT_ROOT <- Sys.getenv("PROJECT_ROOT", unset = "/home/jovyan/work")
-raw_data <- file.path(PROJECT_ROOT, "data", "raw", "sales.csv")
 ```
 
 ### 3. Raw data is immutable
@@ -67,23 +68,22 @@ raw_data <- file.path(PROJECT_ROOT, "data", "raw", "sales.csv")
 `data/raw/` is mounted read-only in the container. Never write to it. If source data changes,
 add a new dated file (e.g., `sales_2026-04-01.csv`) — do not overwrite.
 
-### 4. Notebook outputs stripped on commit
+### 4. No outputs in git
 
-`nbstripout` runs as a pre-commit hook. Outputs, execution counts, and selected metadata are
-stripped before commit. Re-run the notebook to see outputs again.
+marimo notebooks hold code only, so there is nothing to strip. Outputs live in `reports/*.html`.
 
 ### 5. Pinned dependencies
 
-`requirements.txt` pins every package with `==`. Edit `requirements.in` (unpinned) and
-regenerate: `docker compose run --rm jupyter uv pip compile requirements.in --generate-hashes -o requirements.txt`
+`pyproject.toml` (direct deps) → `uv.lock` (full pin) → `requirements.txt` (hash-pinned export
+installed by the image). Regenerate: `uv lock && uv export --frozen --no-emit-project --no-dev -o requirements.txt`
 
 ## Running the Environment
 
 ```bash
-docker compose up         # Start JupyterLab at http://localhost:8888
-docker compose exec jupyter bash  # Shell inside container
-docker compose build      # Rebuild after changing requirements.txt or Dockerfile
-docker compose down       # Stop
+docker compose up -d              # Start the marimo editor at http://localhost:2718
+docker compose exec -T doml bash     # Shell inside container
+docker compose build              # Rebuild after changing pyproject.toml/requirements.txt or Dockerfile
+docker compose down               # Stop
 ```
 
 ## DoML Commands
@@ -126,7 +126,7 @@ df = duckdb.sql("SELECT * FROM 'data/raw/sales.csv' WHERE region = 'EU'").df()
 
 - Never modify files in `data/raw/`
 - Never commit raw data files, model pickles, or HTML reports to git
-- Never use `pip install` inside the container without updating `requirements.in`
+- Never use `pip install` inside the container without updating `pyproject.toml` and the lock
 - Never hardcode absolute paths
 - Never skip random seeds
 - Never use AutoML tools that hide the decision trail — DoML's purpose is traceable analysis

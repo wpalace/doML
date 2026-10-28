@@ -20,7 +20,7 @@ This unified command covers all four problem types:
 - `dimensionality_reduction` — unsupervised pipeline: PCA, UMAP, t-SNE, variance explained, leaderboard append
 
 Every iteration produces:
-1. A new versioned notebook (e.g., `notebooks/04_modelling_regression_v2.ipynb`) — never overwrites prior versions
+1. A new versioned notebook (e.g., `notebooks/04_modelling_regression_v2.py`) — never overwrites prior versions
 2. A versioned HTML report (e.g., `reports/model_report_v2.html`) with code hidden and a narrative comparing this iteration to the prior one
 3. An appended row in the relevant leaderboard CSV — never replaces existing results
 </objective>

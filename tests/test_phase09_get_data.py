@@ -6,7 +6,7 @@ Verifies that:
 - get-data.md contains critical correctness guards (docker cp /., pre-run cleanup, etc.)
 - get-data.md appends provenance to README.md with SHA-256 (DATA-04)
 - new-project.md contains EMPTY_DATA_DIR sentinel + Step 3b acquisition loop (DATA-03)
-- Config files updated: docker-compose.yml template (KAGGLE env vars), requirements.in (kaggle), .gitignore (.stage/)
+- Config files updated: compose.yaml template (KAGGLE env vars), pyproject.toml (kaggle), .gitignore (.stage/)
 """
 from pathlib import Path
 
@@ -15,8 +15,9 @@ REPO_ROOT = Path(__file__).parent.parent
 SKILL_MD = REPO_ROOT / ".claude" / "skills" / "doml-get-data" / "SKILL.md"
 GET_DATA_WF = REPO_ROOT / ".claude" / "doml" / "workflows" / "get-data.md"
 NEW_PROJECT_WF = REPO_ROOT / ".claude" / "doml" / "workflows" / "new-project.md"
-DOCKER_COMPOSE_TMPL = REPO_ROOT / ".claude" / "doml" / "templates" / "docker-compose.yml"
-REQUIREMENTS_IN = REPO_ROOT / "requirements.in"
+DOCKER_COMPOSE_TMPL = REPO_ROOT / ".claude" / "doml" / "templates" / "compose.yaml"
+PYPROJECT = REPO_ROOT / "pyproject.toml"
+TMPL_REQUIREMENTS = REPO_ROOT / ".claude" / "doml" / "templates" / "requirements.txt"
 GITIGNORE = REPO_ROOT / ".gitignore"
 
 
@@ -276,7 +277,7 @@ def test_get_data_workflow_placeholder_check():
     """get-data.md credential check must reject xxxxxxxxxxxxxxxx placeholder values as unconfigured."""
     content = GET_DATA_WF.read_text()
     # The check must compare against the placeholder string so a .env with unedited placeholders fails
-    assert '"xxxxxxxxxxxxxxxx"' in content or "'xxxxxxxxxxxxxxxx'" in content, (
+    assert "grep -qE '^x+$'" in content or '"xxxxxxxxxxxxxxxx"' in content, (
         "get-data.md does not treat xxxxxxxxxxxxxxxx as an unconfigured credential — "
         "a .env with unedited placeholders would be accepted as valid"
     )
@@ -337,28 +338,27 @@ def test_get_data_workflow_prerun_cleanup():
 
 
 # ---------------------------------------------------------------------------
-# Gap 7: Config files — docker-compose template, requirements.in, .gitignore, Dockerfile
+# Gap 7: Config files — compose template, pyproject/lock, .gitignore
 # ---------------------------------------------------------------------------
 
-def test_dockerfile_template_installs_kaggle():
-    """templates/Dockerfile must install kaggle as a dedicated pip layer (belt-and-suspenders)."""
-    dockerfile = REPO_ROOT / ".claude" / "doml" / "templates" / "Dockerfile"
-    content = dockerfile.read_text()
-    assert "pip install" in content and "kaggle" in content, (
-        "templates/Dockerfile does not install kaggle — "
-        "image will lack the kaggle CLI even if requirements.txt is stale"
+def _pyproject_deps(path):
+    import tomllib
+    return [d.split(">")[0].split("=")[0].split("<")[0].split("[")[0].strip().lower()
+            for d in tomllib.loads(path.read_text())["project"]["dependencies"]]
+
+
+def test_template_lock_export_pins_kaggle():
+    """templates/requirements.txt (the hash-pinned uv export the Dockerfile installs) must pin kaggle."""
+    content = TMPL_REQUIREMENTS.read_text()
+    assert any(l.startswith("kaggle==") for l in content.splitlines()), (
+        "templates/requirements.txt does not pin kaggle — the image will lack the kaggle CLI"
     )
 
 
-def test_template_requirements_in_has_kaggle():
-    """templates/requirements.in must include kaggle so new projects get it on first pip-compile."""
-    tmpl_req_in = REPO_ROOT / ".claude" / "doml" / "templates" / "requirements.in"
-    content = tmpl_req_in.read_text()
-    kaggle_lines = [l.strip() for l in content.splitlines() if l.strip() == "kaggle"]
-    assert kaggle_lines, (
-        "templates/requirements.in missing kaggle — "
-        "new projects will not include it when pip-compile regenerates requirements.txt"
-    )
+def test_template_pyproject_has_kaggle():
+    """templates/pyproject.toml must list kaggle so new projects keep it when they re-lock."""
+    tmpl = REPO_ROOT / ".claude" / "doml" / "templates" / "pyproject.toml"
+    assert "kaggle" in _pyproject_deps(tmpl), "templates/pyproject.toml missing kaggle"
 
 
 def test_get_data_workflow_credential_restart_instruction():
@@ -371,34 +371,28 @@ def test_get_data_workflow_credential_restart_instruction():
 
 
 def test_docker_compose_template_has_kaggle_username():
-    """docker-compose.yml template must include KAGGLE_USERNAME env var slot (DATA-01)."""
+    """compose.yaml template must include KAGGLE_USERNAME env var slot (DATA-01)."""
     content = DOCKER_COMPOSE_TMPL.read_text()
     assert "KAGGLE_USERNAME" in content, (
-        "docker-compose.yml template missing KAGGLE_USERNAME env var — "
+        "compose.yaml template missing KAGGLE_USERNAME env var — "
         "new projects will have no slot to set Kaggle credentials"
     )
 
 
 def test_docker_compose_template_has_kaggle_key():
-    """docker-compose.yml template must include KAGGLE_KEY env var slot (DATA-01)."""
+    """compose.yaml template must include KAGGLE_KEY env var slot (DATA-01)."""
     content = DOCKER_COMPOSE_TMPL.read_text()
     assert "KAGGLE_KEY" in content, (
-        "docker-compose.yml template missing KAGGLE_KEY env var — "
+        "compose.yaml template missing KAGGLE_KEY env var — "
         "new projects will have no slot to set Kaggle credentials"
     )
 
 
-def test_requirements_in_has_kaggle():
-    """requirements.in must list kaggle package so it is installed in Docker image (DATA-01)."""
-    content = REQUIREMENTS_IN.read_text()
-    lines = content.splitlines()
-    # Must have a bare 'kaggle' line (not a comment)
-    kaggle_lines = [l.strip() for l in lines if l.strip() == "kaggle"]
-    assert kaggle_lines, (
-        "requirements.in does not contain a 'kaggle' package line — "
-        "kaggle CLI will not be installed in the Docker image"
+def test_pyproject_has_kaggle():
+    """pyproject.toml must list kaggle so it is installed in the Docker image (DATA-01)."""
+    assert "kaggle" in _pyproject_deps(PYPROJECT), (
+        "pyproject.toml does not list kaggle — kaggle CLI will not be installed in the Docker image"
     )
-
 
 def test_gitignore_has_stage_dir():
     """`.gitignore` must exclude data/raw/.stage/ from git (prevents staging dir from being committed)."""
@@ -407,3 +401,14 @@ def test_gitignore_has_stage_dir():
         ".gitignore missing data/raw/.stage/ entry — "
         "staging directory may be accidentally committed to git history"
     )
+
+
+def test_compose_template_has_kaggle_api_token():
+    """compose.yaml template must pass the new-style KAGGLE_API_TOKEN into the container."""
+    assert "KAGGLE_API_TOKEN" in DOCKER_COMPOSE_TMPL.read_text()
+
+
+def test_get_data_accepts_token_or_legacy_key():
+    """get-data.md must accept KAGGLE_API_TOKEN and the legacy KAGGLE_USERNAME + KAGGLE_KEY pair."""
+    content = GET_DATA_WF.read_text()
+    assert "KAGGLE_API_TOKEN" in content and "KAGGLE_USERNAME" in content and "KAGGLE_KEY" in content

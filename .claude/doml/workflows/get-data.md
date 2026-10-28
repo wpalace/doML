@@ -43,33 +43,31 @@ Set variables:
 
 Skip this step entirely if `SOURCE_TYPE` is `"url"`.
 
-Before checking Docker or asking for anything else, verify that Kaggle credentials are configured in the
-project's `.env` file. This runs on the host and fails fast so the user learns about missing credentials
-before any download is attempted.
+Before checking Docker or asking for anything else, verify that Kaggle credentials are available.
+DoML accepts either form (the kaggle CLI in the image supports both):
+
+- **API token (recommended):** `KAGGLE_API_TOKEN` — the token from Kaggle → Settings → API → "Generate New Token".
+- **Legacy key:** `KAGGLE_USERNAME` + `KAGGLE_KEY` — the two values inside a downloaded `kaggle.json`.
+
+Compose passes these variables into the container from the host shell or from `.env`. Never print a
+credential value; test only whether it is set.
 
 ```bash
 KAGGLE_CREDS_OK=false
+env_val() { grep "^$1=" .env 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '[:space:]'; }
+is_real() { [ -n "$1" ] && ! printf '%s' "$1" | grep -qE '^x+$'; }
 
-if [ -f ".env" ]; then
-  KU=$(grep "^KAGGLE_USERNAME=" .env 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
-  KK=$(grep "^KAGGLE_KEY=" .env 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
-  if [ -n "$KU" ] && [ "$KU" != "xxxxxxxxxxxxxxxx" ] && \
-     [ -n "$KK" ] && [ "$KK" != "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" ]; then
-    KAGGLE_CREDS_OK=true
-  fi
+KT="${KAGGLE_API_TOKEN:-$(env_val KAGGLE_API_TOKEN)}"
+KU="${KAGGLE_USERNAME:-$(env_val KAGGLE_USERNAME)}"
+KK="${KAGGLE_KEY:-$(env_val KAGGLE_KEY)}"
+if is_real "$KT" || { is_real "$KU" && is_real "$KK"; }; then
+  KAGGLE_CREDS_OK=true
 fi
+unset KT KU KK
 
 if [ "$KAGGLE_CREDS_OK" = false ]; then
-  # Create .env with placeholders if it doesn't exist, or append missing entries
-  if [ ! -f ".env" ]; then
-    cat > .env << 'ENVEOF'
-KAGGLE_USERNAME=xxxxxxxxxxxxxxxx
-KAGGLE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-ENVEOF
-  else
-    grep -q "^KAGGLE_USERNAME=" .env || echo "KAGGLE_USERNAME=xxxxxxxxxxxxxxxx" >> .env
-    grep -q "^KAGGLE_KEY=" .env    || echo "KAGGLE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" >> .env
-  fi
+  touch .env
+  grep -q "^KAGGLE_API_TOKEN=" .env || echo "KAGGLE_API_TOKEN=xxxxxxxxxxxxxxxx" >> .env
 fi
 ```
 
@@ -78,18 +76,15 @@ If `KAGGLE_CREDS_OK` is false, display:
 ```
 Kaggle credentials not configured.
 
-A .env file has been created (or updated) with placeholder values:
+.env now has a placeholder line:  KAGGLE_API_TOKEN=xxxxxxxxxxxxxxxx
 
-  KAGGLE_USERNAME=xxxxxxxxxxxxxxxx
-  KAGGLE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-To fill them in:
-1. Go to https://www.kaggle.com → Account → API → Create New API Token
-2. Open the downloaded kaggle.json — it contains "username" and "key"
-3. Replace the xxxxxxxxxxxxxxxx values in .env with your actual username and key
-4. Restart the container so it picks up the new credentials:
+To fill it in:
+1. Go to https://www.kaggle.com/settings → API → Generate New Token
+2. Replace xxxxxxxxxxxxxxxx in .env with the token
+   (Legacy alternative: put KAGGLE_USERNAME=... and KAGGLE_KEY=... from kaggle.json in .env instead)
+3. Restart the container so it picks up the new credentials:
      docker compose down && docker compose up -d
-5. Re-run /doml-get-data kaggle owner/dataset-name once the container is back up
+4. Re-run /doml-get-data kaggle owner/dataset-name once the container is back up
 ```
 
 Then stop.
@@ -99,14 +94,14 @@ Then stop.
 ### Step 2 — Check Docker is running
 
 ```bash
-if ! docker compose ps --services --filter status=running 2>/dev/null | grep -q jupyter; then
+if ! docker compose ps --services --filter status=running 2>/dev/null | grep -q doml; then
   echo "Error: The DoML Docker container is not running."
   echo "Start it with: docker compose up -d"
   exit 1
 fi
 
 # Get container ID (first instance only — handles scaled services gracefully)
-CONTAINER_ID=$(docker compose ps -q jupyter | head -1)
+CONTAINER_ID=$(docker compose ps -q doml | head -1)
 ```
 
 If the container is not running, display:
@@ -135,31 +130,24 @@ mkdir -p ./data/raw/.stage
 #### Step 4a — Verify Kaggle credentials inside container
 
 ```bash
-docker compose exec jupyter bash -c '
-  if [ -z "$KAGGLE_USERNAME" ] || [ -z "$KAGGLE_KEY" ]; then
+docker compose exec -T doml bash -c '
+  if [ -n "$KAGGLE_API_TOKEN" ] || { [ -n "$KAGGLE_USERNAME" ] && [ -n "$KAGGLE_KEY" ]; } \
+     || [ -f "$HOME/.kaggle/kaggle.json" ] || [ -f "$HOME/.kaggle/access_token" ]; then
+    echo "CREDS_OK"
+  else
     echo "MISSING_KAGGLE_CREDS"
     exit 1
   fi
-  echo "CREDS_OK"
 '
 ```
 
-If the output contains `MISSING_KAGGLE_CREDS`, display:
+If the output contains `MISSING_KAGGLE_CREDS`, the variables are in `.env` but the container was started
+before they were added. Display:
 
 ```
-Kaggle credentials are not set. To fix this:
-
-1. Go to https://www.kaggle.com → Account → API → Create New API Token
-2. The downloaded JSON file contains "username" and "key" values
-3. Add these to docker-compose.yml under the jupyter service's environment block:
-     - KAGGLE_USERNAME=your_username_here
-     - KAGGLE_KEY=your_key_here
-   Or create a .env file in the project root with:
-     KAGGLE_USERNAME=your_username_here
-     KAGGLE_KEY=your_key_here
-4. Restart the container so the new env vars take effect:
+Kaggle credentials are not visible inside the container. Restart it so compose passes them in:
      docker compose down && docker compose up -d
-   (Note: a running container does not pick up .env changes without restart)
+(A running container does not pick up .env changes without a restart.)
 ```
 
 Then stop.
@@ -168,10 +156,10 @@ Then stop.
 
 ```bash
 # Clean in-container staging dir first
-docker compose exec jupyter bash -c "rm -rf /tmp/doml-stage && mkdir -p /tmp/doml-stage"
+docker compose exec -T doml bash -c "rm -rf /tmp/doml-stage && mkdir -p /tmp/doml-stage"
 
 # Download and unzip (--unzip handles the outer ZIP; nested ZIPs handled below)
-docker compose exec jupyter bash -c "
+docker compose exec -T doml bash -c "
   kaggle datasets download -d '${SLUG}' -p /tmp/doml-stage --unzip --quiet
 "
 ```
@@ -179,10 +167,10 @@ docker compose exec jupyter bash -c "
 After extraction, check for nested ZIPs (kaggle --unzip only extracts one level):
 
 ```bash
-docker compose exec jupyter bash -c "
+docker compose exec -T doml bash -c "
   find /tmp/doml-stage -name '*.zip' | while read z; do
     echo \"Extracting nested ZIP: \$z\"
-    unzip -q \"\$z\" -d \"\$(dirname \$z)/\"
+    python -m zipfile -e \"\$z\" \"\$(dirname \$z)/\"
     rm \"\$z\"
   done
 "
@@ -201,7 +189,7 @@ Always use the `/.` suffix to copy contents only.
 #### Step 4d — Clean up in-container staging dir
 
 ```bash
-docker compose exec jupyter bash -c "rm -rf /tmp/doml-stage"
+docker compose exec -T doml bash -c "rm -rf /tmp/doml-stage"
 ```
 
 Skip to Step 6.

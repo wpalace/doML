@@ -15,8 +15,8 @@ allowed-tools:
 Run the DoML Modelling phase end-to-end for any problem type:
 
 Supervised (regression / classification):
-1. Copy and execute preprocessing notebook (notebooks/03_preprocessing.ipynb)
-2. Copy and execute modelling notebook (notebooks/04_modelling_{type}_v{N}.ipynb)
+1. Copy and execute preprocessing notebook (notebooks/03_preprocessing.py)
+2. Copy and execute modelling notebook (notebooks/04_modelling_{type}_v{N}.py)
 3. Write interpretation cell and executive narrative
 4. Generate reports/model_report.html
 

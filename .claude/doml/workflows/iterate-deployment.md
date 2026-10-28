@@ -373,8 +373,8 @@ before delegating.
 #### 12a — Copy notebook template
 
 ```bash
-cp .claude/doml/templates/notebooks/deployment_report.ipynb notebooks/deployment_report.ipynb
-echo "Notebook template copied to notebooks/deployment_report.ipynb"
+cp .claude/doml/templates/notebooks/deployment_report.py notebooks/deployment_report.py
+echo "Notebook template copied to notebooks/deployment_report.py"
 ```
 
 #### 12b — Web service only: start container and set URL
@@ -383,7 +383,7 @@ If `TARGET_KEY == 'web_service'`:
 
 ```bash
 # Start the FastAPI container
-docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" up -d
+docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" up -d --build
 
 # Poll GET /health with 30s timeout (1s intervals) until 200
 python3 -c "
@@ -407,7 +407,9 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-DOML_WEB_SERVICE_URL="http://localhost:8080"
+# The report runs inside the doml container, where localhost is the container itself.
+# compose.yaml maps host.docker.internal to the host, where the serve container publishes 8080.
+DOML_WEB_SERVICE_URL="http://host.docker.internal:8080"
 echo "Web service URL: $DOML_WEB_SERVICE_URL"
 ```
 
@@ -419,25 +421,64 @@ DOML_WEB_SERVICE_URL=""
 #### 12c — Execute notebook inside Docker
 
 ```bash
-docker compose exec \
-  -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" \
-  jupyter \
-  jupyter nbconvert \
-    --to notebook \
-    --execute \
-    --inplace \
-    --timeout=900 \
-    notebooks/deployment_report.ipynb
+docker compose exec -T \
+  -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
+  --report reports/deployment_report.html --timeout 900
 ```
 
 If this command exits non-zero, the parity test or another cell raised an error. Display:
 ```
-Notebook execution FAILED. Check notebooks/deployment_report.ipynb for the error cell.
+Notebook execution FAILED. Check notebooks/deployment_report.py for the error cell.
 Parity test may have failed — review the AssertionError message in the notebook output.
 ```
-Then stop (do not generate HTML from a failed execution).
+Then stop the web service (if started) and stop.
 
-#### 12d — Web service only: stop container
+#### 12d — Read benchmark results from the exported report
+
+marimo notebooks do not store outputs. Read them from the exported report instead:
+
+```bash
+python3 .claude/doml/bin/doml_nb.py outputs reports/deployment_report.html --max-chars 3000
+```
+
+Call this text `benchmark_summary`.
+
+#### 12e — Write Claude narrative (Performance Summary sidecar)
+
+Claude Code reads `benchmark_summary` from 12d and writes a 2-3 paragraph narrative
+summarising the key findings: latency (mean ± std, p95), batch throughput at each batch size,
+memory footprint (model load + per-prediction), projected throughput (req/s), and parity outcome.
+
+The narrative must mention the target type and note that ONNX results are an approximation
+(if target is onnx_wasm).
+
+The notebook's "Performance Summary" cell renders the sidecar file
+`notebooks/narratives/deployment_report/performance.md`:
+
+```bash
+cat > /tmp/doml_performance.md <<'DOML_EOF'
+## Performance Summary
+
+{NARRATIVE_WRITTEN_BY_CLAUDE}
+DOML_EOF
+python3 .claude/doml/bin/doml_nb.py narrative notebooks/deployment_report.py performance /tmp/doml_performance.md
+```
+
+Replace `{NARRATIVE_WRITTEN_BY_CLAUDE}` with the actual 2-3 paragraph narrative text first.
+
+#### 12f — Re-export the HTML report with the narrative
+
+The web service must still be running for the web target (the notebook benchmarks it again).
+
+```bash
+docker compose exec -T \
+  -e DOML_WEB_SERVICE_URL="${DOML_WEB_SERVICE_URL}" doml \
+  python .claude/doml/bin/doml_nb.py run notebooks/deployment_report.py \
+  --report reports/deployment_report.html --timeout 900
+```
+
+#### 12g — Web service only: stop container
 
 If `TARGET_KEY == 'web_service'`:
 
@@ -446,108 +487,19 @@ docker compose -f "src/${MODEL_SLUG}/v${VERSION}/docker-compose.serve.yml" down
 echo "Web service container stopped."
 ```
 
-#### 12e — Read benchmark results from executed notebook
-
-```python
-import json, nbformat
-from pathlib import Path
-
-nb_path = Path('notebooks/deployment_report.ipynb')
-nb = nbformat.read(str(nb_path), as_version=4)
-
-# Extract plain-text outputs from all code cells
-benchmark_outputs = []
-for i, cell in enumerate(nb.cells):
-    if cell.cell_type == 'code':
-        for output in cell.get('outputs', []):
-            if output.get('output_type') == 'stream':
-                benchmark_outputs.append(f"[Cell {i}] " + ''.join(output.get('text', [])))
-            elif output.get('output_type') in ('execute_result', 'display_data'):
-                data = output.get('data', {})
-                if 'text/plain' in data:
-                    benchmark_outputs.append(f"[Cell {i}] " + ''.join(data['text/plain']))
-
-benchmark_summary = '\n'.join(benchmark_outputs)
-print(benchmark_summary[:3000])  # show first 3000 chars for context
-```
-
-#### 12f — Write Claude narrative and inject into Cell 12
-
-Claude Code reads `benchmark_summary` from 12e and writes a 2-3 paragraph narrative
-summarising the key findings: latency (mean ± std, p95), batch throughput at each batch size,
-memory footprint (model load + per-prediction), projected throughput (req/s), and parity outcome.
-
-The narrative must mention the target type and note that ONNX results are an approximation
-(if target is onnx_wasm).
-
-If GUIDANCE was provided, the narrative should also reference the guidance intent and comment
-on whether the benchmark results reflect the requested optimisation direction.
-
-Inject the narrative into the notebook by replacing Cell 12 (the placeholder markdown cell):
-
-```python
-import nbformat
-from pathlib import Path
-
-nb_path = Path('notebooks/deployment_report.ipynb')
-nb = nbformat.read(str(nb_path), as_version=4)
-
-# Locate Cell 12 (index 12 — the placeholder markdown)
-placeholder = nb.cells[12]
-assert placeholder['cell_type'] == 'markdown', \
-    f"Expected Cell 12 to be markdown placeholder, got {placeholder['cell_type']}"
-
-narrative_text = """## Performance Summary
-
-{NARRATIVE_WRITTEN_BY_CLAUDE}
-"""
-
-placeholder['source'] = narrative_text
-nbformat.write(nb, str(nb_path))
-print("Narrative injected into Cell 12 of notebooks/deployment_report.ipynb")
-```
-
-Replace `{NARRATIVE_WRITTEN_BY_CLAUDE}` with the actual 2-3 paragraph narrative text
-before running the script.
-
-#### 12g — Generate HTML report
+#### 12h — Verify: no visible code, no cell errors
 
 ```bash
-docker compose exec jupyter \
-  jupyter nbconvert \
-    --to html \
-    --no-input \
-    --output deployment_report \
-    notebooks/deployment_report.ipynb
+python3 .claude/doml/bin/doml_nb.py verify-report reports/deployment_report.html --require "Performance Summary"
 ```
 
-#### 12h — Move HTML to reports/
-
-```bash
-mkdir -p reports
-cp notebooks/deployment_report.html reports/deployment_report.html
-echo "HTML report copied to reports/deployment_report.html"
-```
-
-#### 12i — Verify: no visible code in HTML
-
-```bash
-INPUT_COUNT=$(grep -c 'class="input"' reports/deployment_report.html 2>/dev/null || echo "0")
-if [ "$INPUT_COUNT" -gt 0 ]; then
-  echo "WARNING: HTML may contain visible code cells (found $INPUT_COUNT 'class=\"input\"' occurrences)."
-  echo "Verify reports/deployment_report.html manually."
-else
-  echo "HTML verification passed: no visible code cells (class=\"input\" count = 0)."
-fi
-```
-
-#### 12j — Confirm
+#### 12i — Confirm
 
 Display:
 ```
 Performance report generated.
 
-  Notebook:  notebooks/deployment_report.ipynb
+  Notebook:  notebooks/deployment_report.py
   Report:    reports/deployment_report.html
 
 Open reports/deployment_report.html to review benchmark results and narrative.
@@ -557,7 +509,7 @@ Open reports/deployment_report.html to review benchmark results and narrative.
 
 **Anti-Pattern addendum (Step 12 only):**
 Step 12 is the sole exception to the "NEVER run Docker" rule — it must execute the notebook and
-generate HTML inside the jupyter container. All other steps remain pure file I/O.
+export HTML inside the doml container. All other steps remain pure file I/O.
 
 ---
 
@@ -594,4 +546,4 @@ New version:      src/{MODEL_SLUG}/v{VERSION}/
 - NEVER shell-interpolate GUIDANCE in shell commands — only pass to Python as heredoc string or via sys.argv
 - NEVER modify deploy-model.md — iterate-deployment.md is a standalone workflow (D-05)
 - NEVER run Docker outside Step 12 — all other steps are pure file I/O
-- Step 12 is the sole exception to the "NEVER run Docker" rule — it must execute the notebook and generate HTML inside the jupyter container. All other steps remain pure file I/O.
+- Step 12 is the sole exception to the "NEVER run Docker" rule — it must execute the notebook and generate HTML inside the doml container. All other steps remain pure file I/O.

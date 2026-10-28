@@ -10,6 +10,9 @@
 #   claude  (default) — installs .claude/ tree, CLAUDE.md, data/ dirs
 #   copilot           — installs .github/skills/, .github/doml/workflows/, .github/copilot-instructions.md, AGENTS.md, data/ dirs
 #
+# DOML_SOURCE_DIR=/path/to/doML  — install from a local checkout instead of downloading
+#                                  (used by tests/run_all.sh; no network needed).
+#
 # Installs the DoML framework into the current working directory.
 # Run from an empty project directory before opening your AI coding assistant.
 
@@ -65,27 +68,32 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# ── Download ──────────────────────────────────────────────────────────────────
+if [[ -n "${DOML_SOURCE_DIR:-}" ]]; then
+    SRC="$(cd "$DOML_SOURCE_DIR" && pwd)"
+    echo "Installing DoML framework from local source: $SRC"
+else
+    # ── Download ──────────────────────────────────────────────────────────────
 
-echo "Downloading DoML framework..."
-if ! curl -fsSL --output "$TMPDIR/doml.tar.gz" "$ARCHIVE_URL"; then
-    echo "ERROR: Failed to download DoML archive." >&2
-    echo "       URL: $ARCHIVE_URL" >&2
-    echo "       Check your internet connection and that the VERSION tag exists on GitHub." >&2
-    exit 1
-fi
-echo "Download complete."
+    echo "Downloading DoML framework..."
+    if ! curl -fsSL --output "$TMPDIR/doml.tar.gz" "$ARCHIVE_URL"; then
+        echo "ERROR: Failed to download DoML archive." >&2
+        echo "       URL: $ARCHIVE_URL" >&2
+        echo "       Check your internet connection and that the VERSION tag exists on GitHub." >&2
+        exit 1
+    fi
+    echo "Download complete."
 
-# ── Extract ───────────────────────────────────────────────────────────────────
+    # ── Extract ───────────────────────────────────────────────────────────────
 
-echo "Extracting archive..."
-tar -xzf "$TMPDIR/doml.tar.gz" -C "$TMPDIR"
-SRC="$TMPDIR/$ARCHIVE_ROOT"
+    echo "Extracting archive..."
+    tar -xzf "$TMPDIR/doml.tar.gz" -C "$TMPDIR"
+    SRC="$TMPDIR/$ARCHIVE_ROOT"
 
-if [[ ! -d "$SRC" ]]; then
-    echo "ERROR: Expected archive root '$ARCHIVE_ROOT' not found after extraction." >&2
-    echo "       Archive contents: $(ls "$TMPDIR")" >&2
-    exit 1
+    if [[ ! -d "$SRC" ]]; then
+        echo "ERROR: Expected archive root '$ARCHIVE_ROOT' not found after extraction." >&2
+        echo "       Archive contents: $(ls "$TMPDIR")" >&2
+        exit 1
+    fi
 fi
 
 # ── Install (target-specific) ─────────────────────────────────────────────────
@@ -99,7 +107,8 @@ if [[ "$TARGET" == "copilot" ]]; then
         skill_name="$(basename "$skill_src_dir")"
         dest_dir=".github/skills/${skill_name}"
         mkdir -p "$dest_dir"
-        sed 's|@\.claude/doml/workflows/|.github/doml/workflows/|g' \
+        sed -e 's|@\.claude/doml/workflows/|.github/doml/workflows/|g' \
+            -e 's|\.claude/doml/|.github/doml/|g' \
             "${skill_src_dir}SKILL.md" > "${dest_dir}/SKILL.md"
     done
     echo "  Skills installed to .github/skills/."
@@ -109,7 +118,7 @@ if [[ "$TARGET" == "copilot" ]]; then
     mkdir -p ".github/doml/workflows"
     for wf_src in "$SRC/.claude/doml/workflows/"*.md; do
         wf_name="$(basename "$wf_src")"
-        sed 's|\.claude/doml/templates/|.github/doml/templates/|g' \
+        sed 's|\.claude/doml/|.github/doml/|g' \
             "$wf_src" > ".github/doml/workflows/${wf_name}"
     done
     echo "  Workflows installed to .github/doml/workflows/."
@@ -120,9 +129,14 @@ if [[ "$TARGET" == "copilot" ]]; then
     cp -r "$SRC/.claude/doml/templates/." ".github/doml/templates/"
     echo "  Templates installed to .github/doml/templates/."
 
+    # Notebook helper (doml_nb.py) → .github/doml/bin/
+    mkdir -p ".github/doml/bin"
+    cp "$SRC/.claude/doml/bin/"*.py ".github/doml/bin/"
+    echo "  Helper installed to .github/doml/bin/."
+
     # CLAUDE.md → .github/copilot-instructions.md (D-04)
     echo "Installing Copilot instructions..."
-    cp "$SRC/CLAUDE.md" ".github/copilot-instructions.md"
+    sed 's|\.claude/doml/|.github/doml/|g' "$SRC/CLAUDE.md" > ".github/copilot-instructions.md"
     echo "  .github/copilot-instructions.md installed."
 
     # AGENTS.md (D-05, D-08)
@@ -132,13 +146,13 @@ if [[ "$TARGET" == "copilot" ]]; then
         echo "       Expected: ${SRC}/AGENTS.md" >&2
         exit 1
     fi
-    cp "$SRC/AGENTS.md" "AGENTS.md"
+    sed 's|\.claude/doml/|.github/doml/|g' "$SRC/AGENTS.md" > "AGENTS.md"
     echo "  AGENTS.md installed."
 
     # Data dirs (never delete contents)
     echo "Creating data directories..."
-    mkdir -p "data/raw" "data/processed" "data/external"
-    echo "  data/raw/, data/processed/, data/external/ ready."
+    mkdir -p "data/raw" "data/processed" "data/external" "notebooks" "reports" "models" "src"
+    echo "  data/raw/, data/processed/, data/external/, notebooks/, reports/, models/, src/ ready."
 
     echo ""
     echo "DoML framework installed successfully (copilot target)."
@@ -176,14 +190,19 @@ else
     cp -r "$SRC/.claude/doml/templates/." ".claude/doml/templates/"
     echo "  Templates installed."
 
+    # Notebook helper (always overwrite)
+    mkdir -p ".claude/doml/bin"
+    cp "$SRC/.claude/doml/bin/"*.py ".claude/doml/bin/"
+    echo "  Helper installed to .claude/doml/bin/."
+
     # CLAUDE.md (D-06: always overwrite — no skip)
     cp "$SRC/CLAUDE.md" "CLAUDE.md"
     echo "  CLAUDE.md installed."
 
     # Data dirs (never delete contents)
     echo "Creating data directories..."
-    mkdir -p "data/raw" "data/processed" "data/external"
-    echo "  data/raw/, data/processed/, data/external/ ready."
+    mkdir -p "data/raw" "data/processed" "data/external" "notebooks" "reports" "models" "src"
+    echo "  data/raw/, data/processed/, data/external/, notebooks/, reports/, models/, src/ ready."
 
     echo ""
     echo "DoML framework installed successfully."
