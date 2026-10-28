@@ -30,7 +30,38 @@ def _(mo):
     NB_STEM = _Path(__file__).stem
     _m = _re.search(r"_(v\d+)$", NB_STEM)
     NB_VERSION = _m.group(1) if _m else "v1"
-    return (narrative,)
+    # Scrollable tables: marimo embeds only the first page (10 rows) of a table in
+    # static HTML exports. table() embeds every row (up to max_rows) in a
+    # vertically scrollable box; horizontal scrolling still works.
+    def table(obj, max_rows=1000, max_height=480):
+        try:
+            import pandas as _pd
+        except ImportError:
+            return obj
+        if type(obj).__name__ == "Styler":
+            obj = obj.data
+        if isinstance(obj, _pd.Series):
+            obj = obj.to_frame()
+        if not isinstance(obj, _pd.DataFrame):
+            return obj
+        _n = len(obj)
+        _shown = obj.head(max_rows)
+        _t = mo.ui.table(
+            _shown,
+            pagination=False,
+            page_size=max(len(_shown), 1),
+            selection=None,
+            max_height=max_height,
+        )
+        if _n > max_rows:
+            return mo.vstack([
+                _t,
+                mo.md(f"*Showing the first {max_rows:,} of {_n:,} rows. "
+                      f"The full data is in the source file; it is not embedded in this report.*"),
+            ])
+        return _t
+
+    return (narrative, table,)
 
 
 @app.cell(hide_code=True)
@@ -119,7 +150,7 @@ def _(Path, json, mo, os):
 
 
 @app.cell
-def _(PROJECT_ROOT, mo, pd):
+def _(PROJECT_ROOT, mo, pd, table):
     with mo.redirect_stdout():
         # Load the cleaned dataset produced by Phase 5 (EDA)
         # data/processed/ is writable — this is the correct input source
@@ -144,7 +175,7 @@ def _(PROJECT_ROOT, mo, pd):
             df = pd.read_csv(input_file)
 
         print(f"Shape: {df.shape[0]:,} rows \u00d7 {df.shape[1]} columns")
-        mo.output.append(df.head(3))
+        mo.output.append(table(df.head(3)))
     return df, input_file, processed_dir
 
 
@@ -161,7 +192,7 @@ def _(mo):
 
 
 @app.cell
-def _(df, mo, pd):
+def _(df, mo, pd, table):
     with mo.redirect_stdout():
         missing = df.isnull().sum()
         missing_pct = (missing / len(df) * 100).round(2)
@@ -175,7 +206,7 @@ def _(df, mo, pd):
         categorical_missing = [c for c in categorical_cols if c in missing_df.index]
 
         print("Columns with missing values:")
-        mo.output.append(missing_df)
+        mo.output.append(table(missing_df))
         print(f"\nNumeric with missing: {numeric_missing}")
         print(f"Categorical with missing: {categorical_missing}")
     return categorical_cols, categorical_missing, missing_pct, numeric_missing
@@ -262,7 +293,7 @@ def _(mo):
 
 
 @app.cell
-def _(categorical_cols, df, mo, pd):
+def _(categorical_cols, df, mo, pd, table):
     with mo.redirect_stdout():
         if categorical_cols:
             cardinality = df[categorical_cols].nunique().sort_values()
@@ -271,7 +302,7 @@ def _(categorical_cols, df, mo, pd):
                 'strategy': ['OneHotEncoder' if n <= 10 else 'OrdinalEncoder (high cardinality)'
                              for n in cardinality]
             })
-            mo.output.append(cardinality_df)
+            mo.output.append(table(cardinality_df))
 
             low_card = [c for c in categorical_cols if df[c].nunique() <= 10]
             high_card = [c for c in categorical_cols if df[c].nunique() > 10]
@@ -310,7 +341,7 @@ def _(mo):
 
 
 @app.cell
-def _(RobustScaler, StandardScaler, config, df, mo, pd, plt):
+def _(RobustScaler, StandardScaler, config, df, mo, pd, plt, table):
     with mo.redirect_stdout():
         numeric_all = df.select_dtypes(include='number').columns.tolist()
         # Exclude target if present
@@ -339,8 +370,8 @@ def _(RobustScaler, StandardScaler, config, df, mo, pd, plt):
         elif numeric_features:
             print(f"{len(numeric_features)} numeric features \u2014 displaying summary statistics instead of boxplots.")
             print("\nStandardScaler result summary:")
-            mo.output.append(pd.DataFrame(StandardScaler().fit_transform(df[numeric_features].dropna()),
-                                 columns=numeric_features).describe().round(3))
+            mo.output.append(table(pd.DataFrame(StandardScaler().fit_transform(df[numeric_features].dropna()),
+                                 columns=numeric_features).describe().round(3)))
         else:
             print("No numeric features to scale.")
     return TARGET, numeric_features
@@ -389,7 +420,7 @@ def _(df, mo, np, numeric_features, pd):
 
 
 @app.cell
-def _(
+def _(table, 
     SEED,
     TARGET,
     df,
@@ -423,7 +454,7 @@ def _(
             _ax.invert_yaxis()
             plt.tight_layout()
             mo.output.append(plt.gcf()); plt.close()
-            mo.output.append(importance_df)
+            mo.output.append(table(importance_df))
         else:
             print("TARGET not set in config.json \u2014 skipping importance ranking.")
             print("Set config['target_column'] in .planning/config.json to enable this section.")
@@ -431,7 +462,7 @@ def _(
 
 
 @app.cell
-def _(df, mo, numeric_features, pd, problem_type, variance_inflation_factor):
+def _(df, mo, numeric_features, pd, problem_type, variance_inflation_factor, table):
     with mo.redirect_stdout():
         if problem_type == 'regression' and len(numeric_features) >= 2:
             X_vif = df[numeric_features].dropna()
@@ -445,7 +476,7 @@ def _(df, mo, numeric_features, pd, problem_type, variance_inflation_factor):
             print("  VIF > 10: high multicollinearity (consider dropping or combining)")
             print("  VIF 5\u201310: moderate (monitor)")
             print("  VIF < 5:  acceptable")
-            mo.output.append(vif_data.round(2))
+            mo.output.append(table(vif_data.round(2)))
 
             high_vif = vif_data[vif_data['VIF'] > 10]
             if not high_vif.empty:
@@ -558,7 +589,7 @@ def _(
 
 
 @app.cell
-def _(
+def _(table, 
     PROJECT_ROOT,
     TARGET,
     df_model,
@@ -600,7 +631,7 @@ def _(
 
         print(f"Preprocessed dataset written to: {output_path.relative_to(PROJECT_ROOT)}")
         print(f"Shape: {df_preprocessed.shape[0]:,} rows \u00d7 {df_preprocessed.shape[1]} columns")
-        mo.output.append(df_preprocessed.head(3))
+        mo.output.append(table(df_preprocessed.head(3)))
     return df_preprocessed, output_path
 
 

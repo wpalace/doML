@@ -30,7 +30,38 @@ def _(mo):
     NB_STEM = _Path(__file__).stem
     _m = _re.search(r"_(v\d+)$", NB_STEM)
     NB_VERSION = _m.group(1) if _m else "v1"
-    return (narrative,)
+    # Scrollable tables: marimo embeds only the first page (10 rows) of a table in
+    # static HTML exports. table() embeds every row (up to max_rows) in a
+    # vertically scrollable box; horizontal scrolling still works.
+    def table(obj, max_rows=1000, max_height=480):
+        try:
+            import pandas as _pd
+        except ImportError:
+            return obj
+        if type(obj).__name__ == "Styler":
+            obj = obj.data
+        if isinstance(obj, _pd.Series):
+            obj = obj.to_frame()
+        if not isinstance(obj, _pd.DataFrame):
+            return obj
+        _n = len(obj)
+        _shown = obj.head(max_rows)
+        _t = mo.ui.table(
+            _shown,
+            pagination=False,
+            page_size=max(len(_shown), 1),
+            selection=None,
+            max_height=max_height,
+        )
+        if _n > max_rows:
+            return mo.vstack([
+                _t,
+                mo.md(f"*Showing the first {max_rows:,} of {_n:,} rows. "
+                      f"The full data is in the source file; it is not embedded in this report.*"),
+            ])
+        return _t
+
+    return (narrative, table,)
 
 
 @app.cell(hide_code=True)
@@ -162,7 +193,7 @@ def _(mo):
 
 
 @app.cell
-def _(df_full, mo, pd):
+def _(df_full, mo, pd, table):
     with mo.redirect_stdout():
         mo.output.append(mo.md("### Tidy Validation"))
         issues = []
@@ -171,7 +202,7 @@ def _(df_full, mo, pd):
         dup_count = df_full.duplicated().sum()
         if dup_count > 0:
             mo.output.append(mo.md(f"**[VIOLATION] Duplicate rows: {dup_count} exact duplicates**"))
-            mo.output.append(df_full[df_full.duplicated(keep=False)].head(3))
+            mo.output.append(table(df_full[df_full.duplicated(keep=False)].head(3)))
             issues.append(f"Duplicate rows ({dup_count}) — consider df.drop_duplicates() before modelling")
         else:
             print("✓ No duplicate rows")
@@ -187,7 +218,7 @@ def _(df_full, mo, pd):
                 multi_cols.append({'column': col, 'pct_multi_value': round(pct * 100, 1)})
         if multi_cols:
             mo.output.append(mo.md("**[VIOLATION] Multi-value cells (>5% contain comma/semicolon/pipe):**"))
-            mo.output.append(pd.DataFrame(multi_cols))
+            mo.output.append(table(pd.DataFrame(multi_cols)))
             issues.append(f"Multi-value columns: {[r['column'] for r in multi_cols]}")
         else:
             print("✓ No multi-value cells detected")
@@ -355,7 +386,7 @@ def _(X, df, mo, np, plt):
 
 
 @app.cell
-def _(X, df, eps_heuristic, min_samples, mo, pd):
+def _(X, df, eps_heuristic, min_samples, mo, pd, table):
     with mo.redirect_stdout():
         from sklearn.cluster import DBSCAN
 
@@ -370,7 +401,7 @@ def _(X, df, eps_heuristic, min_samples, mo, pd):
         # Cluster distribution
         label_counts = pd.Series(dbscan_labels).value_counts().sort_index()
         mo.output.append(mo.md("**DBSCAN label distribution:**"))
-        mo.output.append(label_counts.rename('count').rename_axis('label').reset_index())
+        mo.output.append(table(label_counts.rename('count').rename_axis('label').reset_index()))
     return (dbscan_labels,)
 
 
@@ -387,7 +418,7 @@ def _(mo):
 
 
 @app.cell
-def _(dbscan_labels, if_labels, if_scores, lof_labels, lof_scores, mo, pd):
+def _(dbscan_labels, if_labels, if_scores, lof_labels, lof_scores, mo, pd, table):
     with mo.redirect_stdout():
         results_df = pd.DataFrame({
             'isolation_forest_score': if_scores,    # lower = more anomalous
@@ -414,7 +445,7 @@ def _(dbscan_labels, if_labels, if_scores, lof_labels, lof_scores, mo, pd):
         top_anomalies = results_df[results_df['anomaly_flag'] == 1].sort_values('votes', ascending=False).head(10)
         if len(top_anomalies) > 0:
             mo.output.append(mo.md("**Top consensus anomalies (showing index, scores, flag):**"))
-            mo.output.append(top_anomalies[['isolation_forest_score', 'lof_score', 'dbscan_label', 'votes', 'anomaly_flag']].round(4))
+            mo.output.append(table(top_anomalies[['isolation_forest_score', 'lof_score', 'dbscan_label', 'votes', 'anomaly_flag']].round(4)))
     return (results_df,)
 
 

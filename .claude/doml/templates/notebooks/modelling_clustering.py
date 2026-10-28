@@ -30,7 +30,38 @@ def _(mo):
     NB_STEM = _Path(__file__).stem
     _m = _re.search(r"_(v\d+)$", NB_STEM)
     NB_VERSION = _m.group(1) if _m else "v1"
-    return NB_VERSION, narrative
+    # Scrollable tables: marimo embeds only the first page (10 rows) of a table in
+    # static HTML exports. table() embeds every row (up to max_rows) in a
+    # vertically scrollable box; horizontal scrolling still works.
+    def table(obj, max_rows=1000, max_height=480):
+        try:
+            import pandas as _pd
+        except ImportError:
+            return obj
+        if type(obj).__name__ == "Styler":
+            obj = obj.data
+        if isinstance(obj, _pd.Series):
+            obj = obj.to_frame()
+        if not isinstance(obj, _pd.DataFrame):
+            return obj
+        _n = len(obj)
+        _shown = obj.head(max_rows)
+        _t = mo.ui.table(
+            _shown,
+            pagination=False,
+            page_size=max(len(_shown), 1),
+            selection=None,
+            max_height=max_height,
+        )
+        if _n > max_rows:
+            return mo.vstack([
+                _t,
+                mo.md(f"*Showing the first {max_rows:,} of {_n:,} rows. "
+                      f"The full data is in the source file; it is not embedded in this report.*"),
+            ])
+        return _t
+
+    return (NB_VERSION, narrative, table,)
 
 
 @app.cell(hide_code=True)
@@ -123,7 +154,7 @@ def _(Path, json, mo, os):
 
 
 @app.cell
-def _(PROJECT_ROOT, dataset_path, mo, pd):
+def _(PROJECT_ROOT, dataset_path, mo, pd, table):
     with mo.redirect_stdout():
         # Load preprocessed data (output of Phase 6a preprocessing notebook)
         # Falls back to raw data with a warning if preprocessed file not found
@@ -145,7 +176,7 @@ def _(PROJECT_ROOT, dataset_path, mo, pd):
             df_raw = pd.read_csv(raw_path)
 
         print(f"Shape: {df_raw.shape}")
-        mo.output.append(df_raw.head())
+        mo.output.append(table(df_raw.head()))
     return (df_raw,)
 
 

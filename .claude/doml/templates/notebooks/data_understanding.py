@@ -30,7 +30,38 @@ def _(mo):
     NB_STEM = _Path(__file__).stem
     _m = _re.search(r"_(v\d+)$", NB_STEM)
     NB_VERSION = _m.group(1) if _m else "v1"
-    return (narrative,)
+    # Scrollable tables: marimo embeds only the first page (10 rows) of a table in
+    # static HTML exports. table() embeds every row (up to max_rows) in a
+    # vertically scrollable box; horizontal scrolling still works.
+    def table(obj, max_rows=1000, max_height=480):
+        try:
+            import pandas as _pd
+        except ImportError:
+            return obj
+        if type(obj).__name__ == "Styler":
+            obj = obj.data
+        if isinstance(obj, _pd.Series):
+            obj = obj.to_frame()
+        if not isinstance(obj, _pd.DataFrame):
+            return obj
+        _n = len(obj)
+        _shown = obj.head(max_rows)
+        _t = mo.ui.table(
+            _shown,
+            pagination=False,
+            page_size=max(len(_shown), 1),
+            selection=None,
+            max_height=max_height,
+        )
+        if _n > max_rows:
+            return mo.vstack([
+                _t,
+                mo.md(f"*Showing the first {max_rows:,} of {_n:,} rows. "
+                      f"The full data is in the source file; it is not embedded in this report.*"),
+            ])
+        return _t
+
+    return (narrative, table,)
 
 
 @app.cell(hide_code=True)
@@ -102,7 +133,7 @@ def _(mo):
 
 
 @app.cell
-def _(PROJECT_ROOT, column_names, mo):
+def _(PROJECT_ROOT, column_names, mo, table):
     with mo.redirect_stdout():
         import duckdb
         import pandas as pd
@@ -154,11 +185,11 @@ def _(PROJECT_ROOT, column_names, mo):
             mo.output.append(mo.md(f"### {_path.name}"))
             print(f"Shape: {_row_count:,} rows \u00d7 {len(_cols)} columns")
             mo.output.append(mo.md("**Schema (DuckDB DESCRIBE):**"))
-            mo.output.append(_schema_df[['column_name', 'column_type']].rename(columns={'column_name': 'Column', 'column_type': 'Type'}))
+            mo.output.append(table(_schema_df[['column_name', 'column_type']].rename(columns={'column_name': 'Column', 'column_type': 'Type'})))
             has_nulls = null_df[null_df['null_count'] > 0]
             if len(has_nulls) > 0:
                 mo.output.append(mo.md("**Null counts (columns with nulls only):**"))
-                mo.output.append(has_nulls)
+                mo.output.append(table(has_nulls))
             else:
                 print("\u2713 No null values found")
             print()
@@ -166,7 +197,7 @@ def _(PROJECT_ROOT, column_names, mo):
 
 
 @app.cell
-def _(duckdb, files, get_read_fn, mo):
+def _(duckdb, files, get_read_fn, mo, table):
     # DuckDB SUMMARIZE — canonical schema-and-stats summary per file
     # Returns: column_name, column_type, min, max, approx_unique, avg, std, q25, q50, q75, count, null_percentage
     for _path in files:
@@ -176,12 +207,12 @@ def _(duckdb, files, get_read_fn, mo):
         _con.close()
 
         mo.output.append(mo.md(f"### {_path.name} — DuckDB SUMMARIZE"))
-        mo.output.append(summary_df)
+        mo.output.append(table(summary_df))
     return
 
 
 @app.cell
-def _(duckdb, files, get_read_fn, mo, pd):
+def _(duckdb, files, get_read_fn, mo, pd, table):
     with mo.redirect_stdout():
         NUMERIC_TYPES = {'INTEGER', 'BIGINT', 'DOUBLE', 'FLOAT', 'HUGEINT', 'SMALLINT', 'TINYINT', 'DECIMAL', 'NUMERIC', 'REAL'}
         for _path in files:
@@ -201,12 +232,12 @@ def _(duckdb, files, get_read_fn, mo, pd):
                 rows.append({'column': _c, 'min': stats_wide[f'{_c}__min'].iloc[0], 'max': stats_wide[f'{_c}__max'].iloc[0], 'mean': stats_wide[f'{_c}__avg'].iloc[0], 'std': stats_wide[f'{_c}__std'].iloc[0], 'median': stats_wide[f'{_c}__med'].iloc[0]})
             stats_df = pd.DataFrame(rows).set_index('column').round(4)
             mo.output.append(mo.md(f'### {_path.name} — Numeric Distributions'))
-            mo.output.append(stats_df)
+            mo.output.append(table(stats_df))
     return
 
 
 @app.cell
-def _(duckdb, files, get_read_fn, mo, pd):
+def _(duckdb, files, get_read_fn, mo, pd, table):
     with mo.redirect_stdout():
         for _path in files:
             _con = duckdb.connect()
@@ -223,12 +254,12 @@ def _(duckdb, files, get_read_fn, mo, pd):
                 uniq = _con.execute(f'SELECT COUNT(DISTINCT "{_c}") FROM {_read_fn}').fetchone()[0]
                 results.append({'column': _c, 'unique_count': uniq, 'cardinality_pct': round(uniq / _row_count * 100, 1)})
             mo.output.append(mo.md(f'### {_path.name} — Categorical Columns'))
-            mo.output.append(pd.DataFrame(results))
+            mo.output.append(table(pd.DataFrame(results)))
             low_card = [r['column'] for r in results if r['cardinality_pct'] < 5.0]
             for _c in low_card[:5]:
                 top = _con.execute(f'SELECT "{_c}", COUNT(*) AS freq FROM {_read_fn} GROUP BY "{_c}" ORDER BY freq DESC LIMIT 10').df()
                 mo.output.append(mo.md(f'**Top values — `{_c}`:**'))
-                mo.output.append(top)
+                mo.output.append(table(top))
             _con.close()  # Top 10 values for low-cardinality columns (< 5% of rows)
     return
 
@@ -313,7 +344,7 @@ def _(dfs, mo):
 
 
 @app.cell
-def _(dfs, mo, pd, plt):
+def _(dfs, mo, pd, plt, table):
     from scipy import stats as sp_stats
 
     for _fname, _df in dfs.items():
@@ -355,7 +386,7 @@ def _(dfs, mo, pd, plt):
 
         plt.tight_layout()
         mo.output.append(plt.gcf()); plt.close()
-        mo.output.append(pd.DataFrame(normality_results).set_index('column'))
+        mo.output.append(table(pd.DataFrame(normality_results).set_index('column')))
     return
 
 
@@ -374,7 +405,7 @@ def _(mo):
 
 
 @app.cell
-def _(dfs, mo, np, pd):
+def _(dfs, mo, np, pd, table):
     with mo.redirect_stdout():
         from scipy.stats import chi2_contingency, pointbiserialr
 
@@ -408,7 +439,7 @@ def _(dfs, mo, np, pd):
             if len(_num_df.columns) >= 2:
                 corr_matrix = _num_df.corr(method='pearson')
                 mo.output.append(mo.md("**Pearson Correlation (numeric features):**"))
-                mo.output.append(corr_matrix.round(3))
+                mo.output.append(table(corr_matrix.round(3)))
 
             # Mixed-type correlations
             _cols = _df.columns.tolist()
@@ -440,7 +471,7 @@ def _(dfs, mo, np, pd):
 
             if mixed_results:
                 mo.output.append(mo.md("**Mixed-type correlations:**"))
-                mo.output.append(pd.DataFrame(mixed_results))
+                mo.output.append(table(pd.DataFrame(mixed_results)))
             else:
                 print("No mixed-type column pairs detected (or all numeric \u2014 see Pearson matrix above)")
     return
@@ -662,7 +693,7 @@ def _(mo):
 
 
 @app.cell
-def _(dfs, mo, pd):
+def _(dfs, mo, pd, table):
     with mo.redirect_stdout():
         import re
 
@@ -674,7 +705,7 @@ def _(dfs, mo, pd):
             dup_count = _df.duplicated().sum()
             if dup_count > 0:
                 mo.output.append(mo.md(f"**[VIOLATION] Duplicate rows: {dup_count} exact duplicates**"))
-                mo.output.append(_df[_df.duplicated(keep=False)].head(3))
+                mo.output.append(table(_df[_df.duplicated(keep=False)].head(3)))
                 issues.append(f"Duplicate rows ({dup_count}) \u2014 action: `df.drop_duplicates()` before modelling")
             else:
                 print("\u2713 No duplicate rows")
@@ -690,7 +721,7 @@ def _(dfs, mo, pd):
                     multi_cols.append({'column': _col, 'pct_multi_value': round(_pct * 100, 1)})
             if multi_cols:
                 mo.output.append(mo.md(f"**[VIOLATION] Multi-value cells (>5% contain comma/semicolon/pipe):**"))
-                mo.output.append(pd.DataFrame(multi_cols))
+                mo.output.append(table(pd.DataFrame(multi_cols)))
                 issues.append(f"Multi-value columns: {[r['column'] for r in multi_cols]} \u2014 split into separate rows/columns")
             else:
                 print("\u2713 No multi-value cells detected")

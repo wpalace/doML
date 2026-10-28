@@ -30,7 +30,38 @@ def _(mo):
     NB_STEM = _Path(__file__).stem
     _m = _re.search(r"_(v\d+)$", NB_STEM)
     NB_VERSION = _m.group(1) if _m else "v1"
-    return NB_STEM, NB_VERSION, narrative
+    # Scrollable tables: marimo embeds only the first page (10 rows) of a table in
+    # static HTML exports. table() embeds every row (up to max_rows) in a
+    # vertically scrollable box; horizontal scrolling still works.
+    def table(obj, max_rows=1000, max_height=480):
+        try:
+            import pandas as _pd
+        except ImportError:
+            return obj
+        if type(obj).__name__ == "Styler":
+            obj = obj.data
+        if isinstance(obj, _pd.Series):
+            obj = obj.to_frame()
+        if not isinstance(obj, _pd.DataFrame):
+            return obj
+        _n = len(obj)
+        _shown = obj.head(max_rows)
+        _t = mo.ui.table(
+            _shown,
+            pagination=False,
+            page_size=max(len(_shown), 1),
+            selection=None,
+            max_height=max_height,
+        )
+        if _n > max_rows:
+            return mo.vstack([
+                _t,
+                mo.md(f"*Showing the first {max_rows:,} of {_n:,} rows. "
+                      f"The full data is in the source file; it is not embedded in this report.*"),
+            ])
+        return _t
+
+    return (NB_STEM, NB_VERSION, narrative, table,)
 
 
 @app.cell(hide_code=True)
@@ -250,7 +281,7 @@ def _(mo):
 
 
 @app.cell
-def _(KFold, SEED, X_train, cross_validate, mo, models, n_folds, pd, y_train):
+def _(KFold, SEED, X_train, cross_validate, mo, models, n_folds, pd, y_train, table):
     with mo.redirect_stdout():
         kf = KFold(n_splits=n_folds, shuffle=True, random_state=SEED)
         leaderboard_rows = []
@@ -297,7 +328,7 @@ def _(KFold, SEED, X_train, cross_validate, mo, models, n_folds, pd, y_train):
 
         leaderboard = pd.DataFrame(leaderboard_rows).sort_values('cv_rmse_mean').reset_index(drop=True)
         print("\n--- LEADERBOARD ---")
-        mo.output.append(leaderboard[['model','cv_rmse_mean','cv_rmse_std','cv_mae_mean','cv_r2_mean']])
+        mo.output.append(table(leaderboard[['model','cv_rmse_mean','cv_rmse_std','cv_mae_mean','cv_r2_mean']]))
     return fitted_models, kf, leaderboard, shap_data
 
 
@@ -471,7 +502,7 @@ def _(
 
 
 @app.cell
-def _(
+def _(table, 
     Lasso,
     LinearRegression,
     RandomForestRegressor,
@@ -517,7 +548,7 @@ def _(
         tuned_df = pd.DataFrame(tuned_rows)
         leaderboard_1 = pd.concat([leaderboard, tuned_df], ignore_index=True).sort_values('cv_rmse_mean').reset_index(drop=True)
         print('\n--- UPDATED LEADERBOARD (with tuned) ---')
-        mo.output.append(leaderboard_1[['model', 'cv_rmse_mean', 'note']])
+        mo.output.append(table(leaderboard_1[['model', 'cv_rmse_mean', 'note']]))
     return leaderboard_1, tuned_df, tuned_models
 
 
@@ -534,7 +565,7 @@ def _(mo):
 
 
 @app.cell
-def _(
+def _(table, 
     X_test,
     leaderboard_1,
     mean_absolute_error,
@@ -560,7 +591,7 @@ def _(
         print(f'Test R²:   {test_r2:.4f}')
         test_row = pd.DataFrame([{'model': f'{best_tuned_name} ★ TEST', 'cv_rmse_mean': test_rmse, 'cv_rmse_std': None, 'cv_mae_mean': test_mae, 'cv_r2_mean': test_r2, 'test_score': test_rmse, 'note': 'TEST SET — final evaluation'}])
         leaderboard_2 = pd.concat([leaderboard_1, test_row], ignore_index=True)
-        mo.output.append(leaderboard_2[['model', 'cv_rmse_mean', 'cv_mae_mean', 'cv_r2_mean', 'note']])  # Append test reveal row to leaderboard
+        mo.output.append(table(leaderboard_2[['model', 'cv_rmse_mean', 'cv_mae_mean', 'cv_r2_mean', 'note']]))  # Append test reveal row to leaderboard
     return best_model, best_tuned_name, leaderboard_2, test_rmse
 
 

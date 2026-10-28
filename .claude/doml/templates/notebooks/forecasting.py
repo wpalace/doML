@@ -30,7 +30,38 @@ def _(mo):
     NB_STEM = _Path(__file__).stem
     _m = _re.search(r"_(v\d+)$", NB_STEM)
     NB_VERSION = _m.group(1) if _m else "v1"
-    return NB_STEM, narrative
+    # Scrollable tables: marimo embeds only the first page (10 rows) of a table in
+    # static HTML exports. table() embeds every row (up to max_rows) in a
+    # vertically scrollable box; horizontal scrolling still works.
+    def table(obj, max_rows=1000, max_height=480):
+        try:
+            import pandas as _pd
+        except ImportError:
+            return obj
+        if type(obj).__name__ == "Styler":
+            obj = obj.data
+        if isinstance(obj, _pd.Series):
+            obj = obj.to_frame()
+        if not isinstance(obj, _pd.DataFrame):
+            return obj
+        _n = len(obj)
+        _shown = obj.head(max_rows)
+        _t = mo.ui.table(
+            _shown,
+            pagination=False,
+            page_size=max(len(_shown), 1),
+            selection=None,
+            max_height=max_height,
+        )
+        if _n > max_rows:
+            return mo.vstack([
+                _t,
+                mo.md(f"*Showing the first {max_rows:,} of {_n:,} rows. "
+                      f"The full data is in the source file; it is not embedded in this report.*"),
+            ])
+        return _t
+
+    return (NB_STEM, narrative, table,)
 
 
 @app.cell(hide_code=True)
@@ -803,11 +834,11 @@ def _(mo):
 
 
 @app.cell
-def _(NB_STEM, PROJECT_ROOT, leaderboard_rows, mo, pd):
+def _(NB_STEM, PROJECT_ROOT, leaderboard_rows, mo, pd, table):
     with mo.redirect_stdout():
         leaderboard = pd.DataFrame(leaderboard_rows).sort_values('cv_mae_mean').reset_index(drop=True)
         mo.output.append(mo.md("### CV Leaderboard (ranked by MAE, lower = better)"))
-        mo.output.append(leaderboard[['model', 'cv_mae_mean', 'cv_rmse_mean', 'cv_mape_mean', 'n_splits', 'horizon', 'target']])
+        mo.output.append(table(leaderboard[['model', 'cv_mae_mean', 'cv_rmse_mean', 'cv_mape_mean', 'n_splits', 'horizon', 'target']]))
 
         # Save leaderboard — separate from supervised leaderboard (D-06: models/forecast_leaderboard.csv)
         models_dir = PROJECT_ROOT / 'models'
